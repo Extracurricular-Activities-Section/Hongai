@@ -1,0 +1,8 @@
+{
+  "name": "hong-ai-dream-frontend",
+  "compatibility_date": "2026-09-01",
+  "pages_build_output_dir": "dist",
+  "vars": {
+    "COMMENT": "Public VITE_* vars are set in Cloudflare dashboard — never put secrets here"
+  }
+}

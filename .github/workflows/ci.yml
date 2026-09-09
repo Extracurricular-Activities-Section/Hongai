@@ -1,0 +1,26 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm run build
+      - run: npm run migrate:check
+      - run: npm run security:secrets
+      - run: npm run notification:smoke
+      - run: npm run attachment:smoke
+      - run: npm audit --audit-level=high
+        # Does not connect to production PocketBase or send email

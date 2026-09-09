@@ -1,0 +1,57 @@
+@import 'tailwindcss';
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --font-sans: 'Noto Sans TC', 'Segoe UI', 'Microsoft JhengHei', sans-serif;
+}
+
+:root {
+  /* Low-chroma neutral palette for a formal campus admin system */
+  --background: #f7f7f5;
+  --foreground: #1f2933;
+  --card: #ffffff;
+  --card-foreground: #1f2933;
+  --primary: #334155;
+  --primary-foreground: #f8fafc;
+  --secondary: #e8e8e4;
+  --secondary-foreground: #1f2933;
+  --muted: #efefeb;
+  --muted-foreground: #64748b;
+  --accent: #ecece8;
+  --accent-foreground: #1f2933;
+  --border: #d9d9d3;
+  --input: #d9d9d3;
+  --ring: #64748b;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    @apply antialiased;
+  }
+
+  body {
+    @apply m-0 min-h-screen bg-background font-sans text-foreground;
+  }
+
+  #root {
+    @apply min-h-screen;
+  }
+}
