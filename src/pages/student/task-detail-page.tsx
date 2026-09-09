@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useState } from 'react'
+﻿import { useCallback, useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 
+import { PageSkeleton } from '@/components/common/states'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { SecureFileUpload } from '@/features/attachments/components/secure-file-upload'
@@ -38,7 +39,7 @@ export function StudentTaskDetailPage() {
   if (error && !detail) {
     return (
       <div className="space-y-3">
-        <p className="text-sm text-red-700">{error}</p>
+        <p className="text-sm font-medium text-danger">{error}</p>
         <Button asChild variant="outline">
           <Link to="/student/tasks">返回列表</Link>
         </Button>
@@ -46,7 +47,7 @@ export function StudentTaskDetailPage() {
     )
   }
 
-  if (!detail) return <p className="text-sm text-muted-foreground">載入中…</p>
+  if (!detail) return <PageSkeleton />
 
   const { task } = detail
   const canSubmit = isStudentActionableStatus(task.status, task.allow_resubmit)
@@ -84,15 +85,15 @@ export function StudentTaskDetailPage() {
             追蹤任務
           </Link>
         </p>
-        <h1 className="mt-1 text-2xl font-semibold">{task.name}</h1>
+        <h1 className="mt-1 text-page font-semibold text-foreground">{task.name}</h1>
         <p className="mt-2 text-sm text-muted-foreground">
           {followUpStatusLabel(task.status)}
           {task.is_overdue ? ' · 逾期' : ''} · {followUpTypeLabel(task.task_type)}
         </p>
       </div>
 
-      {message ? <p className="text-sm text-emerald-800">{message}</p> : null}
-      {error ? <p className="text-sm text-red-700">{error}</p> : null}
+      {message ? <p className="text-sm font-medium text-success">{message}</p> : null}
+      {error ? <p className="text-sm font-medium text-danger">{error}</p> : null}
 
       <Card>
         <CardHeader>
@@ -136,7 +137,7 @@ export function StudentTaskDetailPage() {
             <label className="block space-y-1">
               <span className="text-muted-foreground">文字內容{needsText && canSubmit ? ' *' : ''}</span>
               <textarea
-                className="min-h-28 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                className="min-h-28 w-full rounded-md border border-input bg-surface text-foreground transition-colors placeholder:text-muted-foreground hover:border-border-strong focus-visible:border-accent-strong disabled:cursor-not-allowed disabled:bg-surface-muted disabled:opacity-70 px-3 py-2 text-sm"
                 value={textContent}
                 disabled={!canSubmit || busy}
                 onChange={(e) => setTextContent(e.target.value)}

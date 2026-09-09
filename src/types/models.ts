@@ -54,7 +54,7 @@ export interface StaffDepartment extends BaseRecord {
 }
 
 /**
- * had_students Auth record.
+ * hk_students Auth record.
  * Full identity_number is stored on StudentProfile, not here.
  */
 export interface Student extends BaseRecord {

@@ -9,39 +9,39 @@
 
 | Store | Key fields / notes | Sensitivity |
 | --- | --- | --- |
-| `had_students` | Auth 帳號；內部 random password | High（帳密機制） |
-| `had_student_profiles` | 姓名、學號、**完整 `identity_number`**、聯絡方式、部別科系等 | **Critical** |
-| `had_staff_users` | Staff/Admin；`is_staff`／`is_admin` | High |
+| `hk_students` | Auth 帳號；內部 random password | High（帳密機制） |
+| `hk_student_profiles` | 姓名、學號、**完整 `identity_number`**、聯絡方式、部別科系等 | **Critical** |
+| `hk_staff_users` | Staff/Admin；`is_staff`／`is_admin` | High |
 
 ## Period & application domain
 
 | Store | Notes | Sensitivity |
 | --- | --- | --- |
-| `had_application_periods` | 梯次時窗與狀態 | Low–Med |
-| `had_period_student_profiles` | 年級、特殊身分 codes、障礙／弱勢級距、銀行相關、資格說明 snapshot | High |
-| `had_application_categories` | 9 大項目主檔 | Low |
-| `had_student_category_entries` | 學生各項目入口狀態 | Med |
-| `had_applications` + reviews／funding／supplements | 案件狀態機與核定 | High |
+| `hk_application_periods` | 梯次時窗與狀態 | Low–Med |
+| `hk_period_student_profiles` | 年級、特殊身分 codes、障礙／弱勢級距、銀行相關、資格說明 snapshot | High |
+| `hk_application_categories` | 9 大項目主檔 | Low |
+| `hk_student_category_entries` | 學生各項目入口狀態 | Med |
+| `hk_applications` + reviews／funding／supplements | 案件狀態機與核定 | High |
 | Follow-up templates／tasks／reviews | 後續繳交與審核 | Med–High |
 
 ## Forms & PDF
 
 | Store | Notes | Sensitivity |
 | --- | --- | --- |
-| `had_forms`／versions／sections／fields／options／rules | Schema；published immutable | Low–Med |
-| `had_form_submissions`／answers／submission_versions | 答案與 snapshot（snapshot 可含完整身分證） | **Critical** |
-| `had_pdf_documents` | PDF metadata、SHA-256、verification_token、file | **Critical**（檔案） |
-| `had_attachments` | 上傳檔與 metadata | **Critical**（檔案） |
+| `hk_forms`／versions／sections／fields／options／rules | Schema；published immutable | Low–Med |
+| `hk_form_submissions`／answers／submission_versions | 答案與 snapshot（snapshot 可含完整身分證） | **Critical** |
+| `hk_pdf_documents` | PDF metadata、SHA-256、verification_token、file | **Critical**（檔案） |
+| `hk_attachments` | 上傳檔與 metadata | **Critical**（檔案） |
 
 ## Notifications
 
 | Store | Notes | Sensitivity |
 | --- | --- | --- |
-| `had_notification_templates` | 範本 | Low |
-| `had_notifications` | 站內通知 | Med（可能含業務上下文） |
-| `had_notification_deliveries` | 寄送狀態；**不應**存 SMTP 密碼 | Med |
-| `had_notification_preferences` | 學生偏好 | Low–Med |
-| `had_reminder_rules`／`had_scheduled_notifications` | 排程與 dedupe | Low–Med |
+| `hk_notification_templates` | 範本 | Low |
+| `hk_notifications` | 站內通知 | Med（可能含業務上下文） |
+| `hk_notification_deliveries` | 寄送狀態；**不應**存 SMTP 密碼 | Med |
+| `hk_notification_preferences` | 學生偏好 | Low–Med |
+| `hk_reminder_rules`／`hk_scheduled_notifications` | 排程與 dedupe | Low–Med |
 
 ## Audit & ops
 

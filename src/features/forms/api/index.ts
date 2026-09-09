@@ -36,7 +36,7 @@ export interface FormWorkspaceResponse {
 
 export async function fetchFormWorkspace(categoryCode: string): Promise<FormWorkspaceResponse> {
   try {
-    return await studentPb.send(`/api/had/forms/by-category/${categoryCode}/workspace`, {
+    return await studentPb.send(`/api/hk/forms/by-category/${categoryCode}/workspace`, {
       method: 'GET',
     })
   } catch (error) {
@@ -56,7 +56,7 @@ export async function saveFormSubmission(input: {
   issues: FormIssue[]
 }> {
   try {
-    return await studentPb.send('/api/had/forms/submission/save', {
+    return await studentPb.send('/api/hk/forms/submission/save', {
       method: 'POST',
       body: input,
     })
@@ -75,7 +75,7 @@ export async function completeFormSubmission(input: {
   issues: FormIssue[]
 }> {
   try {
-    return await studentPb.send('/api/had/forms/submission/complete', {
+    return await studentPb.send('/api/hk/forms/submission/complete', {
       method: 'POST',
       body: input,
     })
@@ -90,7 +90,7 @@ export async function copyPreviousFormSubmission(categoryCode: string): Promise<
   message: string
 }> {
   try {
-    return await studentPb.send('/api/had/forms/submission/copy-previous', {
+    return await studentPb.send('/api/hk/forms/submission/copy-previous', {
       method: 'POST',
       body: { category_code: categoryCode },
     })
@@ -124,7 +124,7 @@ export async function fetchHistoryForm(
   period_profile: Record<string, unknown>
 }> {
   try {
-    return await studentPb.send(`/api/had/forms/history/${periodId}/${categoryCode}`, {
+    return await studentPb.send(`/api/hk/forms/history/${periodId}/${categoryCode}`, {
       method: 'GET',
     })
   } catch (error) {
@@ -147,7 +147,7 @@ export async function adminListForms(): Promise<
 > {
   try {
     const data = await staffPb.send<{ items: Array<Record<string, unknown>> }>(
-      '/api/had/admin/forms',
+      '/api/hk/admin/forms',
       { method: 'GET' },
     )
     return data.items as never
@@ -161,7 +161,7 @@ export async function adminPreviewFormVersion(
   versionId: string,
 ): Promise<{ schema: FormSchema }> {
   try {
-    return await staffPb.send(`/api/had/admin/forms/${formId}/versions/${versionId}/preview`, {
+    return await staffPb.send(`/api/hk/admin/forms/${formId}/versions/${versionId}/preview`, {
       method: 'GET',
     })
   } catch (error) {

@@ -40,7 +40,7 @@ export async function listMyNotifications(
     const query: Record<string, string> = {}
     if (params?.filter) query.filter = params.filter
     if (params?.category) query.category = params.category
-    const data = await studentPb.send<{ items: HadNotification[] }>('/api/had/notifications', {
+    const data = await studentPb.send<{ items: HadNotification[] }>('/api/hk/notifications', {
       method: 'GET',
       query,
     })
@@ -53,7 +53,7 @@ export async function listMyNotifications(
 export async function getUnreadNotificationCount(): Promise<number> {
   try {
     const data = await studentPb.send<{ count?: number; unread?: number }>(
-      '/api/had/notifications/unread-count',
+      '/api/hk/notifications/unread-count',
       { method: 'GET' },
     )
     return Number(data.count ?? data.unread) || 0
@@ -65,7 +65,7 @@ export async function getUnreadNotificationCount(): Promise<number> {
 export async function getStaffUnreadNotificationCount(): Promise<number> {
   try {
     const data = await staffPb.send<{ unread?: number; count?: number }>(
-      '/api/had/admin/notifications/unread-count',
+      '/api/hk/admin/notifications/unread-count',
       { method: 'GET' },
     )
     return Number(data.unread ?? data.count) || 0
@@ -78,7 +78,7 @@ export async function markNotificationRead(
   id: string,
 ): Promise<{ notification: HadNotification; message: string }> {
   try {
-    return await studentPb.send(`/api/had/notifications/${id}/read`, { method: 'POST', body: {} })
+    return await studentPb.send(`/api/hk/notifications/${id}/read`, { method: 'POST', body: {} })
   } catch (error) {
     throw mapError(error, '標示已讀失敗')
   }
@@ -86,7 +86,7 @@ export async function markNotificationRead(
 
 export async function markAllNotificationsRead(): Promise<{ updated: number; message: string }> {
   try {
-    return await studentPb.send('/api/had/notifications/read-all', { method: 'POST', body: {} })
+    return await studentPb.send('/api/hk/notifications/read-all', { method: 'POST', body: {} })
   } catch (error) {
     throw mapError(error, '全部標示已讀失敗')
   }
@@ -95,7 +95,7 @@ export async function markAllNotificationsRead(): Promise<{ updated: number; mes
 export async function getNotificationPreferences(): Promise<NotificationPreferences> {
   try {
     const data = await studentPb.send<{ preferences: NotificationPreferences }>(
-      '/api/had/notifications/preferences',
+      '/api/hk/notifications/preferences',
       { method: 'GET' },
     )
     return data.preferences
@@ -108,7 +108,7 @@ export async function updateNotificationPreferences(
   payload: UpdateNotificationPreferencesPayload,
 ): Promise<{ preferences: NotificationPreferences; message: string }> {
   try {
-    return await studentPb.send('/api/had/notifications/preferences', {
+    return await studentPb.send('/api/hk/notifications/preferences', {
       method: 'POST',
       body: payload,
     })
@@ -129,7 +129,7 @@ export async function adminListNotifications(
     if (params?.student_id) query.student_id = params.student_id
     if (params?.application_id) query.application_id = params.application_id
     if (params?.category) query.category = params.category
-    const data = await staffPb.send<{ items: HadNotification[] }>('/api/had/admin/notifications', {
+    const data = await staffPb.send<{ items: HadNotification[] }>('/api/hk/admin/notifications', {
       method: 'GET',
       query,
     })
@@ -147,7 +147,7 @@ export async function adminListDeliveries(
     if (params?.status) query.status = params.status
     if (params?.application_id) query.application_id = params.application_id
     const data = await staffPb.send<{ items: NotificationDelivery[] }>(
-      '/api/had/admin/notifications/deliveries',
+      '/api/hk/admin/notifications/deliveries',
       { method: 'GET', query },
     )
     return data.items
@@ -159,7 +159,7 @@ export async function adminListDeliveries(
 export async function adminGetDelivery(id: string): Promise<NotificationDelivery> {
   try {
     const data = await staffPb.send<{ delivery: NotificationDelivery }>(
-      `/api/had/admin/notifications/deliveries/${id}`,
+      `/api/hk/admin/notifications/deliveries/${id}`,
       { method: 'GET' },
     )
     return data.delivery
@@ -172,7 +172,7 @@ export async function adminResendDelivery(
   id: string,
 ): Promise<{ delivery: NotificationDelivery; message: string }> {
   try {
-    return await staffPb.send(`/api/had/admin/notifications/deliveries/${id}/resend`, {
+    return await staffPb.send(`/api/hk/admin/notifications/deliveries/${id}/resend`, {
       method: 'POST',
       body: {},
     })
@@ -184,7 +184,7 @@ export async function adminResendDelivery(
 export async function adminGetMailStatus(): Promise<MailProviderStatus> {
   try {
     const data = await staffPb.send<{ status: MailProviderStatus }>(
-      '/api/had/admin/notifications/mail-status',
+      '/api/hk/admin/notifications/mail-status',
       { method: 'GET' },
     )
     return data.status
@@ -196,7 +196,7 @@ export async function adminGetMailStatus(): Promise<MailProviderStatus> {
 export async function adminGetNotificationDashboard(): Promise<NotificationDashboardSummary> {
   try {
     const data = await staffPb.send<{ summary: NotificationDashboardSummary }>(
-      '/api/had/admin/notifications/dashboard',
+      '/api/hk/admin/notifications/dashboard',
       { method: 'GET' },
     )
     return data.summary
@@ -208,7 +208,7 @@ export async function adminGetNotificationDashboard(): Promise<NotificationDashb
 export async function adminListNotificationTemplates(): Promise<NotificationTemplate[]> {
   try {
     const data = await staffPb.send<{ items: NotificationTemplate[] }>(
-      '/api/had/admin/notifications/templates',
+      '/api/hk/admin/notifications/templates',
       { method: 'GET' },
     )
     return data.items
@@ -221,7 +221,7 @@ export async function adminUpsertNotificationTemplate(
   payload: NotificationTemplateUpsertPayload,
 ): Promise<{ template: NotificationTemplate; message: string }> {
   try {
-    return await staffPb.send('/api/had/admin/notifications/templates', {
+    return await staffPb.send('/api/hk/admin/notifications/templates', {
       method: 'POST',
       body: payload,
     })
@@ -234,7 +234,7 @@ export async function adminPreviewNotificationTemplate(
   payload: NotificationTemplatePreviewPayload,
 ): Promise<NotificationTemplatePreviewResult> {
   try {
-    return await staffPb.send('/api/had/admin/notifications/templates/preview', {
+    return await staffPb.send('/api/hk/admin/notifications/templates/preview', {
       method: 'POST',
       body: payload,
     })
@@ -248,7 +248,7 @@ export async function adminSeedNotificationTemplates(): Promise<{
   message: string
 }> {
   try {
-    return await staffPb.send('/api/had/admin/notifications/seed', {
+    return await staffPb.send('/api/hk/admin/notifications/seed', {
       method: 'POST',
       body: {},
     })

@@ -1,5 +1,5 @@
 /**
- * Migration syntax + HAD namespace safety check.
+ * Migration syntax + HK namespace safety check.
  * Does not connect to PocketBase or mutate any database.
  */
 import { readFileSync, readdirSync } from 'node:fs'
@@ -56,6 +56,18 @@ const FORBIDDEN_BARE_COLLECTIONS = [
   'notification_preferences',
   'reminder_rules',
   'scheduled_notifications',
+  'service_accounts',
+  'category_rules',
+  'living_allowance_rules',
+  'reward_rules',
+  'rewards',
+  'disbursement_plans',
+  'disbursement_milestones',
+  'disbursements',
+  'counselors',
+  'department_counselors',
+  'faq_articles',
+  'academic_year_policies',
 ]
 
 const files = readdirSync(migrationsDir)
@@ -90,11 +102,11 @@ for (const file of files) {
 
     for (const bare of FORBIDDEN_BARE_COLLECTIONS) {
       // Only flag quoted string literals (not markdown/backtick comments).
-      const hadPattern = new RegExp(`['"]had_${bare}['"]`, 'g')
+      const hadPattern = new RegExp(`['"]hk_${bare}['"]`, 'g')
       const stripped = source.replace(hadPattern, '""')
       if (new RegExp(`['"]${bare}['"]`).test(stripped)) {
         throw new Error(
-          `Forbidden non-had_ collection reference "${bare}" found in ${file}. HAD migrations must only operate on had_* collections.`,
+          `Forbidden non-hk_ collection reference "${bare}" found in ${file}. HK migrations must only operate on hk_* collections.`,
         )
       }
     }

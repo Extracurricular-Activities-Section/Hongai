@@ -1,3 +1,12 @@
+import { Plus, Trash2 } from 'lucide-react'
+
+import { Field } from '@/components/common/field'
+import { Button } from '@/components/ui/button'
+import { Input, Select, Textarea } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { SecureFileUpload } from '@/features/attachments/components/secure-file-upload'
+import type { FileFieldConfig } from '@/features/attachments/types'
+import { cn } from '@/lib/utils'
 import type {
   EvaluatedFieldState,
   FormFieldOption,
@@ -7,11 +16,6 @@ import type {
   FormSectionSchema,
   FormValues,
 } from '../types'
-import { SecureFileUpload } from '@/features/attachments/components/secure-file-upload'
-import type { FileFieldConfig } from '@/features/attachments/types'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Button } from '@/components/ui/button'
 
 interface FieldProps {
   field: FormFieldSchema
@@ -23,32 +27,47 @@ interface FieldProps {
   applicationId?: string
 }
 
+const choiceControlClass =
+  'size-4 shrink-0 accent-accent-strong'
+
 function ReadonlyValue({ value }: { value: FormFieldValue }) {
   if (value == null || value === '') return <p className="text-sm text-muted-foreground">—</p>
-  if (typeof value === 'boolean') return <p className="text-sm">{value ? '是' : '否'}</p>
+  if (typeof value === 'boolean') return <p className="text-sm text-foreground">{value ? '是' : '否'}</p>
   if (Array.isArray(value)) {
     return (
-      <div className="space-y-2 text-sm">
+      <div className="space-y-2">
         {value.map((row, index) => (
-          <pre key={index} className="whitespace-pre-wrap rounded border border-border p-2">
-            {JSON.stringify(row, null, 2)}
-          </pre>
+          <div key={index} className="rounded-md border border-border bg-surface-muted p-3 text-sm">
+            {row && typeof row === 'object' && !Array.isArray(row) ? (
+              <dl className="grid gap-1 sm:grid-cols-2">
+                {Object.entries(row as Record<string, unknown>).map(([key, item]) => (
+                  <div key={key} className="flex gap-2">
+                    <dt className="text-muted-foreground">{key}</dt>
+                    <dd className="text-foreground">{String(item ?? '—')}</dd>
+                  </div>
+                ))}
+              </dl>
+            ) : (
+              String(row)
+            )}
+          </div>
         ))}
       </div>
     )
   }
   if (typeof value === 'object') {
     return (
-      <div className="space-y-1 text-sm">
+      <dl className="space-y-1 text-sm">
         {Object.entries(value).map(([key, item]) => (
-          <p key={key}>
-            {key}：{String(item || '—')}
-          </p>
+          <div key={key} className="flex gap-2">
+            <dt className="text-muted-foreground">{key}</dt>
+            <dd className="text-foreground">{String(item || '—')}</dd>
+          </div>
         ))}
-      </div>
+      </dl>
     )
   }
-  return <p className="whitespace-pre-wrap text-sm">{String(value)}</p>
+  return <p className="whitespace-pre-wrap text-sm text-foreground">{String(value)}</p>
 }
 
 export function FieldRenderer({
@@ -60,8 +79,14 @@ export function FieldRenderer({
   submissionId,
   applicationId,
 }: FieldProps) {
+  const fieldId = `ff-${field.code}`
+
   if (field.field_type === 'display') {
-    return <p className="text-sm text-muted-foreground">{field.help_text || field.label}</p>
+    return (
+      <p className="rounded-md border-l-2 border-border-strong bg-surface-muted px-4 py-3 text-sm leading-relaxed text-subtle">
+        {field.help_text || field.label}
+      </p>
+    )
   }
 
   if (field.field_type === 'file') {
@@ -71,7 +96,8 @@ export function FieldRenderer({
       ? config.allowed_extensions
       : ['pdf', 'jpg', 'jpeg', 'png']
     const maxFiles = config.max_files && config.max_files > 0 ? config.max_files : 3
-    const maxSizeMb = config.max_file_size_mb && config.max_file_size_mb > 0 ? config.max_file_size_mb : 10
+    const maxSizeMb =
+      config.max_file_size_mb && config.max_file_size_mb > 0 ? config.max_file_size_mb : 10
 
     return (
       <SecureFileUpload
@@ -95,10 +121,10 @@ export function FieldRenderer({
   if (mode === 'readonly' || field.field_type === 'computed') {
     return (
       <div className="space-y-1">
-        <Label>
+        <p className="text-sm font-medium text-foreground">
           {field.label}
-          {required ? ' *' : ''}
-        </Label>
+          {required ? <span className="ml-1 text-danger">*</span> : null}
+        </p>
         <ReadonlyValue value={value} />
       </div>
     )
@@ -106,19 +132,15 @@ export function FieldRenderer({
 
   if (field.field_type === 'textarea') {
     return (
-      <div className="space-y-1">
-        <Label>
-          {field.label}
-          {required ? ' *' : ''}
-        </Label>
-        <textarea
-          className="min-h-24 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+      <Field id={fieldId} label={field.label} required={required} description={field.help_text}>
+        <Textarea
+          id={fieldId}
           value={String(value ?? '')}
           placeholder={field.placeholder || ''}
-          onChange={(e) => onChange(e.target.value)}
+          aria-describedby={field.help_text ? `${fieldId}-description` : undefined}
+          onChange={(event) => onChange(event.target.value)}
         />
-        {field.help_text ? <p className="text-xs text-muted-foreground">{field.help_text}</p> : null}
-      </div>
+      </Field>
     )
   }
 
@@ -140,109 +162,160 @@ export function FieldRenderer({
             : field.field_type === 'url'
               ? 'url'
               : 'text'
+
     return (
-      <div className="space-y-1">
-        <Label>
-          {field.label}
-          {required ? ' *' : ''}
-        </Label>
+      <Field id={fieldId} label={field.label} required={required} description={field.help_text}>
         <Input
+          id={fieldId}
           type={inputType}
           value={value == null ? '' : String(value)}
           placeholder={field.placeholder || ''}
-          onChange={(e) => {
+          aria-describedby={field.help_text ? `${fieldId}-description` : undefined}
+          className={cn(field.field_type === 'currency' && 'tabular')}
+          onChange={(event) => {
             if (inputType === 'number') {
-              onChange(e.target.value === '' ? null : Number(e.target.value))
+              onChange(event.target.value === '' ? null : Number(event.target.value))
             } else {
-              onChange(e.target.value)
+              onChange(event.target.value)
             }
           }}
         />
-      </div>
+      </Field>
     )
   }
 
   if (field.field_type === 'checkbox') {
     return (
-      <label className="flex items-center gap-2 text-sm">
-        <input
-          type="checkbox"
-          checked={Boolean(value)}
-          onChange={(e) => onChange(e.target.checked)}
-        />
-        {field.label}
-        {required ? ' *' : ''}
-      </label>
+      <div className="space-y-1.5">
+        <label
+          htmlFor={fieldId}
+          className="flex cursor-pointer items-start gap-2.5 rounded-md border border-border bg-surface px-3.5 py-3 text-sm transition-colors hover:border-border-strong"
+        >
+          <input
+            id={fieldId}
+            type="checkbox"
+            className={cn(choiceControlClass, 'mt-0.5')}
+            checked={Boolean(value)}
+            onChange={(event) => onChange(event.target.checked)}
+          />
+          <span className="text-foreground">
+            {field.label}
+            {required ? <span className="ml-1 text-danger">*</span> : null}
+          </span>
+        </label>
+        {field.help_text ? (
+          <p className="text-meta text-muted-foreground">{field.help_text}</p>
+        ) : null}
+      </div>
     )
   }
 
-  if (field.field_type === 'radio' || field.field_type === 'select') {
+  if (field.field_type === 'select') {
     return (
-      <div className="space-y-2">
-        <Label>
+      <Field id={fieldId} label={field.label} required={required} description={field.help_text}>
+        <Select
+          id={fieldId}
+          value={String(value ?? '')}
+          aria-describedby={field.help_text ? `${fieldId}-description` : undefined}
+          onChange={(event) => onChange(event.target.value)}
+        >
+          <option value="">請選擇</option>
+          {field.options.map((option: FormFieldOption) => (
+            <option key={option.id} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </Select>
+      </Field>
+    )
+  }
+
+  if (field.field_type === 'radio') {
+    return (
+      <fieldset className="space-y-2">
+        <legend className="text-sm font-medium text-foreground">
           {field.label}
-          {required ? ' *' : ''}
-        </Label>
-        {field.field_type === 'select' ? (
-          <select
-            className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
-            value={String(value ?? '')}
-            onChange={(e) => onChange(e.target.value)}
-          >
-            <option value="">請選擇</option>
-            {field.options.map((option: FormFieldOption) => (
-              <option key={option.id} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        ) : (
-          <div className="space-y-2">
-            {field.options.map((option: FormFieldOption) => (
-              <label key={option.id} className="flex items-center gap-2 text-sm">
+          {required ? <span className="ml-1 text-danger">*</span> : null}
+        </legend>
+        {field.help_text ? (
+          <p className="text-meta text-muted-foreground">{field.help_text}</p>
+        ) : null}
+        <div className="grid gap-2 sm:grid-cols-2">
+          {field.options.map((option: FormFieldOption) => {
+            const checked = String(value ?? '') === option.value
+            return (
+              <label
+                key={option.id}
+                className={cn(
+                  'flex cursor-pointer items-center gap-2.5 rounded-md border px-3.5 py-2.5 text-sm transition-colors',
+                  checked
+                    ? 'border-accent-strong bg-accent-soft text-foreground'
+                    : 'border-border bg-surface hover:border-border-strong',
+                )}
+              >
                 <input
                   type="radio"
-                  checked={String(value ?? '') === option.value}
+                  name={fieldId}
+                  className={choiceControlClass}
+                  checked={checked}
                   onChange={() =>
                     onChange(
-                      option.value === 'true' ? true : option.value === 'false' ? false : option.value,
+                      option.value === 'true'
+                        ? true
+                        : option.value === 'false'
+                          ? false
+                          : option.value,
                     )
                   }
                 />
                 {option.label}
               </label>
-            ))}
-          </div>
-        )}
-      </div>
+            )
+          })}
+        </div>
+      </fieldset>
     )
   }
 
   if (field.field_type === 'multiselect') {
     const selected = Array.isArray(value) ? value.map(String) : []
     return (
-      <div className="space-y-2">
-        <Label>
+      <fieldset className="space-y-2">
+        <legend className="text-sm font-medium text-foreground">
           {field.label}
-          {required ? ' *' : ''}
-        </Label>
-        {field.options.map((option: FormFieldOption) => {
-          const checked = selected.includes(option.value)
-          return (
-            <label key={option.id} className="flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                checked={checked}
-                onChange={(e) => {
-                  if (e.target.checked) onChange([...selected, option.value])
-                  else onChange(selected.filter((item) => item !== option.value))
-                }}
-              />
-              {option.label}
-            </label>
-          )
-        })}
-      </div>
+          {required ? <span className="ml-1 text-danger">*</span> : null}
+        </legend>
+        {field.help_text ? (
+          <p className="text-meta text-muted-foreground">{field.help_text}</p>
+        ) : null}
+        <div className="grid gap-2 sm:grid-cols-2">
+          {field.options.map((option: FormFieldOption) => {
+            const checked = selected.includes(option.value)
+            return (
+              <label
+                key={option.id}
+                className={cn(
+                  'flex cursor-pointer items-center gap-2.5 rounded-md border px-3.5 py-2.5 text-sm transition-colors',
+                  checked
+                    ? 'border-accent-strong bg-accent-soft text-foreground'
+                    : 'border-border bg-surface hover:border-border-strong',
+                )}
+              >
+                <input
+                  type="checkbox"
+                  className={choiceControlClass}
+                  checked={checked}
+                  onChange={(event) => {
+                    if (event.target.checked) onChange([...selected, option.value])
+                    else onChange(selected.filter((item) => item !== option.value))
+                  }}
+                />
+                {option.label}
+              </label>
+            )
+          })}
+        </div>
+      </fieldset>
     )
   }
 
@@ -252,49 +325,74 @@ export function FieldRenderer({
       (field.config as { columns?: Array<{ code: string; label: string; field_type: string }> } | null)
         ?.columns || []
     const maxRows = (field.config as { max_rows?: number } | null)?.max_rows ?? 20
+
     return (
-      <div className="space-y-3">
-        <Label>
+      <fieldset className="space-y-3">
+        <legend className="text-sm font-medium text-foreground">
           {field.label}
-          {required ? ' *' : ''}
-        </Label>
+          {required ? <span className="ml-1 text-danger">*</span> : null}
+        </legend>
+        {field.help_text ? (
+          <p className="text-meta text-muted-foreground">{field.help_text}</p>
+        ) : null}
+
+        {rows.length === 0 ? (
+          <p className="rounded-md border border-dashed border-border-strong px-4 py-5 text-center text-sm text-muted-foreground">
+            尚未新增項目
+          </p>
+        ) : null}
+
         {rows.map((row, index) => (
-          <div key={index} className="grid gap-2 rounded-md border border-border p-3 sm:grid-cols-2">
-            {columns.map((col) => (
-              <div key={col.code} className="space-y-1">
-                <Label>{col.label}</Label>
-                <Input
-                  type={col.field_type === 'currency' || col.field_type === 'number' ? 'number' : 'text'}
-                  value={row[col.code] == null ? '' : String(row[col.code])}
-                  onChange={(e) => {
-                    const next = rows.map((item, rowIndex) =>
-                      rowIndex === index
-                        ? {
-                            ...item,
-                            [col.code]:
-                              col.field_type === 'currency' || col.field_type === 'number'
-                                ? e.target.value === ''
-                                  ? null
-                                  : Number(e.target.value)
-                                : e.target.value,
-                          }
-                        : item,
-                    )
-                    onChange(next)
-                  }}
-                />
-              </div>
-            ))}
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => onChange(rows.filter((_, rowIndex) => rowIndex !== index))}
-            >
-              刪除
-            </Button>
+          <div key={index} className="rounded-md border border-border bg-surface p-4">
+            <div className="mb-3 flex items-center justify-between">
+              <span className="text-meta font-medium text-muted-foreground tabular">
+                項目 {index + 1}
+              </span>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-sm"
+                aria-label={`刪除項目 ${index + 1}`}
+                onClick={() => onChange(rows.filter((_, rowIndex) => rowIndex !== index))}
+              >
+                <Trash2 />
+              </Button>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {columns.map((col) => {
+                const colId = `${fieldId}-${index}-${col.code}`
+                const numeric = col.field_type === 'currency' || col.field_type === 'number'
+                return (
+                  <div key={col.code} className="space-y-1.5">
+                    <Label htmlFor={colId}>{col.label}</Label>
+                    <Input
+                      id={colId}
+                      type={numeric ? 'number' : 'text'}
+                      className={cn(numeric && 'tabular')}
+                      value={row[col.code] == null ? '' : String(row[col.code])}
+                      onChange={(event) => {
+                        const next = rows.map((item, rowIndex) =>
+                          rowIndex === index
+                            ? {
+                                ...item,
+                                [col.code]: numeric
+                                  ? event.target.value === ''
+                                    ? null
+                                    : Number(event.target.value)
+                                  : event.target.value,
+                              }
+                            : item,
+                        )
+                        onChange(next)
+                      }}
+                    />
+                  </div>
+                )
+              })}
+            </div>
           </div>
         ))}
+
         <Button
           type="button"
           variant="outline"
@@ -306,9 +404,10 @@ export function FieldRenderer({
             onChange([...rows, empty])
           }}
         >
+          <Plus />
           新增項目
         </Button>
-      </div>
+      </fieldset>
     )
   }
 
@@ -320,33 +419,44 @@ export function FieldRenderer({
       string,
       string
     >
+
     return (
-      <div className="space-y-3">
-        <Label>
+      <fieldset className="space-y-3">
+        <legend className="text-sm font-medium text-foreground">
           {field.label}
-          {required ? ' *' : ''}
-        </Label>
+          {required ? <span className="ml-1 text-danger">*</span> : null}
+        </legend>
+        {field.help_text ? (
+          <p className="text-meta text-muted-foreground">{field.help_text}</p>
+        ) : null}
         <div className="grid gap-3 md:grid-cols-2">
-          {months.map((month) => (
-            <div key={month} className="space-y-1 rounded-md border border-border p-3">
-              <Label>{month} 月</Label>
-              <textarea
-                className="min-h-20 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                value={plan[String(month)] || ''}
-                onChange={(e) => onChange({ ...plan, [String(month)]: e.target.value })}
-              />
-            </div>
-          ))}
+          {months.map((month) => {
+            const monthId = `${fieldId}-m${month}`
+            return (
+              <div key={month} className="space-y-1.5">
+                <Label htmlFor={monthId}>{month} 月</Label>
+                <Textarea
+                  id={monthId}
+                  className="min-h-20"
+                  value={plan[String(month)] || ''}
+                  onChange={(event) => onChange({ ...plan, [String(month)]: event.target.value })}
+                />
+              </div>
+            )
+          })}
         </div>
-      </div>
+      </fieldset>
     )
   }
 
   return (
-    <div className="space-y-1">
-      <Label>{field.label}</Label>
-      <Input value={String(value ?? '')} onChange={(e) => onChange(e.target.value)} />
-    </div>
+    <Field id={fieldId} label={field.label} required={required} description={field.help_text}>
+      <Input
+        id={fieldId}
+        value={String(value ?? '')}
+        onChange={(event) => onChange(event.target.value)}
+      />
+    </Field>
   )
 }
 
@@ -358,6 +468,7 @@ export function DynamicFormRenderer({
   onChange,
   submissionId,
   applicationId,
+  hideSectionHeadings = false,
 }: {
   schema: FormSchema
   values: FormValues
@@ -366,20 +477,27 @@ export function DynamicFormRenderer({
   onChange?: (code: string, value: FormFieldValue) => void
   submissionId?: string
   applicationId?: string
+  /** The workspace already shows the active section title in its own header. */
+  hideSectionHeadings?: boolean
 }) {
   return (
-    <div className="space-y-8">
+    <div className="space-y-10">
       {schema.sections.map((section: FormSectionSchema) => (
-        <section key={section.id} className="space-y-4">
-          <div>
-            <h2 className="text-lg font-medium">{section.title}</h2>
-            {section.description ? (
-              <p className="text-sm text-muted-foreground">{section.description}</p>
-            ) : null}
-          </div>
-          <div className="space-y-4">
+        <section key={section.id} className="space-y-5">
+          {hideSectionHeadings ? null : (
+            <div className="border-b border-border pb-3">
+              <h2 className="text-section font-semibold text-foreground">{section.title}</h2>
+              {section.description ? (
+                <p className="mt-1 text-sm leading-relaxed text-subtle">{section.description}</p>
+              ) : null}
+            </div>
+          )}
+          <div className="space-y-6">
             {section.fields
-              .filter((field: FormFieldSchema) => field.active && fieldState[field.code]?.visible !== false)
+              .filter(
+                (field: FormFieldSchema) =>
+                  field.active && fieldState[field.code]?.visible !== false,
+              )
               .map((field: FormFieldSchema) => (
                 <FieldRenderer
                   key={field.id}

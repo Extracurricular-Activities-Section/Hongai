@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+﻿import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -23,7 +23,7 @@ export function PublicVerifyPage() {
       ? 'text-emerald-700'
       : result.status === 'unknown'
         ? 'text-muted-foreground'
-        : 'text-amber-700'
+        : 'text-warning'
 
   return (
     <div className="mx-auto flex min-h-screen max-w-lg items-start justify-center bg-background px-4 py-16">

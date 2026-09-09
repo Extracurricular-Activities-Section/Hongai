@@ -5,25 +5,25 @@
 ## Principles
 
 - 所有附件可能含敏感個資；**禁止**公開 URL、靜態 assets、依 original filename 建 path。
-- Collections deny-by-default；上傳／下載僅 trusted `/api/had/*`。
+- Collections deny-by-default；上傳／下載僅 trusted `/api/hk/*`。
 - `original_filename` 僅顯示；`stored_filename` 為 server random。
 - Answer 只存 attachment record IDs，不存 bytes／公開 URL。
 
 ## Collection
 
-`had_attachments`：統一 metadata（owner、context relations、mime、sha256、status、scan_status）。
+`hk_attachments`：統一 metadata（owner、context relations、mime、sha256、status、scan_status）。
 
-`had_signed_documents`：綁定 `source_pdf`（須為目前 valid PDF）+ attachment；版本 supersede。
+`hk_signed_documents`：綁定 `source_pdf`（須為目前 valid PDF）+ attachment；版本 supersede。
 
 ## Validation
 
-Server（`had_attachment_security.js`）：
+Server（`hk_attachment_security.js`）：
 
 1. Extension allowlist（依 context）
 2. Forbidden list（exe/js/html/svg…）
 3. Reported MIME
 4. Magic bytes（PDF／JPEG／PNG；DOCX 至少 ZIP PK）
-5. Size：`min(HAD_MAX_UPLOAD_SIZE_MB, field/task max)` 預設 10MB
+5. Size：`min(HK_MAX_UPLOAD_SIZE_MB, field/task max)` 預設 10MB
 6. Filename sanitize（path traversal／control chars）
 7. SHA-256（非 MD5／SHA-1）
 
@@ -44,7 +44,7 @@ Frontend 檢查僅 UX。
 
 ## Download
 
-`GET /api/had/attachments/:id/download`
+`GET /api/hk/attachments/:id/download`
 
 - Student：自己的
 - Staff：Scope 內 Application 相關

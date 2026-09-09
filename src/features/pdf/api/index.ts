@@ -15,7 +15,7 @@ function mapError(error: unknown, fallback: string): Error {
 
 export async function generatePdf(submissionId: string): Promise<PdfGenerationResult> {
   try {
-    return await studentPb.send('/api/had/pdf/generate', {
+    return await studentPb.send('/api/hk/pdf/generate', {
       method: 'POST',
       body: { submission_id: submissionId },
     })
@@ -27,7 +27,7 @@ export async function generatePdf(submissionId: string): Promise<PdfGenerationRe
 export async function listPdfsBySubmission(submissionId: string): Promise<PdfDocument[]> {
   try {
     const data = await studentPb.send<{ items: PdfDocument[] }>(
-      `/api/had/pdf/by-submission/${submissionId}`,
+      `/api/hk/pdf/by-submission/${submissionId}`,
       { method: 'GET' },
     )
     return data.items
@@ -38,7 +38,7 @@ export async function listPdfsBySubmission(submissionId: string): Promise<PdfDoc
 
 export function pdfDownloadUrl(id: string): string {
   const base = import.meta.env.VITE_POCKETBASE_URL?.replace(/\/$/, '') || ''
-  return `${base}/api/had/pdf/${id}/download`
+  return `${base}/api/hk/pdf/${id}/download`
 }
 
 export async function downloadPdfBlob(id: string): Promise<Blob> {
@@ -56,7 +56,7 @@ export async function downloadPdfBlob(id: string): Promise<Blob> {
 
 export async function verifyPdfToken(token: string): Promise<PdfVerificationResult> {
   const base = import.meta.env.VITE_POCKETBASE_URL?.replace(/\/$/, '') || ''
-  const response = await fetch(`${base}/api/had/pdf/verify/${encodeURIComponent(token)}`)
+  const response = await fetch(`${base}/api/hk/pdf/verify/${encodeURIComponent(token)}`)
   if (!response.ok) {
     return { status: 'unknown', message: '查無此文件或驗證碼無效。' }
   }
@@ -65,7 +65,7 @@ export async function verifyPdfToken(token: string): Promise<PdfVerificationResu
 
 export async function adminListDocuments(query = ''): Promise<PdfDocument[]> {
   try {
-    const data = await staffPb.send<{ items: PdfDocument[] }>('/api/had/admin/documents', {
+    const data = await staffPb.send<{ items: PdfDocument[] }>('/api/hk/admin/documents', {
       method: 'GET',
       query: { q: query },
     })
@@ -77,7 +77,7 @@ export async function adminListDocuments(query = ''): Promise<PdfDocument[]> {
 
 export async function adminRevokeDocument(id: string, revoke_reason: string): Promise<PdfDocument> {
   try {
-    const data = await staffPb.send<{ document: PdfDocument }>(`/api/had/admin/pdf/${id}/revoke`, {
+    const data = await staffPb.send<{ document: PdfDocument }>(`/api/hk/admin/pdf/${id}/revoke`, {
       method: 'POST',
       body: { revoke_reason },
     })

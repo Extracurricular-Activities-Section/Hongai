@@ -18,26 +18,26 @@ VITE_SUPPORT_PHONE=
 ## PocketBase host
 
 ```bash
-HAD_APP_BASE_URL=https://app.example.invalid
-HAD_VERIFY_BASE_URL=https://app.example.invalid
-HAD_MAX_UPLOAD_SIZE_MB=10
+HK_APP_BASE_URL=https://app.example.invalid
+HK_VERIFY_BASE_URL=https://app.example.invalid
+HK_MAX_UPLOAD_SIZE_MB=10
 
-HAD_PDF_SERVICE_URL=https://pdf-sidecar.example.invalid
-HAD_PDF_SERVICE_SECRET=replace-me-pdf-secret
+HK_PDF_SERVICE_URL=https://pdf-sidecar.example.invalid
+HK_PDF_SERVICE_SECRET=replace-me-pdf-secret
 # PDF_FONT_PATH=/var/fonts/NotoSansCJKtc-Regular.otf
 
-HAD_MAIL_PROVIDER=disabled
-HAD_MAIL_FROM_EMAIL=noreply@example.invalid
-HAD_MAIL_FROM_NAME=弘愛築夢系統
+HK_MAIL_PROVIDER=disabled
+HK_MAIL_FROM_EMAIL=noreply@example.invalid
+HK_MAIL_FROM_NAME=弘愛築夢系統
 # SMTP_HOST=
 # SMTP_PORT=587
 # SMTP_USER=
 # SMTP_PASS=replace-me-smtp-or-api-key
 
-HAD_SUPPORT_EMAIL=support@example.invalid
-HAD_SUPPORT_PHONE=
+HK_SUPPORT_EMAIL=support@example.invalid
+HK_SUPPORT_PHONE=
 
-HAD_SCHEDULER_SECRET=replace-me-scheduler-secret
+HK_SCHEDULER_SECRET=replace-me-scheduler-secret
 ```
 
 ## Mail decision
@@ -55,5 +55,5 @@ HAD_SCHEDULER_SECRET=replace-me-scheduler-secret
 
 - [ ] 所有 `replace-me-*` 已換成強隨機值並存入 secret manager
 - [ ] Pages 與 PB CORS origin 一致
-- [ ] Scheduler cron header 使用同一 `HAD_SCHEDULER_SECRET`
+- [ ] Scheduler cron header 使用同一 `HK_SCHEDULER_SECRET`
 - [ ] 確認 Git 無 `.env` 真實檔被追蹤

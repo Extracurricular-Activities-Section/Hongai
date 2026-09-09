@@ -1,3 +1,4 @@
+﻿import { Download, Eye, FileText, Trash2, Upload, X } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 
 import { Button } from '@/components/ui/button'
@@ -251,47 +252,53 @@ export function SecureFileUpload({
 
   const accept = allowed.map((ext) => `.${ext}`).join(',')
 
+  const atLimit = value.length >= maxFiles
+
   return (
-    <div className="space-y-2">
+    <div className="space-y-3">
       {label ? (
-        <Label>
-          {label}
-          {required ? ' *' : ''}
-        </Label>
+        <div>
+          <Label>
+            {label}
+            {required ? <span className="ml-0.5 text-danger">*</span> : null}
+          </Label>
+          {helpText ? <p className="mt-1 text-meta text-muted-foreground">{helpText}</p> : null}
+        </div>
       ) : null}
-      {helpText ? <p className="text-xs text-muted-foreground">{helpText}</p> : null}
-      <p className="text-xs text-muted-foreground">
-        允許格式：{allowed.length ? allowed.join(', ') : '不限'} · 單檔上限 {maxSizeMb} MB · 最多{' '}
-        {maxFiles} 個
-      </p>
 
       {!disabled ? (
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="rounded-md border border-dashed border-border-strong bg-surface-muted px-4 py-5 text-center">
           <input
             ref={inputRef}
             type="file"
-            className="hidden"
+            className="sr-only"
             accept={accept || undefined}
             multiple={maxFiles > 1}
-            disabled={uploading || value.length >= maxFiles}
+            disabled={uploading || atLimit}
             onChange={(e) => void handleFiles(e.target.files)}
           />
+          <Upload className="mx-auto size-5 text-muted-foreground" aria-hidden />
           <Button
             type="button"
             size="sm"
             variant="outline"
-            disabled={uploading || value.length >= maxFiles}
+            className="mt-3"
+            disabled={uploading || atLimit}
             onClick={() => inputRef.current?.click()}
           >
-            {uploading ? '上傳中…' : '選擇檔案'}
+            {uploading ? '上傳中…' : atLimit ? '已達檔案數上限' : '選擇檔案'}
           </Button>
+          <p className="mt-2.5 text-meta text-muted-foreground">
+            {allowed.length ? allowed.join('、') : '不限格式'} · 單檔上限 {maxSizeMb} MB · 最多{' '}
+            {maxFiles} 個
+          </p>
         </div>
       ) : null}
 
       {value.length === 0 ? (
         <p className="text-sm text-muted-foreground">{disabled ? '尚無附件' : '尚未上傳檔案'}</p>
       ) : (
-        <ul className="space-y-2">
+        <ul className="space-y-1.5">
           {value.map((id) => {
             const meta = metaById[id]
             const name = meta?.original_filename || '載入檔名中…'
@@ -300,24 +307,44 @@ export function SecureFileUpload({
             return (
               <li
                 key={id}
-                className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border px-3 py-2 text-sm"
+                className="flex items-center gap-3 rounded-md border border-border bg-surface px-3 py-2.5"
               >
-                <div className="min-w-0">
-                  <p className="truncate font-medium">{name}</p>
-                  <p className="text-xs text-muted-foreground">{size}</p>
+                <FileText className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium text-foreground">{name}</p>
+                  <p className="text-meta text-muted-foreground tabular">{size}</p>
                 </div>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex shrink-0 items-center gap-0.5">
                   {previewable ? (
-                    <Button type="button" size="sm" variant="outline" onClick={() => void handlePreview(id)}>
-                      預覽
+                    <Button
+                      type="button"
+                      size="icon-sm"
+                      variant="ghost"
+                      aria-label={`預覽 ${name}`}
+                      onClick={() => void handlePreview(id)}
+                    >
+                      <Eye />
                     </Button>
                   ) : null}
-                  <Button type="button" size="sm" variant="outline" onClick={() => void handleDownload(id)}>
-                    下載
+                  <Button
+                    type="button"
+                    size="icon-sm"
+                    variant="ghost"
+                    aria-label={`下載 ${name}`}
+                    onClick={() => void handleDownload(id)}
+                  >
+                    <Download />
                   </Button>
                   {!disabled ? (
-                    <Button type="button" size="sm" variant="outline" onClick={() => void handleRemove(id)}>
-                      刪除
+                    <Button
+                      type="button"
+                      size="icon-sm"
+                      variant="ghost"
+                      aria-label={`刪除 ${name}`}
+                      className="text-muted-foreground hover:bg-danger-soft hover:text-danger"
+                      onClick={() => void handleRemove(id)}
+                    >
+                      <Trash2 />
                     </Button>
                   ) : null}
                 </div>
@@ -327,32 +354,37 @@ export function SecureFileUpload({
         </ul>
       )}
 
-          {previewUrl ? (
-        <div className="space-y-2 rounded-md border border-border p-3">
-          <div className="flex items-center justify-between gap-2">
-            <p className="text-sm font-medium">預覽：{previewName}</p>
+      {previewUrl ? (
+        <div className="rounded-md border border-border">
+          <div className="flex items-center justify-between gap-2 border-b border-border px-3 py-2">
+            <p className="truncate text-sm font-medium text-foreground">預覽：{previewName}</p>
             <Button
               type="button"
-              size="sm"
-              variant="outline"
+              size="icon-sm"
+              variant="ghost"
+              aria-label="關閉預覽"
               onClick={() => {
                 URL.revokeObjectURL(previewUrl)
                 setPreviewUrl(null)
                 setPreviewName(null)
               }}
             >
-              關閉預覽
+              <X />
             </Button>
           </div>
           {(previewName || '').toLowerCase().match(/\.pdf($|\?)/) ? (
-            <iframe title="attachment-preview" src={previewUrl} className="h-96 w-full rounded border border-border" />
+            <iframe title="附件預覽" src={previewUrl} className="h-96 w-full rounded-b-md" />
           ) : (
-            <img src={previewUrl} alt={previewName || '預覽'} className="max-h-96 w-auto rounded border border-border" />
+            <img
+              src={previewUrl}
+              alt={previewName || '附件預覽'}
+              className="mx-auto max-h-96 w-auto rounded-b-md"
+            />
           )}
         </div>
       ) : null}
 
-      {error ? <p className="text-sm text-red-700">{error}</p> : null}
+      {error ? <p className="text-sm font-medium text-danger">{error}</p> : null}
     </div>
   )
 }

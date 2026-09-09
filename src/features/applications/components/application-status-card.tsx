@@ -1,4 +1,4 @@
-import { StatusBadge } from './status-badge'
+﻿import { StatusBadge } from './status-badge'
 import { formatAmount, studentFacingStatusLabel } from '../utils/status-labels'
 import type { Application } from '../types'
 
@@ -36,10 +36,10 @@ export function ApplicationStatusCard({
         <p className="text-sm">核定金額：{formatAmount(application.approved_amount)}</p>
       ) : null}
       {application.status === 'supplement_required' ? (
-        <p className="text-amber-800 text-sm">請至該項目頁面查看補件說明。</p>
+        <p className="text-sm text-warning">請至該項目頁面查看補件說明。</p>
       ) : null}
       {application.status === 'returned_for_edit' ? (
-        <p className="text-amber-800 text-sm">已退回修改，請重新編輯後送交。</p>
+        <p className="text-sm text-warning">已退回修改，請重新編輯後送交。</p>
       ) : null}
     </div>
   )

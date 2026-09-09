@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react'
+﻿import { useEffect, useState } from 'react'
 import { Navigate } from 'react-router-dom'
 
+import { PageSkeleton } from '@/components/common/states'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -59,8 +60,8 @@ export function AdminDepartmentsPage() {
     return <Navigate to="/admin" replace />
   }
 
-  if (error && !items) return <p className="text-sm text-red-700">{error}</p>
-  if (!items) return <p className="text-sm text-muted-foreground">載入中…</p>
+  if (error && !items) return <p className="text-sm font-medium text-danger">{error}</p>
+  if (!items) return <PageSkeleton />
 
   function resetForm() {
     setForm({
@@ -137,14 +138,14 @@ export function AdminDepartmentsPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-semibold">單位管理</h1>
+        <h1 className="text-page font-semibold text-foreground">單位管理</h1>
         <p className="mt-2 text-sm text-muted-foreground">
           管理承辦單位，以及申請類別對應的主責／協辦單位。
         </p>
       </div>
 
-      {message ? <p className="text-sm text-emerald-800">{message}</p> : null}
-      {error ? <p className="text-sm text-red-700">{error}</p> : null}
+      {message ? <p className="text-sm font-medium text-success">{message}</p> : null}
+      {error ? <p className="text-sm font-medium text-danger">{error}</p> : null}
 
       <div className="grid gap-6 lg:grid-cols-2">
         <div className="space-y-3">
@@ -251,7 +252,7 @@ export function AdminDepartmentsPage() {
         <Card>
           <CardContent className="grid gap-3 py-4 text-sm sm:grid-cols-3">
             <select
-              className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+              className="h-10 rounded-md border border-input bg-surface text-foreground transition-colors placeholder:text-muted-foreground hover:border-border-strong focus-visible:border-accent-strong disabled:cursor-not-allowed disabled:bg-surface-muted disabled:opacity-70 px-3 text-sm"
               value={assignForm.category}
               onChange={(e) => setAssignForm((f) => ({ ...f, category: e.target.value }))}
             >
@@ -263,7 +264,7 @@ export function AdminDepartmentsPage() {
               ))}
             </select>
             <select
-              className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+              className="h-10 rounded-md border border-input bg-surface text-foreground transition-colors placeholder:text-muted-foreground hover:border-border-strong focus-visible:border-accent-strong disabled:cursor-not-allowed disabled:bg-surface-muted disabled:opacity-70 px-3 text-sm"
               value={assignForm.department}
               onChange={(e) => setAssignForm((f) => ({ ...f, department: e.target.value }))}
             >
@@ -275,7 +276,7 @@ export function AdminDepartmentsPage() {
               ))}
             </select>
             <select
-              className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+              className="h-10 rounded-md border border-input bg-surface text-foreground transition-colors placeholder:text-muted-foreground hover:border-border-strong focus-visible:border-accent-strong disabled:cursor-not-allowed disabled:bg-surface-muted disabled:opacity-70 px-3 text-sm"
               value={assignForm.assignment_type}
               onChange={(e) => setAssignForm((f) => ({ ...f, assignment_type: e.target.value }))}
             >

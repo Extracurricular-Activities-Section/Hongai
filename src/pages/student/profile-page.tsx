@@ -1,7 +1,8 @@
-import { zodResolver } from '@hookform/resolvers/zod'
+﻿import { zodResolver } from '@hookform/resolvers/zod'
 import { useEffect, useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 
+import { PageSkeleton } from '@/components/common/states'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -85,7 +86,7 @@ export function StudentProfilePage() {
   }
 
   if (loading) {
-    return <p className="text-sm text-muted-foreground">載入中…</p>
+    return <PageSkeleton />
   }
 
   return (
@@ -112,7 +113,7 @@ export function StudentProfilePage() {
           <div className="space-y-2">
             <Label>性別</Label>
             <select
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              className="flex h-10 w-full rounded-md border border-input bg-surface text-foreground transition-colors placeholder:text-muted-foreground hover:border-border-strong focus-visible:border-accent-strong disabled:cursor-not-allowed disabled:bg-surface-muted disabled:opacity-70 px-3 py-2 text-sm"
               disabled={submitting}
               {...form.register('gender')}
             >
@@ -188,7 +189,7 @@ export function StudentProfilePage() {
           ) : null}
 
           {message ? <p className="text-sm text-foreground sm:col-span-2">{message}</p> : null}
-          {error ? <p className="text-sm text-red-700 sm:col-span-2">{error}</p> : null}
+          {error ? <p className="text-sm font-medium text-danger sm:col-span-2">{error}</p> : null}
 
           <div className="sm:col-span-2">
             <Button type="submit" disabled={submitting}>

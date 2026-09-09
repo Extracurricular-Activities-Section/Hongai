@@ -1,6 +1,6 @@
 /**
  * Phase 5 — 9 form V1 definitions (category-specific fields only).
- * Used by migration seed (via pb_hooks/had_form_seed.js).
+ * Used by migration seed (via pb_hooks/hk_form_seed.js).
  * React must NOT hardcode these; runtime loads schema from DB/API.
  */
 module.exports = {

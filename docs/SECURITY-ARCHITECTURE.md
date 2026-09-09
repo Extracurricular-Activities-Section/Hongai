@@ -6,29 +6,29 @@
 
 | Actor | 資料模型 |
 | --- | --- |
-| Student | `had_students`（Auth）+ `had_student_profiles` |
-| Staff | `had_staff_users`（`is_staff=true`） |
-| Admin | `had_staff_users`（`is_admin=true`） |
+| Student | `hk_students`（Auth）+ `hk_student_profiles` |
+| Staff | `hk_staff_users`（`is_staff=true`） |
+| Admin | `hk_staff_users`（`is_admin=true`） |
 
 Staff / Admin 不互斥。**Admin 是系統管理員，不是 PocketBase Superuser。**
 
 ## 2. Collection Namespace Isolation
 
-- 本專案只建立 / 操作 `had_*` Collections。
+- 本專案只建立 / 操作 `hk_*` Collections。
 - Production 既有 `students` / `users` / `teachers` **不得**修改、刪除、變更 API Rule。
 
 ## 3. Trust Boundaries
 
 1. Browser ↔ Cloudflare（HTTPS）
 2. Frontend ↔ PocketBase：**API Rules + trusted hooks 是真正 authorization boundary**
-3. Custom routes under `/api/had/*` 為 trusted server-side
+3. Custom routes under `/api/hk/*` 為 trusted server-side
 4. Superuser 僅限受控管理環境；前端永不持有 Superuser token
-5. Migration 只允許 `had_*`
+5. Migration 只允許 `hk_*`
 
 ## 4. Student Auth
 
 - UI：學號 + 身分證後四碼
-- Server：`POST /api/had/auth/login` 驗證後以 `$apis.recordAuthResponse` 發正式 Auth Token
+- Server：`POST /api/hk/auth/login` 驗證後以 `$apis.recordAuthResponse` 發正式 Auth Token
 - 內部 password：`setRandomPassword()`，永不回傳、不以 last4 當 password
 - Lockout：5 次失敗 → 15 分鐘
 - Account lockout 已實作；**Production IP Rate Limit = Cloudflare TODO**
@@ -37,8 +37,8 @@ Staff / Admin 不互斥。**Admin 是系統管理員，不是 PocketBase Superus
 
 | Store | Key | Storage |
 | --- | --- | --- |
-| Student | `had_student_auth` | **sessionStorage** |
-| Staff | `had_staff_auth` | **sessionStorage** |
+| Student | `hk_student_auth` | **sessionStorage** |
+| Staff | `hk_staff_auth` | **sessionStorage** |
 
 SPA token 無法變成 HttpOnly cookie（需未來 Cloudflare/BFF）。XSS 風險需持續防制。
 
@@ -53,7 +53,7 @@ SPA token 無法變成 HttpOnly cookie（需未來 Cloudflare/BFF）。XSS 風�
 
 ## 7. Sensitive Data
 
-- `identity_number` 存於 `had_student_profiles`（plaintext）。
+- `identity_number` 存於 `hk_student_profiles`（plaintext）。
 - Period Profile：`application_identity_types`、`qualification_note`、bank note 屬敏感／半敏感。
 - 案件列表遮罩；Detail（有權限）完整顯示。
 - Review `internal_note` 不回學生 endpoint。
@@ -62,7 +62,7 @@ SPA token 無法變成 HttpOnly cookie（需未來 Cloudflare/BFF）。XSS 風�
 
 ## 8. Identity Reset
 
-- `POST /api/had/identity-reset`（非 public collection create）
+- `POST /api/hk/identity-reset`（非 public collection create）
 - 統一回應，anti-enumeration
 
 ## 9. Audit Log（Phase 4–7）

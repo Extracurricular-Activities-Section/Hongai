@@ -4,7 +4,7 @@
 
 ## Source Snapshot
 
-正式 PDF **只**使用 `had_form_submission_versions.snapshot`：
+正式 PDF **只**使用 `hk_form_submission_versions.snapshot`：
 
 - studentProfileSnapshot（含完整身分證，僅存於 snapshot）
 - periodProfileSnapshot
@@ -19,7 +19,7 @@
 
 - PocketBase hooks（Goja）負責授權、編號、token、supersede、存檔
 - 實際繪製由 **pdf-lib** 引擎（`pdf-engine/`）執行
-- 本機：`npm run pdf:service`（`HAD_PDF_SERVICE_URL`）
+- 本機：`npm run pdf:service`（`HK_PDF_SERVICE_URL`）
 - 正式環境建議：同一引擎打包為 Cloudflare Worker（純 JS，無 Chromium）
 
 ## Versioning
@@ -43,13 +43,13 @@
 
 ## File Security
 
-- 檔案存 `had_pdf_documents.file`（非 public static）
-- 下載經 `/api/had/pdf/:id/download` + ownership / admin
+- 檔案存 `hk_pdf_documents.file`（非 public static）
+- 下載經 `/api/hk/pdf/:id/download` + ownership / admin
 - SHA-256 存 `file_sha256`
 
 ## Approval Blocks
 
-集中 config：`pdf-engine/config.js` + `pb_hooks/had_pdf_config.js`  
+集中 config：`pdf-engine/config.js` + `pb_hooks/hk_pdf_config.js`  
 依 category 顯示系輔導老師／指導老師／系助等紙本簽核區。
 
 ## Font Strategy

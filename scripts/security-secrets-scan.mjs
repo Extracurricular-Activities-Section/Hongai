@@ -30,11 +30,11 @@ const PATTERNS = [
   { name: 'generic_bearer', re: /\bBearer\s+[A-Za-z0-9\-._~+/]+=*\b/ },
   {
     name: 'vite_secret',
-    re: /\bVITE_(SMTP_PASSWORD|HAD_SCHEDULER_SECRET|POCKETBASE_ADMIN|API_KEY)\b/,
+    re: /\bVITE_(SMTP_PASSWORD|HK_SCHEDULER_SECRET|POCKETBASE_ADMIN|API_KEY)\b/,
   },
   {
     name: 'hardcoded_password_assign',
-    re: /(SMTP_PASSWORD|HAD_SCHEDULER_SECRET)\s*=\s*['"][^'"]{8,}['"]/,
+    re: /(SMTP_PASSWORD|HK_SCHEDULER_SECRET)\s*=\s*['"][^'"]{8,}['"]/,
   },
 ]
 

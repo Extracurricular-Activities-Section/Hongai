@@ -34,7 +34,7 @@
 
 ## Secrets Hygiene
 
-- 不要將 `.env`、PocketBase Superuser Token、Admin Password、`HAD_*_SECRET`、SMTP／API keys 提交到 Git
+- 不要將 `.env`、PocketBase Superuser Token、Admin Password、`HK_*_SECRET`、SMTP／API keys 提交到 Git
 - 僅提交 `.env.example` 與 `docs/PRODUCTION-ENV.md` 占位符
 - 前端只允許公開設定（如 `VITE_POCKETBASE_URL`）
 - CI secrets 使用 GitHub Actions secrets／OIDC；masked logs

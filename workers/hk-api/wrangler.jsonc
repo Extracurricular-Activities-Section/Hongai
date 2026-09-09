@@ -1,0 +1,23 @@
+{
+  "name": "hk-api",
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-09-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1
+  },
+  // Local only — never put Superuser credentials here.
+  // Secrets: HK_PB_SERVICE_EMAIL, HK_PB_SERVICE_PASSWORD, HK_SCHEDULER_SECRET, …
+  "vars": {
+    "HK_POCKETBASE_URL": "https://db.keson.pro",
+    "HK_STUDENT_APP_URL": "http://localhost:5173",
+    "HK_MANAGE_APP_URL": "http://localhost:5173"
+  },
+  // Enable after secrets + PB host ready. Local `wrangler dev` accepts triggers without prod deploy.
+  "triggers": {
+    "crons": ["0 1 * * *"]
+  }
+  // Queues: add bindings when Cloudflare Queues is provisioned — see docs/CLOUDFLARE-ARCHITECTURE.md
+}

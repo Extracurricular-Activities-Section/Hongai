@@ -30,7 +30,21 @@
 | A4 | 非 Admin 開 Builder API | 403 |
 | A5 | 附件 trusted download | 無權限拒絕 |
 | A6 | Follow-up 任務與逾期 | derived overdue 合理 |
-| A7 | 通知排程 endpoints | 需 `X-HAD-Scheduler-Secret` |
+| A7 | 通知排程 endpoints | 需 `X-HK-Scheduler-Secret` |
+| A8 | `/admin/policy` 類別政策 | 與 Form Builder 分離；需確認列可見 |
+| A9 | `/admin/funding` 核發／獎勵 | Grant≠Reward；審核≠已撥付 |
+| A10 | `/admin/faq` CMS | 發佈後 `/faq` 可見 |
+| A11 | 年度 150k summary API | `exceeds_limit` 正確 |
+| A12 | 四單位 scope | 僅見授權部門案件 |
+
+## HK / Cloudflare flows
+
+| ID | Flow | Expected |
+| --- | --- | --- |
+| C1 | Browser → `VITE_HK_API_BASE_URL` → Worker health | 200 |
+| C2 | Staff login via CF | token；非 Superuser |
+| C3 | Collections／files via gateway | 無直連 PB（CSP） |
+| C4 | Rules compute endpoints | 純計算、無 PII log |
 
 ## Security flows
 

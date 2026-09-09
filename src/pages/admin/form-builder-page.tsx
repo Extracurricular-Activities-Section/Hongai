@@ -8,10 +8,21 @@ import {
   type DragEndEvent,
   type DragStartEvent,
 } from '@dnd-kit/core'
+import {
+  ArrowLeft,
+  Eye,
+  MonitorSmartphone,
+  Redo2,
+  ShieldAlert,
+  Undo2,
+} from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 
+import { EmptyState, ErrorState } from '@/components/common/states'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Skeleton } from '@/components/ui/skeleton'
 import { ConfirmDialog } from '@/features/applications/components/confirm-dialog'
 import { useBackofficeAuth } from '@/features/auth/backoffice/context'
 import type { FieldType, FormFieldSchema, FormRule, FormSectionSchema } from '@/features/forms/types'
@@ -324,66 +335,115 @@ export function AdminFormBuilderPage() {
   }
 
   if (!isAdmin) {
-    return <p className="text-sm text-muted-foreground">僅管理員可使用 Form Builder。</p>
+    return (
+      <EmptyState
+        icon={ShieldAlert}
+        title="沒有存取權限"
+        description="僅管理員可使用 Form Builder。"
+      />
+    )
   }
-  if (loading) return <p className="text-sm text-muted-foreground">載入表單草稿…</p>
-  if (error && !meta) return <p className="text-sm text-red-700">{error}</p>
-  if (!meta) return <p className="text-sm text-muted-foreground">找不到表單。</p>
+  if (loading) {
+    return (
+      <div className="space-y-4" role="status" aria-label="載入表單草稿">
+        <Skeleton className="h-12 w-full rounded-lg" />
+        <div className="grid gap-3 lg:grid-cols-[15rem_minmax(0,1fr)_20rem]">
+          <Skeleton className="h-[32rem]" />
+          <Skeleton className="h-[32rem]" />
+          <Skeleton className="h-[32rem]" />
+        </div>
+      </div>
+    )
+  }
+  if (error && !meta) return <ErrorState message={error} />
+  if (!meta) return <EmptyState title="找不到表單" description="請返回表單主檔重新選擇。" />
 
   const codeEditable = meta.status === 'draft'
+  const saveStatus = saveStatusLabel(autosave.status, autosave.error)
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold">{meta.formName}</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Builder · V{meta.versionNumber} · {meta.status === 'draft' ? '草稿' : meta.status}
-            {' · '}
-            {saveStatusLabel(autosave.status, autosave.error)}
+    <div className="-mx-4 -my-6 flex h-[calc(100vh-1px)] flex-col sm:-mx-6 lg:-mx-8 lg:-my-8">
+      {/* Tool-style topbar: identity on the left, history and publish on the right. */}
+      <header className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-border bg-surface px-4 py-2.5 sm:px-6">
+        <Button type="button" variant="ghost" size="icon-sm" asChild>
+          <Link to="/admin/forms" aria-label="返回表單主檔">
+            <ArrowLeft />
+          </Link>
+        </Button>
+
+        <div className="min-w-0">
+          <h1 className="truncate text-sm font-semibold text-foreground">{meta.formName}</h1>
+          <p className="truncate text-meta text-muted-foreground">
+            V{meta.versionNumber} · {meta.status === 'draft' ? '草稿' : meta.status}
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <Button type="button" variant="outline" size="sm" asChild>
-            <Link to="/admin/forms">返回列表</Link>
-          </Button>
+
+        <Badge
+          tone={
+            autosave.status === 'error'
+              ? 'critical'
+              : autosave.status === 'saved'
+                ? 'positive'
+                : 'neutral'
+          }
+          className="ml-1"
+        >
+          <span aria-live="polite">{saveStatus}</span>
+        </Badge>
+
+        <div className="ml-auto flex items-center gap-1.5">
           <Button
             type="button"
-            variant="outline"
-            size="sm"
+            variant="ghost"
+            size="icon-sm"
+            aria-label="復原"
             disabled={!history.canUndo}
             onClick={() => history.undo()}
           >
-            復原
+            <Undo2 />
           </Button>
           <Button
             type="button"
-            variant="outline"
-            size="sm"
+            variant="ghost"
+            size="icon-sm"
+            aria-label="重做"
             disabled={!history.canRedo}
             onClick={() => history.redo()}
           >
-            重做
+            <Redo2 />
           </Button>
+          <span aria-hidden className="mx-1 h-5 w-px bg-border" />
           <Button type="button" variant="outline" size="sm" onClick={() => setPreviewOpen(true)}>
-            Preview
+            <Eye />
+            預覽
           </Button>
           {meta.status === 'draft' ? (
-            <Button type="button" size="sm" onClick={() => setPublishOpen(true)}>
+            <Button type="button" variant="brand" size="sm" onClick={() => setPublishOpen(true)}>
               發布
             </Button>
           ) : null}
         </div>
-      </div>
+      </header>
 
-      {error ? <p className="text-sm text-red-700">{error}</p> : null}
+      {error ? (
+        <div className="px-4 pt-3 sm:px-6">
+          <ErrorState message={error} />
+        </div>
+      ) : null}
 
       {!isDesktop ? (
-        <div className="rounded-md border border-border bg-muted/30 p-4 text-sm">
-          <p>建議使用桌面版進行表單設計</p>
-          <Button type="button" className="mt-3" size="sm" onClick={() => setPreviewOpen(true)}>
-            Preview
-          </Button>
+        <div className="p-4 sm:p-6">
+          <EmptyState
+            icon={MonitorSmartphone}
+            title="建議使用桌面版設計表單"
+            description="三欄設計介面需要較寬的畫面。你仍可在此預覽目前草稿內容。"
+            action={
+              <Button type="button" onClick={() => setPreviewOpen(true)}>
+                <Eye />
+                預覽表單
+              </Button>
+            }
+          />
         </div>
       ) : (
         <DndContext
@@ -392,7 +452,7 @@ export function AdminFormBuilderPage() {
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
         >
-          <div className="grid gap-3 lg:grid-cols-[240px_minmax(0,1fr)_320px]">
+          <div className="grid min-h-0 flex-1 gap-3 p-4 sm:p-6 lg:grid-cols-[15rem_minmax(0,1fr)_21rem]">
             <FormBuilderPalette onAddField={addFieldToTarget} />
             <FormBuilderCanvas
               document={history.document}
@@ -532,7 +592,7 @@ export function AdminFormBuilderPage() {
           </div>
           <DragOverlay>
             {activeDragLabel ? (
-              <div className="rounded-md border border-border bg-background px-3 py-2 text-sm shadow-md">
+              <div className="rounded-md border border-accent-strong bg-surface px-3 py-2 text-sm font-medium text-foreground shadow-md">
                 {activeDragLabel}
               </div>
             ) : null}

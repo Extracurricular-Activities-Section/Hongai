@@ -15,7 +15,7 @@ const StudentAuthContext = createContext<StudentAuthContextValue | null>(null)
 
 function readState(): StudentAuthState {
   const record = studentPb.authStore.record
-  const valid = studentPb.authStore.isValid && record?.collectionName === 'had_students'
+  const valid = studentPb.authStore.isValid && record?.collectionName === 'hk_students'
   return {
     isAuthenticated: valid,
     studentId: valid ? (record?.id ?? null) : null,

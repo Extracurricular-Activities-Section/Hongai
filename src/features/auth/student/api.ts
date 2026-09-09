@@ -2,6 +2,7 @@ import { ClientResponseError } from 'pocketbase'
 
 import type { RecordModel } from 'pocketbase'
 
+import { hkApiSend } from '@/lib/api/hk-client'
 import { studentPb } from '@/lib/pocketbase'
 import { sanitizeApiError } from '@/lib/utils'
 import type { StudentLoginInput, StudentProfileUpdateInput, StudentRegisterInput } from '@/lib/validation'
@@ -19,13 +20,16 @@ function mapAuthError(error: unknown, fallback: string): Error {
       return new Error(message)
     }
   }
+  if (error instanceof Error && error.message.trim()) {
+    return error
+  }
   sanitizeApiError(error)
   return new Error(fallback)
 }
 
 export async function registerStudent(input: StudentRegisterInput): Promise<void> {
   try {
-    const data = await studentPb.send<AuthPayload>('/api/had/auth/register', {
+    const data = await hkApiSend<AuthPayload>('/api/hk/auth/register', {
       method: 'POST',
       body: input,
     })
@@ -37,7 +41,7 @@ export async function registerStudent(input: StudentRegisterInput): Promise<void
 
 export async function loginStudent(input: StudentLoginInput): Promise<void> {
   try {
-    const data = await studentPb.send<AuthPayload>('/api/had/auth/login', {
+    const data = await hkApiSend<AuthPayload>('/api/hk/auth/login', {
       method: 'POST',
       body: input,
     })
@@ -50,7 +54,10 @@ export async function loginStudent(input: StudentLoginInput): Promise<void> {
 export async function logoutStudent(): Promise<void> {
   try {
     if (studentPb.authStore.isValid) {
-      await studentPb.send('/api/had/auth/logout', { method: 'POST' })
+      await hkApiSend('/api/hk/auth/logout', {
+        method: 'POST',
+        token: studentPb.authStore.token,
+      })
     }
   } catch {
     // still clear local session
@@ -61,7 +68,7 @@ export async function logoutStudent(): Promise<void> {
 
 export async function fetchStudentMe(): Promise<StudentMeResponse> {
   try {
-    return await studentPb.send<StudentMeResponse>('/api/had/student/me', { method: 'GET' })
+    return await studentPb.send<StudentMeResponse>('/api/hk/student/me', { method: 'GET' })
   } catch (error) {
     throw mapAuthError(error, '無法載入學生資料，請重新登入。')
   }
@@ -72,7 +79,7 @@ export async function updateStudentProfile(
 ): Promise<StudentProfile> {
   try {
     const data = await studentPb.send<{ success: boolean; profile: StudentProfile }>(
-      '/api/had/student/profile/update',
+      '/api/hk/student/profile/update',
       {
         method: 'POST',
         body: input,
@@ -90,7 +97,7 @@ export async function refreshStudentSession(): Promise<boolean> {
     return false
   }
   try {
-    await studentPb.collection('had_students').authRefresh()
+    await studentPb.collection('hk_students').authRefresh()
     return true
   } catch {
     studentPb.authStore.clear()

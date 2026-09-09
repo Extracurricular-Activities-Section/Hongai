@@ -1,14 +1,14 @@
 /// <reference path="../pb_data/types.d.ts" />
 /**
  * Phase 4: period student profiles, application categories, category entries + seed.
- * ONLY operates on had_* collections.
+ * ONLY operates on hk_* collections.
  */
 
 migrate(
   (app) => {
     const assertHadName = (name) => {
-      if (typeof name !== 'string' || !name.startsWith('had_')) {
-        throw new Error(`[hong-ai-dream] Refusing non-had_ collection name: ${name}`)
+      if (typeof name !== 'string' || !name.startsWith('hk_')) {
+        throw new Error(`[hk] Refusing non-hk_ collection name: ${name}`)
       }
     }
 
@@ -25,7 +25,7 @@ migrate(
     const createIfAbsent = (name, factory) => {
       assertHadName(name)
       if (exists(name)) {
-        console.log(`[hong-ai-dream] CONFLICT: "${name}" exists — skipped`)
+        console.log(`[hk] CONFLICT: "${name}" exists — skipped`)
         return null
       }
       const collection = factory()
@@ -33,17 +33,17 @@ migrate(
       return collection
     }
 
-    if (!exists('had_students') || !exists('had_application_periods')) {
-      throw new Error('[hong-ai-dream] Phase 4 requires had_students and had_application_periods')
+    if (!exists('hk_students') || !exists('hk_application_periods')) {
+      throw new Error('[hk] Phase 4 requires hk_students and hk_application_periods')
     }
 
-    const students = app.findCollectionByNameOrId('had_students')
-    const periods = app.findCollectionByNameOrId('had_application_periods')
+    const students = app.findCollectionByNameOrId('hk_students')
+    const periods = app.findCollectionByNameOrId('hk_application_periods')
 
-    createIfAbsent('had_period_student_profiles', () => {
+    createIfAbsent('hk_period_student_profiles', () => {
       return new Collection({
         type: 'base',
-        name: 'had_period_student_profiles',
+        name: 'hk_period_student_profiles',
         listRule: null,
         viewRule: null,
         createRule: null,
@@ -86,15 +86,15 @@ migrate(
           { name: 'copied_from_previous', type: 'bool', required: false },
         ],
         indexes: [
-          'CREATE UNIQUE INDEX idx_had_period_student_profiles_unique ON had_period_student_profiles (student, period)',
+          'CREATE UNIQUE INDEX idx_hk_period_student_profiles_unique ON hk_period_student_profiles (student, period)',
         ],
       })
     })
 
-    createIfAbsent('had_application_categories', () => {
+    createIfAbsent('hk_application_categories', () => {
       return new Collection({
         type: 'base',
-        name: 'had_application_categories',
+        name: 'hk_application_categories',
         listRule: null,
         viewRule: null,
         createRule: null,
@@ -109,19 +109,19 @@ migrate(
           { name: 'allow_copy_previous', type: 'bool', required: false },
         ],
         indexes: [
-          'CREATE UNIQUE INDEX idx_had_application_categories_code ON had_application_categories (code)',
+          'CREATE UNIQUE INDEX idx_hk_application_categories_code ON hk_application_categories (code)',
         ],
       })
     })
 
-    createIfAbsent('had_student_category_entries', () => {
-      if (!exists('had_application_categories')) {
-        throw new Error('[hong-ai-dream] had_student_category_entries requires categories')
+    createIfAbsent('hk_student_category_entries', () => {
+      if (!exists('hk_application_categories')) {
+        throw new Error('[hk] hk_student_category_entries requires categories')
       }
-      const categories = app.findCollectionByNameOrId('had_application_categories')
+      const categories = app.findCollectionByNameOrId('hk_application_categories')
       return new Collection({
         type: 'base',
-        name: 'had_student_category_entries',
+        name: 'hk_student_category_entries',
         listRule: null,
         viewRule: null,
         createRule: null,
@@ -162,14 +162,14 @@ migrate(
           { name: 'last_opened_at', type: 'date', required: false },
         ],
         indexes: [
-          'CREATE UNIQUE INDEX idx_had_student_category_entries_unique ON had_student_category_entries (student, period, category)',
+          'CREATE UNIQUE INDEX idx_hk_student_category_entries_unique ON hk_student_category_entries (student, period, category)',
         ],
       })
     })
 
     // Self-relation added after collection exists
-    if (exists('had_student_category_entries')) {
-      const entries = app.findCollectionByNameOrId('had_student_category_entries')
+    if (exists('hk_student_category_entries')) {
+      const entries = app.findCollectionByNameOrId('hk_student_category_entries')
       let field = null
       try {
         field = entries.fields.getByName('copied_from_entry')
@@ -191,7 +191,7 @@ migrate(
       }
     }
 
-    if (exists('had_application_categories')) {
+    if (exists('hk_application_categories')) {
       const seeds = [
         { code: 'academic_learning', name: '課業學習', sort_order: 1, description: '課業學習相關補助申請' },
         { code: 'common_competency', name: '共通職能', sort_order: 2, description: '共通職能相關補助申請' },
@@ -203,10 +203,10 @@ migrate(
         { code: 'cross_domain_learning', name: '跨域學習', sort_order: 8, description: '跨域學習相關補助申請' },
         { code: 'other', name: '其他', sort_order: 9, description: '其他補助申請' },
       ]
-      const col = app.findCollectionByNameOrId('had_application_categories')
+      const col = app.findCollectionByNameOrId('hk_application_categories')
       for (const seed of seeds) {
         try {
-          app.findFirstRecordByData('had_application_categories', 'code', seed.code)
+          app.findFirstRecordByData('hk_application_categories', 'code', seed.code)
         } catch {
           const record = new Record(col)
           record.set('code', seed.code)
@@ -222,12 +222,12 @@ migrate(
   },
   (app) => {
     const names = [
-      'had_student_category_entries',
-      'had_application_categories',
-      'had_period_student_profiles',
+      'hk_student_category_entries',
+      'hk_application_categories',
+      'hk_period_student_profiles',
     ]
     for (const name of names) {
-      if (!name.startsWith('had_')) continue
+      if (!name.startsWith('hk_')) continue
       try {
         app.delete(app.findCollectionByNameOrId(name))
       } catch {

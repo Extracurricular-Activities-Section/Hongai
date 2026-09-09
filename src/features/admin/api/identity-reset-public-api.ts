@@ -8,7 +8,7 @@ const UNIFORM_MESSAGE = '已收到申請，如資料可核對，承辦人員將�
 
 export async function submitIdentityReset(input: IdentityResetInput): Promise<string> {
   try {
-    const data = await studentPb.send<{ message: string }>('/api/had/identity-reset', {
+    const data = await studentPb.send<{ message: string }>('/api/hk/identity-reset', {
       method: 'POST',
       body: input,
     })

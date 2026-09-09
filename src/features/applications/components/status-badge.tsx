@@ -1,11 +1,11 @@
-import { cn } from '@/lib/utils'
-import {
-  applicationStatusBadgeClass,
-  applicationStatusLabel,
-  eligibilityStatusBadgeClass,
-  eligibilityStatusLabel,
-} from '../utils/status-labels'
+import { Badge } from '@/components/ui/badge'
+import { applicationStatusTone, eligibilityStatusTone } from '@/lib/status/tone'
+import { applicationStatusLabel, eligibilityStatusLabel } from '../utils/status-labels'
 
+/**
+ * The one status chip for the product. Colour comes from the shared tone map,
+ * never from the call site.
+ */
 export function StatusBadge({
   status,
   kind = 'application',
@@ -20,20 +20,11 @@ export function StatusBadge({
   const text =
     label ||
     (kind === 'eligibility' ? eligibilityStatusLabel(status) : applicationStatusLabel(status))
-  const tone =
-    kind === 'eligibility'
-      ? eligibilityStatusBadgeClass(status)
-      : applicationStatusBadgeClass(status)
+  const tone = kind === 'eligibility' ? eligibilityStatusTone(status) : applicationStatusTone(status)
 
   return (
-    <span
-      className={cn(
-        'inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium',
-        tone,
-        className,
-      )}
-    >
+    <Badge tone={tone} className={className}>
       {text}
-    </span>
+    </Badge>
   )
 }

@@ -2,11 +2,11 @@
 /**
  * HAD foundation collections (Hong Ai Dream).
  *
- * ALL collections use the `had_` prefix to isolate from other systems
+ * ALL collections use the `hk_` prefix to isolate from other systems
  * sharing the same PocketBase instance (e.g. production `students`).
  *
- * This migration MUST ONLY create/alter/delete `had_*` collections.
- * Never touch: students, users, teachers, or any non-had_ collection.
+ * This migration MUST ONLY create/alter/delete `hk_*` collections.
+ * Never touch: students, users, teachers, or any non-hk_ collection.
  *
  * Security defaults remain deny-by-default except minimal ownership rules
  * documented in docs/DATABASE-SCHEMA.md (Phase 3).
@@ -18,8 +18,8 @@ migrate(
     const conflicts = []
 
     const assertHadName = (name) => {
-      if (typeof name !== 'string' || !name.startsWith('had_')) {
-        throw new Error(`[hong-ai-dream] Refusing non-had_ collection name: ${name}`)
+      if (typeof name !== 'string' || !name.startsWith('hk_')) {
+        throw new Error(`[hk] Refusing non-hk_ collection name: ${name}`)
       }
     }
 
@@ -38,7 +38,7 @@ migrate(
       if (exists(name)) {
         conflicts.push(name)
         console.log(
-          `[hong-ai-dream] CONFLICT: "${name}" already exists — skipped (no overwrite).`,
+          `[hk] CONFLICT: "${name}" already exists — skipped (no overwrite).`,
         )
         return null
       }
@@ -48,11 +48,11 @@ migrate(
       return collection
     }
 
-    // 1) had_staff_users (auth)
-    createIfAbsent('had_staff_users', () => {
+    // 1) hk_staff_users (auth)
+    createIfAbsent('hk_staff_users', () => {
       return new Collection({
         type: 'auth',
-        name: 'had_staff_users',
+        name: 'hk_staff_users',
         listRule: null,
         viewRule: 'id = @request.auth.id',
         createRule: null,
@@ -76,11 +76,11 @@ migrate(
       })
     })
 
-    // 2) had_departments
-    createIfAbsent('had_departments', () => {
+    // 2) hk_departments
+    createIfAbsent('hk_departments', () => {
       return new Collection({
         type: 'base',
-        name: 'had_departments',
+        name: 'hk_departments',
         listRule: null,
         viewRule: null,
         createRule: null,
@@ -93,22 +93,22 @@ migrate(
           { name: 'description', type: 'text', required: false },
           { name: 'sort_order', type: 'number', required: false },
         ],
-        indexes: ['CREATE UNIQUE INDEX idx_had_departments_code ON had_departments (code)'],
+        indexes: ['CREATE UNIQUE INDEX idx_hk_departments_code ON hk_departments (code)'],
       })
     })
 
-    // 3) had_staff_departments
-    createIfAbsent('had_staff_departments', () => {
-      if (!exists('had_staff_users') || !exists('had_departments')) {
-        throw new Error('[hong-ai-dream] had_staff_departments requires had_staff_users + had_departments')
+    // 3) hk_staff_departments
+    createIfAbsent('hk_staff_departments', () => {
+      if (!exists('hk_staff_users') || !exists('hk_departments')) {
+        throw new Error('[hk] hk_staff_departments requires hk_staff_users + hk_departments')
       }
-      const staffUsers = app.findCollectionByNameOrId('had_staff_users')
-      const departments = app.findCollectionByNameOrId('had_departments')
+      const staffUsers = app.findCollectionByNameOrId('hk_staff_users')
+      const departments = app.findCollectionByNameOrId('hk_departments')
       return new Collection({
         type: 'base',
-        name: 'had_staff_departments',
-        listRule: '@request.auth.collectionName = "had_staff_users"',
-        viewRule: '@request.auth.collectionName = "had_staff_users"',
+        name: 'hk_staff_departments',
+        listRule: '@request.auth.collectionName = "hk_staff_users"',
+        viewRule: '@request.auth.collectionName = "hk_staff_users"',
         createRule: null,
         updateRule: null,
         deleteRule: null,
@@ -133,16 +133,16 @@ migrate(
           { name: 'active', type: 'bool', required: false },
         ],
         indexes: [
-          'CREATE UNIQUE INDEX idx_had_staff_departments_unique ON had_staff_departments (staff, department)',
+          'CREATE UNIQUE INDEX idx_hk_staff_departments_unique ON hk_staff_departments (staff, department)',
         ],
       })
     })
 
-    // 4) had_students (AUTH) — identity_number lives on profile, not here
-    createIfAbsent('had_students', () => {
+    // 4) hk_students (AUTH) — identity_number lives on profile, not here
+    createIfAbsent('hk_students', () => {
       return new Collection({
         type: 'auth',
-        name: 'had_students',
+        name: 'hk_students',
         listRule: null,
         viewRule: 'id = @request.auth.id',
         createRule: null,
@@ -162,19 +162,19 @@ migrate(
           { name: 'last_login_at', type: 'date', required: false },
           { name: 'registered_at', type: 'date', required: false },
         ],
-        indexes: ['CREATE UNIQUE INDEX idx_had_students_student_no ON had_students (student_no)'],
+        indexes: ['CREATE UNIQUE INDEX idx_hk_students_student_no ON hk_students (student_no)'],
       })
     })
 
-    // 5) had_student_profiles
-    createIfAbsent('had_student_profiles', () => {
-      if (!exists('had_students')) {
-        throw new Error('[hong-ai-dream] had_student_profiles requires had_students')
+    // 5) hk_student_profiles
+    createIfAbsent('hk_student_profiles', () => {
+      if (!exists('hk_students')) {
+        throw new Error('[hk] hk_student_profiles requires hk_students')
       }
-      const students = app.findCollectionByNameOrId('had_students')
+      const students = app.findCollectionByNameOrId('hk_students')
       return new Collection({
         type: 'base',
-        name: 'had_student_profiles',
+        name: 'hk_student_profiles',
         // No list for students (prevent enumeration). View own only.
         // Updates go through trusted custom route (field allowlist).
         listRule: null,
@@ -212,16 +212,16 @@ migrate(
           { name: 'updated_by_student_at', type: 'date', required: false },
         ],
         indexes: [
-          'CREATE UNIQUE INDEX idx_had_student_profiles_student ON had_student_profiles (student)',
+          'CREATE UNIQUE INDEX idx_hk_student_profiles_student ON hk_student_profiles (student)',
         ],
       })
     })
 
-    // 6) had_application_periods — still locked (Phase 4)
-    createIfAbsent('had_application_periods', () => {
+    // 6) hk_application_periods — still locked (Phase 4)
+    createIfAbsent('hk_application_periods', () => {
       return new Collection({
         type: 'base',
-        name: 'had_application_periods',
+        name: 'hk_application_periods',
         listRule: null,
         viewRule: null,
         createRule: null,
@@ -261,13 +261,13 @@ migrate(
       })
     })
 
-    // 7) had_identity_reset_requests
-    createIfAbsent('had_identity_reset_requests', () => {
-      const staffUsers = app.findCollectionByNameOrId('had_staff_users')
-      const students = app.findCollectionByNameOrId('had_students')
+    // 7) hk_identity_reset_requests
+    createIfAbsent('hk_identity_reset_requests', () => {
+      const staffUsers = app.findCollectionByNameOrId('hk_staff_users')
+      const students = app.findCollectionByNameOrId('hk_students')
       return new Collection({
         type: 'base',
-        name: 'had_identity_reset_requests',
+        name: 'hk_identity_reset_requests',
         listRule: null,
         viewRule: null,
         createRule: null,
@@ -308,15 +308,15 @@ migrate(
       })
     })
 
-    // 8) had_audit_logs
-    createIfAbsent('had_audit_logs', () => {
-      const staffUsers = app.findCollectionByNameOrId('had_staff_users')
-      const students = app.findCollectionByNameOrId('had_students')
+    // 8) hk_audit_logs
+    createIfAbsent('hk_audit_logs', () => {
+      const staffUsers = app.findCollectionByNameOrId('hk_staff_users')
+      const students = app.findCollectionByNameOrId('hk_students')
       return new Collection({
         type: 'base',
-        name: 'had_audit_logs',
-        listRule: '@request.auth.collectionName = "had_staff_users" && @request.auth.is_admin = true',
-        viewRule: '@request.auth.collectionName = "had_staff_users" && @request.auth.is_admin = true',
+        name: 'hk_audit_logs',
+        listRule: '@request.auth.collectionName = "hk_staff_users" && @request.auth.is_admin = true',
+        viewRule: '@request.auth.collectionName = "hk_staff_users" && @request.auth.is_admin = true',
         createRule: null,
         updateRule: null,
         deleteRule: null,
@@ -355,25 +355,25 @@ migrate(
     })
 
     if (conflicts.length > 0) {
-      console.log(`[hong-ai-dream] Conflicts (skipped): ${conflicts.join(', ')}`)
+      console.log(`[hk] Conflicts (skipped): ${conflicts.join(', ')}`)
     }
-    console.log(`[hong-ai-dream] Created: ${created.join(', ') || '(none)'}`)
+    console.log(`[hk] Created: ${created.join(', ') || '(none)'}`)
   },
   (app) => {
     const names = [
-      'had_audit_logs',
-      'had_identity_reset_requests',
-      'had_application_periods',
-      'had_student_profiles',
-      'had_students',
-      'had_staff_departments',
-      'had_departments',
-      'had_staff_users',
+      'hk_audit_logs',
+      'hk_identity_reset_requests',
+      'hk_application_periods',
+      'hk_student_profiles',
+      'hk_students',
+      'hk_staff_departments',
+      'hk_departments',
+      'hk_staff_users',
     ]
 
     for (const name of names) {
-      if (!name.startsWith('had_')) {
-        throw new Error(`[hong-ai-dream] Rollback refused non-had_ name: ${name}`)
+      if (!name.startsWith('hk_')) {
+        throw new Error(`[hk] Rollback refused non-hk_ name: ${name}`)
       }
       try {
         const collection = app.findCollectionByNameOrId(name)

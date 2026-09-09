@@ -1,7 +1,14 @@
+import { Monitor, RotateCcw, Smartphone } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { DynamicFormRenderer } from '@/features/forms/components/dynamic-form-renderer'
 import { buildInitialValues, calculateComputedFields, evaluateRules } from '@/features/forms/engine'
 import type { FormFieldValue, FormSchema, FormValues } from '@/features/forms/types'
@@ -32,51 +39,60 @@ export function FormBuilderPreviewModal({
   const liveValues = useMemo(() => calculateComputedFields(schema, values), [schema, values])
   const fieldState = useMemo(() => evaluateRules(schema, liveValues), [schema, liveValues])
 
-  if (!open) return null
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <Card className="flex max-h-[90vh] w-full max-w-5xl flex-col overflow-hidden shadow-lg">
-        <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 py-3">
-          <div>
-            <CardTitle className="text-base">預覽：{meta.formName}</CardTitle>
-            <p className="text-xs text-muted-foreground">僅預覽，不會送出或儲存填寫內容</p>
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        if (!next) onClose()
+      }}
+    >
+      <DialogContent className="flex max-h-[90vh] w-[calc(100vw-2rem)] max-w-5xl flex-col p-0">
+        <DialogHeader className="flex-row flex-wrap items-center justify-between gap-3 border-b border-border p-5">
+          <div className="min-w-0">
+            <DialogTitle>預覽：{meta.formName}</DialogTitle>
+            <DialogDescription>僅供預覽，不會送出或儲存填寫內容。</DialogDescription>
           </div>
-          <div className="flex flex-wrap gap-2">
+
+          <div className="flex flex-wrap items-center gap-1.5">
+            <div role="group" aria-label="預覽寬度" className="flex gap-1">
+              <Button
+                type="button"
+                size="icon-sm"
+                aria-label="桌面寬度"
+                aria-pressed={viewport === 'desktop'}
+                variant={viewport === 'desktop' ? 'default' : 'ghost'}
+                onClick={() => setViewport('desktop')}
+              >
+                <Monitor />
+              </Button>
+              <Button
+                type="button"
+                size="icon-sm"
+                aria-label="手機寬度"
+                aria-pressed={viewport === 'mobile'}
+                variant={viewport === 'mobile' ? 'default' : 'ghost'}
+                onClick={() => setViewport('mobile')}
+              >
+                <Smartphone />
+              </Button>
+            </div>
             <Button
               type="button"
               size="sm"
-              variant={viewport === 'desktop' ? 'default' : 'outline'}
-              onClick={() => setViewport('desktop')}
-            >
-              桌面
-            </Button>
-            <Button
-              type="button"
-              size="sm"
-              variant={viewport === 'mobile' ? 'default' : 'outline'}
-              onClick={() => setViewport('mobile')}
-            >
-              手機
-            </Button>
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
+              variant="ghost"
               onClick={() => setValues(buildInitialValues(schema))}
             >
-              重設預覽資料
-            </Button>
-            <Button type="button" size="sm" variant="outline" onClick={onClose}>
-              關閉
+              <RotateCcw />
+              重設
             </Button>
           </div>
-        </CardHeader>
-        <CardContent className="overflow-y-auto">
+        </DialogHeader>
+
+        <div className="scrollbar-thin flex-1 overflow-y-auto bg-background p-5">
           <div
             className={cn(
-              'mx-auto rounded-md border border-border bg-background p-4',
-              viewport === 'mobile' ? 'max-w-sm' : 'max-w-3xl',
+              'mx-auto rounded-lg border border-border bg-surface p-6',
+              viewport === 'mobile' ? 'max-w-sm' : 'max-w-2xl',
             )}
           >
             <DynamicFormRenderer
@@ -91,8 +107,8 @@ export function FormBuilderPreviewModal({
               }}
             />
           </div>
-        </CardContent>
-      </Card>
-    </div>
+        </div>
+      </DialogContent>
+    </Dialog>
   )
 }

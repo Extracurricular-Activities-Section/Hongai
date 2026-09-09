@@ -1,5 +1,6 @@
 import { Navigate, Outlet, useLocation } from 'react-router-dom'
 
+import { PageLoader } from '@/components/common/states'
 import { useBackofficeAuth } from '@/features/auth/backoffice/context'
 
 export function BackofficeRouteGuard() {
@@ -7,11 +8,7 @@ export function BackofficeRouteGuard() {
   const location = useLocation()
 
   if (!ready) {
-    return (
-      <div className="flex min-h-screen items-center justify-center text-sm text-muted-foreground">
-        載入中…
-      </div>
-    )
+    return <PageLoader label="確認登入狀態…" />
   }
 
   if (!isAuthenticated) {

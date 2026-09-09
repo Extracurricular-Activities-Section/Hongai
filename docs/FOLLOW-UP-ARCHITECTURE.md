@@ -6,11 +6,11 @@
 
 | Collection | 用途 |
 | --- | --- |
-| had_follow_up_task_templates | Admin 可重用模板 |
-| had_category_follow_up_templates | Category → 模板 |
-| had_follow_up_tasks | 學生實際任務 |
-| had_follow_up_submissions | 提交版本（不覆蓋） |
-| had_follow_up_reviews | 審核紀錄（追加制） |
+| hk_follow_up_task_templates | Admin 可重用模板 |
+| hk_category_follow_up_templates | Category → 模板 |
+| hk_follow_up_tasks | 學生實際任務 |
+| hk_follow_up_submissions | 提交版本（不覆蓋） |
+| hk_follow_up_reviews | 審核紀錄（追加制） |
 
 ## Lifecycle
 

@@ -3,10 +3,11 @@ import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { Link, Navigate, useNavigate } from 'react-router-dom'
 
+import { AuthCard } from '@/components/common/auth-card'
+import { Field } from '@/components/common/field'
+import { ErrorState } from '@/components/common/states'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { loginStudent } from '@/features/auth/student/api'
 import { useStudentAuth } from '@/features/auth/student/context'
 import { studentLoginSchema, type StudentLoginInput } from '@/lib/validation'
@@ -38,68 +39,69 @@ export function StudentLoginPage() {
   const submitting = form.formState.isSubmitting
 
   return (
-    <div className="mx-auto w-full max-w-md">
-      <Card>
-        <CardHeader>
-          <CardTitle>弘愛築夢申請管理系統</CardTitle>
-          <CardDescription>學生登入</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form className="space-y-5" onSubmit={form.handleSubmit(onSubmit)} noValidate>
-            <div className="space-y-2">
-              <Label htmlFor="student-id">學號</Label>
-              <Input
-                id="student-id"
-                autoComplete="username"
-                placeholder="請輸入學號"
-                disabled={submitting}
-                {...form.register('student_no')}
-              />
-              {form.formState.errors.student_no ? (
-                <p className="text-xs text-red-700">{form.formState.errors.student_no.message}</p>
-              ) : null}
-            </div>
+    <AuthCard
+      title="學生登入"
+      description="使用學號與身分證後四碼登入，即可填寫申請、上傳文件並追蹤審核進度。"
+      footer={
+        <div className="space-y-2">
+          <p>
+            第一次使用？{' '}
+            <Link
+              to="/register"
+              className="rounded-sm font-medium text-foreground underline underline-offset-4 hover:text-accent-strong"
+            >
+              首次註冊
+            </Link>
+          </p>
+          <p>
+            無法登入？{' '}
+            <Link
+              to="/help"
+              className="rounded-sm font-medium text-foreground underline underline-offset-4 hover:text-accent-strong"
+            >
+              登入協助
+            </Link>
+          </p>
+        </div>
+      }
+    >
+      <form className="space-y-5" onSubmit={form.handleSubmit(onSubmit)} noValidate>
+        <Field id="student-id" label="學號" error={form.formState.errors.student_no?.message}>
+          <Input
+            id="student-id"
+            autoComplete="username"
+            inputMode="numeric"
+            placeholder="請輸入學號"
+            disabled={submitting}
+            aria-invalid={form.formState.errors.student_no ? true : undefined}
+            {...form.register('student_no')}
+          />
+        </Field>
 
-            <div className="space-y-2">
-              <Label htmlFor="id-last4">身分證後四碼</Label>
-              <Input
-                id="id-last4"
-                type="password"
-                inputMode="text"
-                maxLength={4}
-                autoComplete="off"
-                placeholder="請輸入後四碼"
-                disabled={submitting}
-                {...form.register('identity_last4')}
-              />
-              {form.formState.errors.identity_last4 ? (
-                <p className="text-xs text-red-700">{form.formState.errors.identity_last4.message}</p>
-              ) : null}
-            </div>
+        <Field
+          id="id-last4"
+          label="身分證後四碼"
+          error={form.formState.errors.identity_last4?.message}
+        >
+          <Input
+            id="id-last4"
+            type="password"
+            inputMode="text"
+            maxLength={4}
+            autoComplete="off"
+            placeholder="請輸入後四碼"
+            disabled={submitting}
+            aria-invalid={form.formState.errors.identity_last4 ? true : undefined}
+            {...form.register('identity_last4')}
+          />
+        </Field>
 
-            {error ? <p className="text-sm text-red-700">{error}</p> : null}
+        {error ? <ErrorState title="無法登入" message={error} /> : null}
 
-            <Button type="submit" className="w-full" disabled={submitting}>
-              {submitting ? '登入中…' : '登入'}
-            </Button>
-          </form>
-
-          <div className="mt-6 space-y-2 border-t border-border pt-5 text-sm">
-            <p>
-              第一次使用？{' '}
-              <Link to="/register" className="font-medium text-primary underline-offset-4 hover:underline">
-                首次註冊
-              </Link>
-            </p>
-            <p>
-              無法登入？{' '}
-              <Link to="/help" className="font-medium text-primary underline-offset-4 hover:underline">
-                登入協助
-              </Link>
-            </p>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+        <Button type="submit" variant="brand" size="lg" className="w-full" disabled={submitting}>
+          {submitting ? '登入中…' : '登入'}
+        </Button>
+      </form>
+    </AuthCard>
   )
 }

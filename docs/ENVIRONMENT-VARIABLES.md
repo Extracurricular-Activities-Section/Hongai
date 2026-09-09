@@ -19,20 +19,20 @@
 
 | Variable | Required for prod | Secret? | Purpose |
 | --- | --- | --- | --- |
-| `HAD_PDF_SERVICE_URL` | Yes（若啟用 PDF） | No（URL） | PDF sidecar endpoint |
-| `HAD_PDF_SERVICE_SECRET` | Yes（若啟用 PDF） | **Yes** | Hooks ↔ PDF 服務 mutual secret |
-| `HAD_VERIFY_BASE_URL` | Recommended | No | 公開驗證頁 base（QR） |
+| `HK_PDF_SERVICE_URL` | Yes（若啟用 PDF） | No（URL） | PDF sidecar endpoint |
+| `HK_PDF_SERVICE_SECRET` | Yes（若啟用 PDF） | **Yes** | Hooks ↔ PDF 服務 mutual secret |
+| `HK_VERIFY_BASE_URL` | Recommended | No | 公開驗證頁 base（QR） |
 | `PDF_FONT_PATH` | Recommended | No | 授權中文字型路徑 |
-| `HAD_MAX_UPLOAD_SIZE_MB` | Recommended | No | 附件大小上限 |
-| `HAD_APP_BASE_URL` | Recommended | No | Email／通知 action link base |
-| `HAD_MAIL_PROVIDER` | Yes | No | `disabled`／`development`／正式 provider 名稱 |
-| `HAD_MAIL_FROM_EMAIL` | If mailing | No | From address |
-| `HAD_MAIL_FROM_NAME` | Optional | No | From display name |
+| `HK_MAX_UPLOAD_SIZE_MB` | Recommended | No | 附件大小上限 |
+| `HK_APP_BASE_URL` | Recommended | No | Email／通知 action link base |
+| `HK_MAIL_PROVIDER` | Yes | No | `disabled`／`development`／正式 provider 名稱 |
+| `HK_MAIL_FROM_EMAIL` | If mailing | No | From address |
+| `HK_MAIL_FROM_NAME` | Optional | No | From display name |
 | `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` | If SMTP bridge | Mixed | 僅外部 worker 橋接時 |
 | `SMTP_PASS`（或 provider API key） | If mailing | **Yes** | **永不** `VITE_` |
-| `HAD_SUPPORT_EMAIL` / `HAD_SUPPORT_PHONE` | Optional | No | 信件內容聯絡資訊 |
-| `HAD_SCHEDULER_SECRET` | Yes（若啟用 cron） | **Yes** | `X-HAD-Scheduler-Secret` |
-| `HAD_PREFLIGHT_PB_URL` | Optional | No | `npm run preflight` 探測用 |
+| `HK_SUPPORT_EMAIL` / `HK_SUPPORT_PHONE` | Optional | No | 信件內容聯絡資訊 |
+| `HK_SCHEDULER_SECRET` | Yes（若啟用 cron） | **Yes** | `X-HAD-Scheduler-Secret` |
+| `HK_PREFLIGHT_PB_URL` | Optional | No | `npm run preflight` 探測用 |
 
 ## Rules
 

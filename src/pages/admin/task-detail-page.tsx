@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useState } from 'react'
+﻿import { useCallback, useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 
+import { PageSkeleton } from '@/components/common/states'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -44,7 +45,7 @@ export function AdminTaskDetailPage() {
   if (error && !detail) {
     return (
       <div className="space-y-3">
-        <p className="text-sm text-red-700">{error}</p>
+        <p className="text-sm font-medium text-danger">{error}</p>
         <Button asChild variant="outline">
           <Link to="/admin/tasks">返回列表</Link>
         </Button>
@@ -52,7 +53,7 @@ export function AdminTaskDetailPage() {
     )
   }
 
-  if (!detail) return <p className="text-sm text-muted-foreground">載入中…</p>
+  if (!detail) return <PageSkeleton />
 
   const { task } = detail
   const canReview = task.status === 'under_review' || task.status === 'submitted'
@@ -86,7 +87,7 @@ export function AdminTaskDetailPage() {
             追蹤任務
           </Link>
         </p>
-        <h1 className="mt-1 text-2xl font-semibold">{task.name}</h1>
+        <h1 className="mt-1 text-page font-semibold text-foreground">{task.name}</h1>
         <p className="mt-2 text-sm text-muted-foreground">
           {followUpStatusLabel(task.status)}
           {task.is_overdue ? ' · 逾期' : ''} · {followUpTypeLabel(task.task_type)}
@@ -99,8 +100,8 @@ export function AdminTaskDetailPage() {
         </p>
       </div>
 
-      {message ? <p className="text-sm text-emerald-800">{message}</p> : null}
-      {error ? <p className="text-sm text-red-700">{error}</p> : null}
+      {message ? <p className="text-sm font-medium text-success">{message}</p> : null}
+      {error ? <p className="text-sm font-medium text-danger">{error}</p> : null}
 
       <Card>
         <CardHeader>

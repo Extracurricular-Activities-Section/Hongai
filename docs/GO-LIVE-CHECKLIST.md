@@ -13,15 +13,15 @@
 
 - [ ] PocketBase **完整 backup**（`pb_data` + files）已完成且可還原測試通過（見 `BACKUP-RESTORE.md`）
 - [ ] Migrations 人工審閱 + **READY_FOR_MANUAL_MIGRATION** preflight 通過（`npm run preflight`）且已依 runbook 套用
-- [ ] Hooks 已部署到 production PocketBase；僅 `had_*` 受影響
+- [ ] Hooks 已部署到 production PocketBase；僅 `hk_*` 受影響
 - [ ] Frontend 已部署 Cloudflare Pages；SPA fallback 驗證 deep link
 - [ ] CORS 僅允許正式前端 origin
 - [ ] TLS 全站 HTTPS（Pages + PocketBase）
 - [ ] Admin／Staff 帳號與權限已建立（非 PocketBase Superuser 混用日常）
-- [ ] `HAD_SCHEDULER_SECRET` 已設定且 **不** 出現在前端／Git
-- [ ] Production mail 決策已定：正式 provider **或** 明確 `HAD_MAIL_PROVIDER=disabled`（禁止誤用 `development` 假寄信當正式）
+- [ ] `HK_SCHEDULER_SECRET` 已設定且 **不** 出現在前端／Git
+- [ ] Production mail 決策已定：正式 provider **或** 明確 `HK_MAIL_PROVIDER=disabled`（禁止誤用 `development` 假寄信當正式）
 - [ ] PDF sidecar URL／secret／字型授權就緒（若上線需產正式 PDF）
-- [ ] 確認未修改共用實例上非 `had_*` collections（`students`／`users`／`teachers`）
+- [ ] 確認未修改共用實例上非 `hk_*` collections（`students`／`users`／`teachers`）
 - [ ] Security contact 與事故通報管道已替換 placeholder（`SECURITY.md`）
 
 ## REQUIRED

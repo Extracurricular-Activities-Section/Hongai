@@ -1,3 +1,4 @@
+import { applicationStatusTone, eligibilityStatusTone, toneClass } from '@/lib/status/tone'
 import type { ApplicationStatus, EligibilityStatus } from '../types'
 
 export const APPLICATION_STATUS_LABELS: Record<ApplicationStatus, string> = {
@@ -45,41 +46,13 @@ export function eligibilityStatusLabel(status: string | null | undefined): strin
   return ELIGIBILITY_STATUS_LABELS[status as EligibilityStatus] || status
 }
 
-/** Tailwind-friendly badge classes matching existing muted/border patterns. */
+/** Badge classes derived from the shared status tone map. */
 export function applicationStatusBadgeClass(status: string | null | undefined): string {
-  switch (status) {
-    case 'submitted':
-    case 'eligibility_review':
-    case 'under_review':
-    case 'funding_pending':
-      return 'border-border bg-muted text-foreground'
-    case 'supplement_required':
-    case 'returned_for_edit':
-      return 'border-amber-300 bg-amber-50 text-amber-900'
-    case 'approved':
-    case 'funding_decided':
-      return 'border-emerald-300 bg-emerald-50 text-emerald-900'
-    case 'rejected':
-      return 'border-red-300 bg-red-50 text-red-800'
-    case 'closed':
-      return 'border-border bg-card text-muted-foreground'
-    default:
-      return 'border-border bg-muted text-muted-foreground'
-  }
+  return toneClass(applicationStatusTone(status))
 }
 
 export function eligibilityStatusBadgeClass(status: string | null | undefined): string {
-  switch (status) {
-    case 'qualified':
-      return 'border-emerald-300 bg-emerald-50 text-emerald-900'
-    case 'supplement_required':
-      return 'border-amber-300 bg-amber-50 text-amber-900'
-    case 'disqualified':
-      return 'border-red-300 bg-red-50 text-red-800'
-    case 'pending':
-    default:
-      return 'border-border bg-muted text-muted-foreground'
-  }
+  return toneClass(eligibilityStatusTone(status))
 }
 
 /** Short label for student category cards. */

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 
+import { PageSkeleton } from '@/components/common/states'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -111,14 +112,14 @@ export function AdminNotificationsPage() {
   const loading =
     (tab === 'notifications' && !notifications) || (tab === 'deliveries' && !deliveries)
 
-  if (error && loading) return <p className="text-sm text-red-700">{error}</p>
-  if (loading) return <p className="text-sm text-muted-foreground">載入中…</p>
+  if (error && loading) return <p className="text-sm font-medium text-danger">{error}</p>
+  if (loading) return <PageSkeleton />
 
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold">通知中心</h1>
+          <h1 className="text-page font-semibold text-foreground">通知中心</h1>
           <p className="mt-2 text-sm text-muted-foreground">檢視站內通知與 Email 寄送紀錄。</p>
         </div>
         {isAdmin ? (
@@ -177,7 +178,7 @@ export function AdminNotificationsPage() {
         {tab === 'notifications' ? (
           <>
             <select
-              className="h-9 rounded-md border border-input bg-background px-3 text-sm"
+              className="h-9 rounded-md border border-input bg-surface text-foreground transition-colors placeholder:text-muted-foreground hover:border-border-strong focus-visible:border-accent-strong disabled:cursor-not-allowed disabled:bg-surface-muted disabled:opacity-70 px-3 text-sm"
               value={category}
               onChange={(e) => setCategory(e.target.value)}
               aria-label="通知分類"
@@ -197,7 +198,7 @@ export function AdminNotificationsPage() {
           </>
         ) : (
           <select
-            className="h-9 rounded-md border border-input bg-background px-3 text-sm"
+            className="h-9 rounded-md border border-input bg-surface text-foreground transition-colors placeholder:text-muted-foreground hover:border-border-strong focus-visible:border-accent-strong disabled:cursor-not-allowed disabled:bg-surface-muted disabled:opacity-70 px-3 text-sm"
             value={deliveryStatus}
             onChange={(e) => setDeliveryStatus(e.target.value)}
             aria-label="寄送狀態"
@@ -217,8 +218,8 @@ export function AdminNotificationsPage() {
         />
       </div>
 
-      {message ? <p className="text-sm text-emerald-800">{message}</p> : null}
-      {error ? <p className="text-sm text-red-700">{error}</p> : null}
+      {message ? <p className="text-sm font-medium text-success">{message}</p> : null}
+      {error ? <p className="text-sm font-medium text-danger">{error}</p> : null}
 
       {tab === 'notifications' && notifications ? (
         <NotificationList
@@ -285,7 +286,7 @@ export function AdminNotificationsPage() {
         title="確認重新寄送？"
         description={
           mailStatus && !mailStatus.configured
-            ? '目前郵件提供者未設定。重新排入佇列後仍可能無法真正寄出，請先確認後端 HAD_MAIL_PROVIDER。'
+            ? '目前郵件提供者未設定。重新排入佇列後仍可能無法真正寄出，請先確認後端 HK_MAIL_PROVIDER。'
             : mailStatus &&
                 (mailStatus.provider === 'development' || mailStatus.provider === 'console')
               ? '目前為開發模式，重新寄送只會模擬發送，不會真正寄出。'

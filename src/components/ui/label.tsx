@@ -3,16 +3,21 @@ import * as React from 'react'
 
 import { cn } from '@/lib/utils'
 
-const Label = React.forwardRef<
-  React.ComponentRef<typeof LabelPrimitive.Root>,
-  React.ComponentPropsWithoutRef<typeof LabelPrimitive.Root>
->(({ className, ...props }, ref) => (
-  <LabelPrimitive.Root
-    ref={ref}
-    className={cn('text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70', className)}
-    {...props}
-  />
-))
-Label.displayName = LabelPrimitive.Root.displayName
+function Label({
+  className,
+  ...props
+}: React.ComponentPropsWithoutRef<typeof LabelPrimitive.Root> & {
+  ref?: React.Ref<React.ComponentRef<typeof LabelPrimitive.Root>>
+}) {
+  return (
+    <LabelPrimitive.Root
+      className={cn(
+        'text-sm font-medium leading-none text-foreground peer-disabled:cursor-not-allowed peer-disabled:opacity-70',
+        className,
+      )}
+      {...props}
+    />
+  )
+}
 
 export { Label }

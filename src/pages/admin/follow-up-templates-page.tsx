@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Navigate } from 'react-router-dom'
 
+import { PageSkeleton } from '@/components/common/states'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -16,7 +17,7 @@ import {
 import type { CategoryFollowUpTemplate, FollowUpTaskTemplate } from '@/features/follow-up/types'
 import { followUpTypeLabel } from '@/features/follow-up/utils/status-labels'
 import { staffPb } from '@/lib/pocketbase'
-import { HAD_COLLECTIONS } from '@/lib/pocketbase/collections'
+import { HK_COLLECTIONS } from '@/lib/pocketbase/collections'
 
 interface CategoryOption {
   id: string
@@ -62,7 +63,7 @@ export function AdminFollowUpTemplatesPage() {
     const [tpl, asg, cats] = await Promise.all([
       adminListFollowUpTemplates(),
       adminListCategoryFollowUpTemplates(),
-      staffPb.collection(HAD_COLLECTIONS.applicationCategories).getFullList<{
+      staffPb.collection(HK_COLLECTIONS.applicationCategories).getFullList<{
         id: string
         code: string
         name: string
@@ -79,8 +80,8 @@ export function AdminFollowUpTemplatesPage() {
   }, [isAdmin, load])
 
   if (!isAdmin) return <Navigate to="/admin" replace />
-  if (error && !templates) return <p className="text-sm text-red-700">{error}</p>
-  if (!templates) return <p className="text-sm text-muted-foreground">載入中…</p>
+  if (error && !templates) return <p className="text-sm font-medium text-danger">{error}</p>
+  if (!templates) return <PageSkeleton />
 
   function resetForm() {
     setEditingId(null)
@@ -176,12 +177,12 @@ export function AdminFollowUpTemplatesPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold">追蹤任務範本</h1>
+        <h1 className="text-page font-semibold text-foreground">追蹤任務範本</h1>
         <p className="mt-2 text-sm text-muted-foreground">管理範本與申請類別的預設指派。</p>
       </div>
 
-      {message ? <p className="text-sm text-emerald-800">{message}</p> : null}
-      {error ? <p className="text-sm text-red-700">{error}</p> : null}
+      {message ? <p className="text-sm font-medium text-success">{message}</p> : null}
+      {error ? <p className="text-sm font-medium text-danger">{error}</p> : null}
 
       <Card>
         <CardHeader>
@@ -213,7 +214,7 @@ export function AdminFollowUpTemplatesPage() {
           <label className="space-y-1">
             <span className="text-muted-foreground">任務類型</span>
             <select
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+              className="flex h-10 w-full rounded-md border border-input bg-surface text-foreground transition-colors placeholder:text-muted-foreground hover:border-border-strong focus-visible:border-accent-strong disabled:cursor-not-allowed disabled:bg-surface-muted disabled:opacity-70 px-3 text-sm"
               value={form.task_type}
               onChange={(e) => setForm((prev) => ({ ...prev, task_type: e.target.value }))}
             >
@@ -282,7 +283,7 @@ export function AdminFollowUpTemplatesPage() {
           <label className="space-y-1 sm:col-span-2">
             <span className="text-muted-foreground">學生說明</span>
             <textarea
-              className="min-h-20 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              className="min-h-20 w-full rounded-md border border-input bg-surface text-foreground transition-colors placeholder:text-muted-foreground hover:border-border-strong focus-visible:border-accent-strong disabled:cursor-not-allowed disabled:bg-surface-muted disabled:opacity-70 px-3 py-2 text-sm"
               value={form.student_instructions}
               onChange={(e) =>
                 setForm((prev) => ({ ...prev, student_instructions: e.target.value }))
@@ -292,7 +293,7 @@ export function AdminFollowUpTemplatesPage() {
           <label className="space-y-1 sm:col-span-2">
             <span className="text-muted-foreground">審核說明</span>
             <textarea
-              className="min-h-20 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              className="min-h-20 w-full rounded-md border border-input bg-surface text-foreground transition-colors placeholder:text-muted-foreground hover:border-border-strong focus-visible:border-accent-strong disabled:cursor-not-allowed disabled:bg-surface-muted disabled:opacity-70 px-3 py-2 text-sm"
               value={form.review_instructions}
               onChange={(e) =>
                 setForm((prev) => ({ ...prev, review_instructions: e.target.value }))
@@ -350,7 +351,7 @@ export function AdminFollowUpTemplatesPage() {
         <CardContent className="space-y-4 text-sm">
           <div className="grid gap-3 sm:grid-cols-2">
             <select
-              className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+              className="h-10 rounded-md border border-input bg-surface text-foreground transition-colors placeholder:text-muted-foreground hover:border-border-strong focus-visible:border-accent-strong disabled:cursor-not-allowed disabled:bg-surface-muted disabled:opacity-70 px-3 text-sm"
               value={assignForm.category_id}
               onChange={(e) => setAssignForm((prev) => ({ ...prev, category_id: e.target.value }))}
             >
@@ -362,7 +363,7 @@ export function AdminFollowUpTemplatesPage() {
               ))}
             </select>
             <select
-              className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+              className="h-10 rounded-md border border-input bg-surface text-foreground transition-colors placeholder:text-muted-foreground hover:border-border-strong focus-visible:border-accent-strong disabled:cursor-not-allowed disabled:bg-surface-muted disabled:opacity-70 px-3 text-sm"
               value={assignForm.task_template_id}
               onChange={(e) =>
                 setAssignForm((prev) => ({ ...prev, task_template_id: e.target.value }))

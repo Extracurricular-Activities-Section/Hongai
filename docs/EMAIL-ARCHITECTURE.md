@@ -4,7 +4,7 @@
 
 ## Provider Abstraction
 
-`had_mail_provider.js`：
+`hk_mail_provider.js`：
 
 ```text
 sendMail({ to, subject, text, html }) → MailResult
@@ -13,7 +13,7 @@ getProviderStatus() → { configured, provider, from }  // no secrets
 
 ### Providers
 
-| HAD_MAIL_PROVIDER | 行為 |
+| HK_MAIL_PROVIDER | 行為 |
 | --- | --- |
 | （空）／none | `PROVIDER_NOT_CONFIGURED` — 不假成功 |
 | development | `sent_simulated` — **僅開發** |
@@ -37,7 +37,7 @@ Delivery 不存 password／API key。
 
 ## Env
 
-見 `.env.example`：`HAD_MAIL_*`、`SMTP_*`、`HAD_APP_BASE_URL`、`HAD_SCHEDULER_SECRET`。
+見 `.env.example`：`HK_MAIL_*`、`SMTP_*`、`HK_APP_BASE_URL`、`HK_SCHEDULER_SECRET`。
 
 ## Status Clarity
 

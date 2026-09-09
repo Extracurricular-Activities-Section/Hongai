@@ -8,9 +8,9 @@
 
 ## Schema
 
-- `had_forms`：一 Category 一主要 Form
-- `had_form_versions`：draft / published / retired；**published 視為 immutable**
-- `had_form_sections` / `had_form_fields` / `had_form_field_options` / `had_form_rules`
+- `hk_forms`：一 Category 一主要 Form
+- `hk_form_versions`：draft / published / retired；**published 視為 immutable**
+- `hk_form_sections` / `hk_form_fields` / `hk_form_field_options` / `hk_form_rules`
 - 學生端只讀自己 Submission 所需的 published/version schema（via trusted API）
 
 ## Versioning
@@ -21,14 +21,14 @@
 
 ## Answers / Draft / Complete
 
-- `had_form_submissions`：`draft` | `completed`（無審核狀態）
-- `had_form_answers`：JSON value，依 field schema 驗證
+- `hk_form_submissions`：`draft` | `completed`（無審核狀態）
+- `hk_form_answers`：JSON value，依 field schema 驗證
 - Autosave：debounce、允許缺 required；截止後拒絕
 - Complete：全量 required + rules + date range + computed；建立 snapshot
 
 ## Snapshot
 
-`had_form_submission_versions.snapshot` 含：
+`hk_form_submission_versions.snapshot` 含：
 
 - formVersion
 - answers / computed

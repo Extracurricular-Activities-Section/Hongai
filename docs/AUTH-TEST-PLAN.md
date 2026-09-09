@@ -5,10 +5,10 @@
 
 ## Preconditions
 
-- 受控 PocketBase 已套用 `had_*` migration
+- 受控 PocketBase 已套用 `hk_*` migration
 - `pb_hooks/` 已掛載
 - 前端 `.env` 指向該實例
-- 已建立至少一筆 `had_staff_users`（active + is_staff/is_admin）供後台測試
+- 已建立至少一筆 `hk_staff_users`（active + is_staff/is_admin）供後台測試
 
 ## Register
 

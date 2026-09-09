@@ -4,9 +4,9 @@
 
 ## Assets
 
-- `had_students` / `had_student_profiles`（含 identity_number）
-- `had_period_student_profiles`（梯次資格 snapshot）
-- `had_student_category_entries`（申請入口狀態）
+- `hk_students` / `hk_student_profiles`（含 identity_number）
+- `hk_period_student_profiles`（梯次資格 snapshot）
+- `hk_student_category_entries`（申請入口狀態）
 - Staff/Admin 帳號與單位授權
 - Auth tokens（sessionStorage）
 - Identity reset requests / audit logs
@@ -17,7 +17,7 @@
 - `/` 學生登入、`/register`、`/help`
 - `/student/*`（current / confirm / category / history）
 - `/admin/login`、`/admin/periods`、`/admin/students`
-- `/api/had/*` custom routes
+- `/api/hk/*` custom routes
 - PocketBase Auth endpoints（staff）
 
 ## Key Threats
@@ -25,12 +25,12 @@
 1. 猜測學號+後四碼 → lockout + 統一錯誤 + Cloudflare rate limit TODO
 2. IDOR 讀他人 profile / history / period profile → session student id + ownership
 3. Mass assignment 改 identity_number → profile update allowlist
-4. 使用既有 production `students` → `had_` namespace isolation
+4. 使用既有 production `students` → `hk_` namespace isolation
 5. Secret / Superuser 進前端 → 禁止；Admin ≠ Superuser
 6. Identity reset enumeration → 統一回應
 7. Audit 竄改 → deny client write
 8. Session XSS → sessionStorage 風險文件化
-9. Migration 破壞外部 Collection → migrate:check 拒絕非 had_
+9. Migration 破壞外部 Collection → migrate:check 拒絕非 hk_
 10. Staff 無角色仍登入 → authRule + onRecordAuthRequest
 11. **竄改 client time 以延長申請** → server time 判定 open window
 12. **直接 POST 歷史 period id** → `assertCurrentEditablePeriod` / open period check
@@ -54,7 +54,7 @@
 32. Path traversal／Header injection filename → sanitize
 33. Follow-up IDOR → parent Application scope
 34. Mail secret 進前端 → 禁止 VITE_；server-only
-35. 公開排程端點 → HAD_SCHEDULER_SECRET
+35. 公開排程端點 → HK_SCHEDULER_SECRET
 36. Template injection → 僅 {{var}}，無 eval
 37. 重複核定 Email → idempotency_key
 38. Email 含完整身分證 → 模板禁止；PII 最小化

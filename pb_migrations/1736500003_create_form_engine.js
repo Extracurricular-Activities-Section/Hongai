@@ -1,14 +1,14 @@
 /// <reference path="../pb_data/types.d.ts" />
 /**
  * Phase 5: Dynamic Form Engine collections + 9 form V1 seeds.
- * ONLY operates on had_* collections.
+ * ONLY operates on hk_* collections.
  */
 
 migrate(
   (app) => {
     const assertHadName = (name) => {
-      if (typeof name !== 'string' || !name.startsWith('had_')) {
-        throw new Error(`[hong-ai-dream] Refusing non-had_ collection name: ${name}`)
+      if (typeof name !== 'string' || !name.startsWith('hk_')) {
+        throw new Error(`[hk] Refusing non-hk_ collection name: ${name}`)
       }
     }
 
@@ -25,7 +25,7 @@ migrate(
     const createIfAbsent = (name, factory) => {
       assertHadName(name)
       if (exists(name)) {
-        console.log(`[hong-ai-dream] CONFLICT: "${name}" exists — skipped`)
+        console.log(`[hk] CONFLICT: "${name}" exists — skipped`)
         return null
       }
       const collection = factory()
@@ -34,20 +34,20 @@ migrate(
     }
 
     if (
-      !exists('had_students') ||
-      !exists('had_application_categories') ||
-      !exists('had_application_periods') ||
-      !exists('had_student_category_entries') ||
-      !exists('had_staff_users')
+      !exists('hk_students') ||
+      !exists('hk_application_categories') ||
+      !exists('hk_application_periods') ||
+      !exists('hk_student_category_entries') ||
+      !exists('hk_staff_users')
     ) {
-      throw new Error('[hong-ai-dream] Phase 5 requires Phase 3/4 collections')
+      throw new Error('[hk] Phase 5 requires Phase 3/4 collections')
     }
 
-    const students = app.findCollectionByNameOrId('had_students')
-    const categories = app.findCollectionByNameOrId('had_application_categories')
-    const periods = app.findCollectionByNameOrId('had_application_periods')
-    const entries = app.findCollectionByNameOrId('had_student_category_entries')
-    const staff = app.findCollectionByNameOrId('had_staff_users')
+    const students = app.findCollectionByNameOrId('hk_students')
+    const categories = app.findCollectionByNameOrId('hk_application_categories')
+    const periods = app.findCollectionByNameOrId('hk_application_periods')
+    const entries = app.findCollectionByNameOrId('hk_student_category_entries')
+    const staff = app.findCollectionByNameOrId('hk_staff_users')
 
     const fieldTypes = [
       'text',
@@ -69,10 +69,10 @@ migrate(
       'file',
     ]
 
-    createIfAbsent('had_forms', () => {
+    createIfAbsent('hk_forms', () => {
       return new Collection({
         type: 'base',
-        name: 'had_forms',
+        name: 'hk_forms',
         listRule: null,
         viewRule: null,
         createRule: null,
@@ -92,17 +92,17 @@ migrate(
           { name: 'active', type: 'bool', required: false },
         ],
         indexes: [
-          'CREATE UNIQUE INDEX idx_had_forms_category ON had_forms (category)',
+          'CREATE UNIQUE INDEX idx_hk_forms_category ON hk_forms (category)',
         ],
       })
     })
 
-    const forms = app.findCollectionByNameOrId('had_forms')
+    const forms = app.findCollectionByNameOrId('hk_forms')
 
-    createIfAbsent('had_form_versions', () => {
+    createIfAbsent('hk_form_versions', () => {
       return new Collection({
         type: 'base',
-        name: 'had_form_versions',
+        name: 'hk_form_versions',
         listRule: null,
         viewRule: null,
         createRule: null,
@@ -138,14 +138,14 @@ migrate(
           { name: 'notes', type: 'text', required: false },
         ],
         indexes: [
-          'CREATE UNIQUE INDEX idx_had_form_versions_unique ON had_form_versions (form, version_number)',
+          'CREATE UNIQUE INDEX idx_hk_form_versions_unique ON hk_form_versions (form, version_number)',
         ],
       })
     })
 
-    const versions = app.findCollectionByNameOrId('had_form_versions')
+    const versions = app.findCollectionByNameOrId('hk_form_versions')
 
-    // Add current_published_version to had_forms if missing
+    // Add current_published_version to hk_forms if missing
     {
       let field = null
       try {
@@ -168,10 +168,10 @@ migrate(
       }
     }
 
-    createIfAbsent('had_form_sections', () => {
+    createIfAbsent('hk_form_sections', () => {
       return new Collection({
         type: 'base',
-        name: 'had_form_sections',
+        name: 'hk_form_sections',
         listRule: null,
         viewRule: null,
         createRule: null,
@@ -194,17 +194,17 @@ migrate(
           { name: 'pdf_visible', type: 'bool', required: false },
         ],
         indexes: [
-          'CREATE UNIQUE INDEX idx_had_form_sections_code ON had_form_sections (form_version, code)',
+          'CREATE UNIQUE INDEX idx_hk_form_sections_code ON hk_form_sections (form_version, code)',
         ],
       })
     })
 
-    const sections = app.findCollectionByNameOrId('had_form_sections')
+    const sections = app.findCollectionByNameOrId('hk_form_sections')
 
-    createIfAbsent('had_form_fields', () => {
+    createIfAbsent('hk_form_fields', () => {
       return new Collection({
         type: 'base',
-        name: 'had_form_fields',
+        name: 'hk_form_fields',
         listRule: null,
         viewRule: null,
         createRule: null,
@@ -242,12 +242,12 @@ migrate(
       })
     })
 
-    const fields = app.findCollectionByNameOrId('had_form_fields')
+    const fields = app.findCollectionByNameOrId('hk_form_fields')
 
-    createIfAbsent('had_form_field_options', () => {
+    createIfAbsent('hk_form_field_options', () => {
       return new Collection({
         type: 'base',
-        name: 'had_form_field_options',
+        name: 'hk_form_field_options',
         listRule: null,
         viewRule: null,
         createRule: null,
@@ -270,10 +270,10 @@ migrate(
       })
     })
 
-    createIfAbsent('had_form_rules', () => {
+    createIfAbsent('hk_form_rules', () => {
       return new Collection({
         type: 'base',
-        name: 'had_form_rules',
+        name: 'hk_form_rules',
         listRule: null,
         viewRule: null,
         createRule: null,
@@ -327,10 +327,10 @@ migrate(
       })
     })
 
-    createIfAbsent('had_form_submissions', () => {
+    createIfAbsent('hk_form_submissions', () => {
       return new Collection({
         type: 'base',
-        name: 'had_form_submissions',
+        name: 'hk_form_submissions',
         listRule: null,
         viewRule: null,
         createRule: null,
@@ -397,12 +397,12 @@ migrate(
           { name: 'completed_at', type: 'date', required: false },
         ],
         indexes: [
-          'CREATE UNIQUE INDEX idx_had_form_submissions_unique ON had_form_submissions (student, period, category)',
+          'CREATE UNIQUE INDEX idx_hk_form_submissions_unique ON hk_form_submissions (student, period, category)',
         ],
       })
     })
 
-    const submissions = app.findCollectionByNameOrId('had_form_submissions')
+    const submissions = app.findCollectionByNameOrId('hk_form_submissions')
 
     // self relation copied_from_submission
     {
@@ -427,10 +427,10 @@ migrate(
       }
     }
 
-    createIfAbsent('had_form_submission_versions', () => {
+    createIfAbsent('hk_form_submission_versions', () => {
       return new Collection({
         type: 'base',
-        name: 'had_form_submission_versions',
+        name: 'hk_form_submission_versions',
         listRule: null,
         viewRule: null,
         createRule: null,
@@ -462,15 +462,15 @@ migrate(
           },
         ],
         indexes: [
-          'CREATE UNIQUE INDEX idx_had_form_submission_versions_unique ON had_form_submission_versions (submission, version_number)',
+          'CREATE UNIQUE INDEX idx_hk_form_submission_versions_unique ON hk_form_submission_versions (submission, version_number)',
         ],
       })
     })
 
-    createIfAbsent('had_form_answers', () => {
+    createIfAbsent('hk_form_answers', () => {
       return new Collection({
         type: 'base',
-        name: 'had_form_answers',
+        name: 'hk_form_answers',
         listRule: null,
         viewRule: null,
         createRule: null,
@@ -497,29 +497,29 @@ migrate(
           { name: 'value', type: 'json', required: false },
         ],
         indexes: [
-          'CREATE UNIQUE INDEX idx_had_form_answers_unique ON had_form_answers (submission, field_code)',
+          'CREATE UNIQUE INDEX idx_hk_form_answers_unique ON hk_form_answers (submission, field_code)',
         ],
       })
     })
 
     // Seed 9 forms V1
-    const seed = require(`${__hooks}/had_form_seed.js`)
+    const seed = require(`${__hooks}/hk_form_seed.js`)
     seed.ensureFormSeeds(app)
   },
   (app) => {
     const names = [
-      'had_form_answers',
-      'had_form_submission_versions',
-      'had_form_submissions',
-      'had_form_rules',
-      'had_form_field_options',
-      'had_form_fields',
-      'had_form_sections',
-      'had_form_versions',
-      'had_forms',
+      'hk_form_answers',
+      'hk_form_submission_versions',
+      'hk_form_submissions',
+      'hk_form_rules',
+      'hk_form_field_options',
+      'hk_form_fields',
+      'hk_form_sections',
+      'hk_form_versions',
+      'hk_forms',
     ]
     for (const name of names) {
-      if (!name.startsWith('had_')) continue
+      if (!name.startsWith('hk_')) continue
       try {
         app.delete(app.findCollectionByNameOrId(name))
       } catch {

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+﻿import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 
 import { Button } from '@/components/ui/button'
@@ -196,7 +196,7 @@ export function StudentSubmitPanel({
                 <label className="block space-y-1">
                   <span className="text-muted-foreground">備註（選填）</span>
                   <input
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                    className="flex h-10 w-full rounded-md border border-input bg-surface text-foreground transition-colors placeholder:text-muted-foreground hover:border-border-strong focus-visible:border-accent-strong disabled:cursor-not-allowed disabled:bg-surface-muted disabled:opacity-70 px-3 text-sm"
                     value={studentNote}
                     onChange={(e) => setStudentNote(e.target.value)}
                     placeholder="可說明簽核狀態"
@@ -240,7 +240,7 @@ export function StudentSubmitPanel({
             <div className="space-y-3">
               <p className="text-muted-foreground">尚未送件。完成有效 PDF 後即可送交承辦單位審核。</p>
               {requiresSignedUpload && !hasSigned ? (
-                <p className="text-amber-800">請先上傳已簽 PDF 文件後再送件。</p>
+                <p className="text-warning">請先上傳已簽 PDF 文件後再送件。</p>
               ) : null}
               {!completed || !hasValidPdf ? (
                 <p className="text-muted-foreground">請先完成填寫並產生有效 PDF。</p>
@@ -275,7 +275,7 @@ export function StudentSubmitPanel({
                 ) : null}
               </p>
               {requiresSignedUpload && !hasSigned ? (
-                <p className="text-amber-800">請先上傳已簽 PDF 文件後再送件。</p>
+                <p className="text-warning">請先上傳已簽 PDF 文件後再送件。</p>
               ) : null}
               <Button type="button" disabled={busy || !canSubmit} onClick={() => void handleSubmit()}>
                 {busy ? '送件中…' : '重新送交'}
@@ -309,7 +309,7 @@ export function StudentSubmitPanel({
               <label className="block space-y-1">
                 <span className="text-muted-foreground">回覆說明（選填）</span>
                 <textarea
-                  className="min-h-24 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  className="min-h-24 w-full rounded-md border border-input bg-surface text-foreground transition-colors placeholder:text-muted-foreground hover:border-border-strong focus-visible:border-accent-strong disabled:cursor-not-allowed disabled:bg-surface-muted disabled:opacity-70 px-3 py-2 text-sm"
                   value={reply}
                   onChange={(e) => setReply(e.target.value)}
                   placeholder="可填寫補充說明"

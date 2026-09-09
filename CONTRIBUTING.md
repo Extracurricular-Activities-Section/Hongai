@@ -22,7 +22,7 @@
 
 ## Secrets — do not commit
 
-- `.env`、PocketBase Superuser、`HAD_*_SECRET`、SMTP／API keys
+- `.env`、PocketBase Superuser、`HK_*_SECRET`、SMTP／API keys
 - 真實 production URL 憑證、備份檔、`pb_data`
 - 僅提交 `.env.example` 與 `docs/PRODUCTION-ENV.md` 占位符
 
@@ -30,9 +30,10 @@
 
 ## Scope rules
 
-- 只建立／修改 `had_*` collections。
+- 只建立／修改 `hk_*` collections。
 - 不改共用實例上的 `students`／`users`／`teachers`。
 - Admin ≠ PocketBase Superuser。
+- Cloudflare Runtime 不得使用 PocketBase Superuser；使用 `hk_service_accounts`（見架構計畫）。
 
 ## Docs honesty
 

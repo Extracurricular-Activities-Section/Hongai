@@ -67,9 +67,9 @@ export function AdminIdentityResetPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold">身分重設申請</h1>
+        <h1 className="text-page font-semibold text-foreground">身分重設申請</h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Collection：had_identity_reset_requests。Staff/Admin 可處理狀態與備註。
+          Collection：hk_identity_reset_requests。Staff/Admin 可處理狀態與備註。
         </p>
       </div>
 
@@ -103,7 +103,7 @@ export function AdminIdentityResetPage() {
         ))}
       </div>
 
-      {error ? <p className="text-sm text-red-700">{error}</p> : null}
+      {error ? <p className="text-sm font-medium text-danger">{error}</p> : null}
 
       <div className="space-y-4">
         {items.length === 0 ? (
@@ -186,7 +186,7 @@ export function AdminIdentityResetPage() {
                 value={unlockId}
                 disabled={busy}
                 onChange={(event) => setUnlockId(event.target.value)}
-                placeholder="had_students record id"
+                placeholder="hk_students record id"
               />
             </div>
             <Button type="button" disabled={busy || !unlockId.trim()} onClick={() => void handleUnlock()}>

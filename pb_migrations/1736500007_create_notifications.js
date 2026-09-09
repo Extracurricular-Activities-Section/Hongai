@@ -1,14 +1,14 @@
 /// <reference path="../pb_data/types.d.ts" />
 /**
  * Phase 9: Notifications, email queue, reminders, scheduler.
- * ONLY operates on had_* collections.
+ * ONLY operates on hk_* collections.
  */
 
 migrate(
   (app) => {
     const assertHadName = (name) => {
-      if (typeof name !== 'string' || !name.startsWith('had_')) {
-        throw new Error(`[hong-ai-dream] Refusing non-had_ collection name: ${name}`)
+      if (typeof name !== 'string' || !name.startsWith('hk_')) {
+        throw new Error(`[hk] Refusing non-hk_ collection name: ${name}`)
       }
     }
 
@@ -25,7 +25,7 @@ migrate(
     const createIfAbsent = (name, factory) => {
       assertHadName(name)
       if (exists(name)) {
-        console.log(`[hong-ai-dream] CONFLICT: "${name}" exists — skipped`)
+        console.log(`[hk] CONFLICT: "${name}" exists — skipped`)
         return null
       }
       const collection = factory()
@@ -46,54 +46,54 @@ migrate(
       app.save(col)
     }
 
-    if (!exists('had_students') || !exists('had_staff_users') || !exists('had_departments')) {
-      throw new Error('[hong-ai-dream] Phase 9 requires foundation collections')
+    if (!exists('hk_students') || !exists('hk_staff_users') || !exists('hk_departments')) {
+      throw new Error('[hk] Phase 9 requires foundation collections')
     }
 
-    const students = app.findCollectionByNameOrId('had_students')
-    const staff = app.findCollectionByNameOrId('had_staff_users')
-    const applications = exists('had_applications')
-      ? app.findCollectionByNameOrId('had_applications')
+    const students = app.findCollectionByNameOrId('hk_students')
+    const staff = app.findCollectionByNameOrId('hk_staff_users')
+    const applications = exists('hk_applications')
+      ? app.findCollectionByNameOrId('hk_applications')
       : null
-    const followUpTasks = exists('had_follow_up_tasks')
-      ? app.findCollectionByNameOrId('had_follow_up_tasks')
+    const followUpTasks = exists('hk_follow_up_tasks')
+      ? app.findCollectionByNameOrId('hk_follow_up_tasks')
       : null
-    const supplementRequests = exists('had_supplement_requests')
-      ? app.findCollectionByNameOrId('had_supplement_requests')
+    const supplementRequests = exists('hk_supplement_requests')
+      ? app.findCollectionByNameOrId('hk_supplement_requests')
       : null
-    const categories = exists('had_application_categories')
-      ? app.findCollectionByNameOrId('had_application_categories')
+    const categories = exists('hk_application_categories')
+      ? app.findCollectionByNameOrId('hk_application_categories')
       : null
-    const taskTemplates = exists('had_follow_up_task_templates')
-      ? app.findCollectionByNameOrId('had_follow_up_task_templates')
+    const taskTemplates = exists('hk_follow_up_task_templates')
+      ? app.findCollectionByNameOrId('hk_follow_up_task_templates')
       : null
 
     // Department contact fields
-    addFieldIfAbsent('had_departments', 'contact_email', {
+    addFieldIfAbsent('hk_departments', 'contact_email', {
       type: 'text',
       name: 'contact_email',
       required: false,
     })
-    addFieldIfAbsent('had_departments', 'contact_phone', {
+    addFieldIfAbsent('hk_departments', 'contact_phone', {
       type: 'text',
       name: 'contact_phone',
       required: false,
     })
-    addFieldIfAbsent('had_departments', 'contact_extension', {
+    addFieldIfAbsent('hk_departments', 'contact_extension', {
       type: 'text',
       name: 'contact_extension',
       required: false,
     })
-    addFieldIfAbsent('had_departments', 'display_name', {
+    addFieldIfAbsent('hk_departments', 'display_name', {
       type: 'text',
       name: 'display_name',
       required: false,
     })
 
-    createIfAbsent('had_notification_templates', () => {
+    createIfAbsent('hk_notification_templates', () => {
       return new Collection({
         type: 'base',
-        name: 'had_notification_templates',
+        name: 'hk_notification_templates',
         listRule: null,
         viewRule: null,
         createRule: null,
@@ -139,17 +139,17 @@ migrate(
           },
         ],
         indexes: [
-          'CREATE UNIQUE INDEX idx_had_notification_templates_code ON had_notification_templates (code)',
+          'CREATE UNIQUE INDEX idx_hk_notification_templates_code ON hk_notification_templates (code)',
         ],
       })
     })
 
-    const templates = app.findCollectionByNameOrId('had_notification_templates')
+    const templates = app.findCollectionByNameOrId('hk_notification_templates')
 
-    createIfAbsent('had_notifications', () => {
+    createIfAbsent('hk_notifications', () => {
       return new Collection({
         type: 'base',
-        name: 'had_notifications',
+        name: 'hk_notifications',
         listRule: null,
         viewRule: null,
         createRule: null,
@@ -218,8 +218,8 @@ migrate(
           },
         ],
         indexes: [
-          'CREATE INDEX idx_had_notifications_student_read ON had_notifications (recipient_student, read_at)',
-          'CREATE INDEX idx_had_notifications_idem ON had_notifications (idempotency_key)',
+          'CREATE INDEX idx_hk_notifications_student_read ON hk_notifications (recipient_student, read_at)',
+          'CREATE INDEX idx_hk_notifications_idem ON hk_notifications (idempotency_key)',
         ],
       })
     })
@@ -227,7 +227,7 @@ migrate(
     // Fix optional relations if applications missing - they should exist from phase 7/8
     if (applications) {
       try {
-        const notif = app.findCollectionByNameOrId('had_notifications')
+        const notif = app.findCollectionByNameOrId('hk_notifications')
         var af = notif.fields.getByName('application')
         if (af && af.collectionId !== applications.id) {
           af.collectionId = applications.id
@@ -236,12 +236,12 @@ migrate(
       } catch (_) {}
     }
 
-    const notifications = app.findCollectionByNameOrId('had_notifications')
+    const notifications = app.findCollectionByNameOrId('hk_notifications')
 
-    createIfAbsent('had_notification_deliveries', () => {
+    createIfAbsent('hk_notification_deliveries', () => {
       return new Collection({
         type: 'base',
-        name: 'had_notification_deliveries',
+        name: 'hk_notification_deliveries',
         listRule: null,
         viewRule: null,
         createRule: null,
@@ -319,16 +319,16 @@ migrate(
           },
         ],
         indexes: [
-          'CREATE INDEX idx_had_deliveries_status_retry ON had_notification_deliveries (status, next_retry_at)',
-          'CREATE INDEX idx_had_deliveries_idem ON had_notification_deliveries (idempotency_key)',
+          'CREATE INDEX idx_hk_deliveries_status_retry ON hk_notification_deliveries (status, next_retry_at)',
+          'CREATE INDEX idx_hk_deliveries_idem ON hk_notification_deliveries (idempotency_key)',
         ],
       })
     })
 
-    createIfAbsent('had_notification_preferences', () => {
+    createIfAbsent('hk_notification_preferences', () => {
       return new Collection({
         type: 'base',
-        name: 'had_notification_preferences',
+        name: 'hk_notification_preferences',
         listRule: null,
         viewRule: null,
         createRule: null,
@@ -350,15 +350,15 @@ migrate(
           { name: 'system_critical_email', type: 'bool', required: false },
         ],
         indexes: [
-          'CREATE UNIQUE INDEX idx_had_notification_preferences_student ON had_notification_preferences (student)',
+          'CREATE UNIQUE INDEX idx_hk_notification_preferences_student ON hk_notification_preferences (student)',
         ],
       })
     })
 
-    createIfAbsent('had_reminder_rules', () => {
+    createIfAbsent('hk_reminder_rules', () => {
       return new Collection({
         type: 'base',
-        name: 'had_reminder_rules',
+        name: 'hk_reminder_rules',
         listRule: null,
         viewRule: null,
         createRule: null,
@@ -410,10 +410,10 @@ migrate(
       })
     })
 
-    createIfAbsent('had_scheduled_notifications', () => {
+    createIfAbsent('hk_scheduled_notifications', () => {
       return new Collection({
         type: 'base',
-        name: 'had_scheduled_notifications',
+        name: 'hk_scheduled_notifications',
         listRule: null,
         viewRule: null,
         createRule: null,
@@ -424,7 +424,7 @@ migrate(
             name: 'rule',
             type: 'relation',
             required: true,
-            collectionId: app.findCollectionByNameOrId('had_reminder_rules').id,
+            collectionId: app.findCollectionByNameOrId('hk_reminder_rules').id,
             cascadeDelete: false,
             maxSelect: 1,
           },
@@ -472,29 +472,29 @@ migrate(
           { name: 'payload', type: 'json', required: false },
         ],
         indexes: [
-          'CREATE UNIQUE INDEX idx_had_scheduled_dedupe ON had_scheduled_notifications (dedupe_key)',
-          'CREATE INDEX idx_had_scheduled_status_for ON had_scheduled_notifications (status, scheduled_for)',
+          'CREATE UNIQUE INDEX idx_hk_scheduled_dedupe ON hk_scheduled_notifications (dedupe_key)',
+          'CREATE INDEX idx_hk_scheduled_status_for ON hk_scheduled_notifications (status, scheduled_for)',
         ],
       })
     })
 
     try {
-      const seed = require(`${__hooks}/had_notification_templates_seed.js`)
+      const seed = require(`${__hooks}/hk_notification_templates_seed.js`)
       seed.ensureNotificationSeeds(app)
     } catch (e) {
       console.log(
-        '[hong-ai-dream] notification seed skipped: ' + String((e && e.message) || e),
+        '[hk] notification seed skipped: ' + String((e && e.message) || e),
       )
     }
   },
   (app) => {
     const names = [
-      'had_scheduled_notifications',
-      'had_reminder_rules',
-      'had_notification_preferences',
-      'had_notification_deliveries',
-      'had_notifications',
-      'had_notification_templates',
+      'hk_scheduled_notifications',
+      'hk_reminder_rules',
+      'hk_notification_preferences',
+      'hk_notification_deliveries',
+      'hk_notifications',
+      'hk_notification_templates',
     ]
     for (var i = 0; i < names.length; i++) {
       try {

@@ -31,7 +31,7 @@ function mapError(error: unknown, fallback: string): Error {
 
 export async function listMyFollowUpTasks(applicationId?: string): Promise<FollowUpTask[]> {
   try {
-    const data = await studentPb.send<{ items: FollowUpTask[] }>('/api/had/follow-up/tasks', {
+    const data = await studentPb.send<{ items: FollowUpTask[] }>('/api/hk/follow-up/tasks', {
       method: 'GET',
       query: applicationId ? { application_id: applicationId } : {},
     })
@@ -43,7 +43,7 @@ export async function listMyFollowUpTasks(applicationId?: string): Promise<Follo
 
 export async function getMyFollowUpTask(id: string): Promise<FollowUpTaskDetail> {
   try {
-    return await studentPb.send(`/api/had/follow-up/tasks/${id}`, { method: 'GET' })
+    return await studentPb.send(`/api/hk/follow-up/tasks/${id}`, { method: 'GET' })
   } catch (error) {
     throw mapError(error, '無法載入任務詳情')
   }
@@ -54,7 +54,7 @@ export async function submitFollowUpTask(
   payload: { text_content?: string; attachment_ids?: string[] },
 ): Promise<{ task: FollowUpTask; message: string }> {
   try {
-    return await studentPb.send(`/api/had/follow-up/tasks/${id}/submit`, {
+    return await studentPb.send(`/api/hk/follow-up/tasks/${id}/submit`, {
       method: 'POST',
       body: payload,
     })
@@ -75,7 +75,7 @@ export async function adminListFollowUpTasks(params?: {
     const query: Record<string, string> = {}
     if (params?.application_id) query.application_id = params.application_id
     if (params?.status) query.status = params.status
-    const data = await staffPb.send<{ items: FollowUpTask[] }>('/api/had/admin/follow-up/tasks', {
+    const data = await staffPb.send<{ items: FollowUpTask[] }>('/api/hk/admin/follow-up/tasks', {
       method: 'GET',
       query,
     })
@@ -87,7 +87,7 @@ export async function adminListFollowUpTasks(params?: {
 
 export async function adminGetFollowUpTask(id: string): Promise<FollowUpTaskDetail> {
   try {
-    return await staffPb.send(`/api/had/admin/follow-up/tasks/${id}`, { method: 'GET' })
+    return await staffPb.send(`/api/hk/admin/follow-up/tasks/${id}`, { method: 'GET' })
   } catch (error) {
     throw mapError(error, '無法載入任務詳情')
   }
@@ -97,7 +97,7 @@ export async function adminCreateFollowUpTask(
   payload: CreateFollowUpTaskPayload,
 ): Promise<{ task: FollowUpTask; message: string }> {
   try {
-    return await staffPb.send('/api/had/admin/follow-up/tasks', {
+    return await staffPb.send('/api/hk/admin/follow-up/tasks', {
       method: 'POST',
       body: payload,
     })
@@ -111,7 +111,7 @@ export async function adminReviewFollowUpTask(
   payload: ReviewFollowUpTaskPayload,
 ): Promise<{ task: FollowUpTask; message: string }> {
   try {
-    return await staffPb.send(`/api/had/admin/follow-up/tasks/${id}/review`, {
+    return await staffPb.send(`/api/hk/admin/follow-up/tasks/${id}/review`, {
       method: 'POST',
       body: payload,
     })
@@ -125,7 +125,7 @@ export async function adminWaiveFollowUpTask(
   waive_reason: string,
 ): Promise<{ task: FollowUpTask; message: string }> {
   try {
-    return await staffPb.send(`/api/had/admin/follow-up/tasks/${id}/waive`, {
+    return await staffPb.send(`/api/hk/admin/follow-up/tasks/${id}/waive`, {
       method: 'POST',
       body: { waive_reason },
     })
@@ -139,7 +139,7 @@ export async function adminUpdateFollowUpDueAt(
   due_at: string,
 ): Promise<{ task: FollowUpTask; message: string }> {
   try {
-    return await staffPb.send(`/api/had/admin/follow-up/tasks/${id}/due-at`, {
+    return await staffPb.send(`/api/hk/admin/follow-up/tasks/${id}/due-at`, {
       method: 'POST',
       body: { due_at },
     })
@@ -152,7 +152,7 @@ export async function adminEnsureFollowUpTasks(
   applicationId: string,
 ): Promise<{ seeded: boolean; created: number; items: FollowUpTask[] }> {
   try {
-    return await staffPb.send(`/api/had/admin/applications/${applicationId}/ensure-follow-up-tasks`, {
+    return await staffPb.send(`/api/hk/admin/applications/${applicationId}/ensure-follow-up-tasks`, {
       method: 'POST',
       body: {},
     })
@@ -168,7 +168,7 @@ export async function adminEnsureFollowUpTasks(
 export async function adminListFollowUpTemplates(): Promise<FollowUpTaskTemplate[]> {
   try {
     const data = await staffPb.send<{ items: FollowUpTaskTemplate[] }>(
-      '/api/had/admin/follow-up/templates',
+      '/api/hk/admin/follow-up/templates',
       { method: 'GET' },
     )
     return data.items
@@ -181,7 +181,7 @@ export async function adminCreateFollowUpTemplate(
   payload: CreateTemplatePayload,
 ): Promise<{ template: FollowUpTaskTemplate }> {
   try {
-    return await staffPb.send('/api/had/admin/follow-up/templates', {
+    return await staffPb.send('/api/hk/admin/follow-up/templates', {
       method: 'POST',
       body: payload,
     })
@@ -195,7 +195,7 @@ export async function adminUpdateFollowUpTemplate(
   payload: UpdateTemplatePayload,
 ): Promise<{ template: FollowUpTaskTemplate }> {
   try {
-    return await staffPb.send(`/api/had/admin/follow-up/templates/${id}`, {
+    return await staffPb.send(`/api/hk/admin/follow-up/templates/${id}`, {
       method: 'POST',
       body: payload,
     })
@@ -209,7 +209,7 @@ export async function adminListCategoryFollowUpTemplates(
 ): Promise<CategoryFollowUpTemplate[]> {
   try {
     const data = await staffPb.send<{ items: CategoryFollowUpTemplate[] }>(
-      '/api/had/admin/follow-up/category-templates',
+      '/api/hk/admin/follow-up/category-templates',
       {
         method: 'GET',
         query: categoryId ? { category_id: categoryId } : {},
@@ -225,7 +225,7 @@ export async function adminCreateCategoryFollowUpTemplate(
   payload: CreateCategoryTemplatePayload,
 ): Promise<{ assignment: CategoryFollowUpTemplate }> {
   try {
-    return await staffPb.send('/api/had/admin/follow-up/category-templates', {
+    return await staffPb.send('/api/hk/admin/follow-up/category-templates', {
       method: 'POST',
       body: payload,
     })
@@ -245,7 +245,7 @@ export async function adminUpdateCategoryFollowUpTemplate(
   }>,
 ): Promise<{ assignment: CategoryFollowUpTemplate }> {
   try {
-    return await staffPb.send(`/api/had/admin/follow-up/category-templates/${id}`, {
+    return await staffPb.send(`/api/hk/admin/follow-up/category-templates/${id}`, {
       method: 'POST',
       body: payload,
     })

@@ -33,9 +33,9 @@ Phase 10 建議設定。以下為 **建議／待配置**，除非維運已實際
 
 | Surface | Suggestion |
 | --- | --- |
-| `/api/had/auth/login` | 依 IP／學號維度限流（Cloudflare Rate Limit 或 WAF） |
-| `/api/had/auth/register` | 較嚴限流 + 監控異常註冊 |
-| `/api/had/identity-reset` | 嚴格限流（anti-enumeration 已在 hooks，仍需邊緣防護） |
+| `/api/hk/auth/login` | 依 IP／學號維度限流（Cloudflare Rate Limit 或 WAF） |
+| `/api/hk/auth/register` | 較嚴限流 + 監控異常註冊 |
+| `/api/hk/identity-reset` | 嚴格限流（anti-enumeration 已在 hooks，仍需邊緣防護） |
 | 公開 `/api/` 其他 | 通用 bot／flood 規則 |
 | Scheduler 內部路徑 | **不**對公網開放；或限制來源 IP + secret |
 
@@ -45,13 +45,13 @@ Account lockout（5 次／15 分）已在應用層；**Production IP Rate Limit 
 
 - 啟用 Managed WAF 規則組（依方案）。
 - Bot Fight Mode／Super Bot Fight：觀察誤殺後再開。
-- 封鎖常見掃描路徑；勿阻擋 `/api/had/*` 合法流量。
+- 封鎖常見掃描路徑；勿阻擋 `/api/hk/*` 合法流量。
 - 管理用 PocketBase Admin UI：**強烈建議**限制來源 IP 或 VPN。
 
 ## Secrets on Cloudflare
 
 - Pages：只配置 `VITE_*` 公開變數。
-- **不要**在 Pages／Workers 放 `HAD_SCHEDULER_SECRET`、`HAD_PDF_SERVICE_SECRET`、SMTP／API keys、PB Superuser。
+- **不要**在 Pages／Workers 放 `HK_SCHEDULER_SECRET`、`HK_PDF_SERVICE_SECRET`、SMTP／API keys、PB Superuser。
 - PocketBase **不要**部署在 Workers。
 
 ## Headers checklist（建議）

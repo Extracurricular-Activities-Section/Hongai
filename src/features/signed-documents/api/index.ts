@@ -37,7 +37,7 @@ export async function registerSignedDocument(input: {
   student_note?: string
 }): Promise<{ signed_document: SignedDocument; message: string }> {
   try {
-    return await studentPb.send('/api/had/signed-documents/upload', {
+    return await studentPb.send('/api/hk/signed-documents/upload', {
       method: 'POST',
       body: input,
     })
@@ -53,7 +53,7 @@ export async function listSignedDocumentsByApplication(
   try {
     const pb = asStaff ? staffPb : studentPb
     const data = await pb.send<{ items: SignedDocument[] }>(
-      `/api/had/signed-documents/by-application/${applicationId}`,
+      `/api/hk/signed-documents/by-application/${applicationId}`,
       { method: 'GET' },
     )
     return data.items

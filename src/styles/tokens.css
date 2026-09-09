@@ -1,0 +1,123 @@
+/*
+ * HAD Design Tokens — 弘愛築夢申請管理系統
+ *
+ * Surface strategy: warm off-white shell, white content surfaces, near-black
+ * "ink" surfaces for focus moments, one lime accent.
+ *
+ * The accent is reserved for: hero CTA, active navigation, selected state,
+ * current step, focus ring, key metric, positive highlight. Never decoration.
+ */
+
+@theme {
+  /* ---------- Surfaces ---------- */
+  --color-bg: #f6f6f3;
+  --color-surface: #ffffff;
+  --color-surface-muted: #f1f1ec;
+  --color-surface-sunken: #eaeae4;
+  --color-surface-strong: #16181a;
+  --color-surface-strong-muted: #24272a;
+
+  /* ---------- Text ---------- */
+  --color-text-primary: #14171a;
+  --color-text-secondary: #565b61;
+  --color-text-muted: #676d74;
+  --color-text-inverse: #f7f8f5;
+  --color-text-inverse-muted: #a7adb3;
+
+  /* ---------- Borders ---------- */
+  --color-border-subtle: #e3e3dd;
+  --color-border-strong: #cbcbc2;
+  --color-border-inverse: #33373b;
+
+  /* ---------- Accent (lime) ---------- */
+  --color-accent: #b7f45b;
+  --color-accent-hover: #a9ea46;
+  --color-accent-soft: #edfbd4;
+  --color-accent-strong: #5f8f14;
+  --color-accent-foreground: #13201c;
+
+  /* ---------- Semantic ---------- */
+  --color-success: #14663f;
+  --color-success-soft: #e4f4ea;
+  --color-success-border: #b3dcc3;
+  --color-warning: #8a5210;
+  --color-warning-soft: #fbf0dd;
+  --color-warning-border: #e6cfa4;
+  --color-danger: #9f2820;
+  --color-danger-soft: #fbeceb;
+  --color-danger-border: #eec4c0;
+  --color-info: #1a5488;
+  --color-info-soft: #e8f1f9;
+  --color-info-border: #bcd5ea;
+
+  /* ---------- shadcn compatibility ----------
+   * Kept so existing primitives keep working. `accent` intentionally maps to
+   * the lime brand; neutral hovers use `surface-muted`.
+   */
+  --color-background: var(--color-bg);
+  --color-foreground: var(--color-text-primary);
+  --color-card: var(--color-surface);
+  --color-card-foreground: var(--color-text-primary);
+  --color-primary: #1b1e21;
+  --color-primary-foreground: #f7f8f5;
+  --color-secondary: var(--color-surface-muted);
+  --color-secondary-foreground: var(--color-text-primary);
+  --color-muted: var(--color-surface-muted);
+  --color-muted-foreground: var(--color-text-muted);
+  --color-border: var(--color-border-subtle);
+  --color-input: var(--color-border-strong);
+  --color-ring: var(--color-accent-strong);
+
+  /* Convenience aliases for dark "ink" panels */
+  --color-ink: var(--color-surface-strong);
+  --color-ink-muted: var(--color-surface-strong-muted);
+  --color-ink-foreground: var(--color-text-inverse);
+  --color-ink-subtle: var(--color-text-inverse-muted);
+  --color-ink-border: var(--color-border-inverse);
+  --color-subtle: var(--color-text-secondary);
+
+  /* ---------- Radius ---------- */
+  --radius-sm: 0.375rem;
+  --radius-md: 0.625rem;
+  --radius-lg: 0.875rem;
+  --radius-xl: 1.125rem;
+  --radius-2xl: 1.5rem;
+  --radius-pill: 999px;
+
+  /* ---------- Elevation ---------- */
+  --shadow-xs: 0 1px 2px rgb(20 23 26 / 0.06);
+  --shadow-sm: 0 2px 6px rgb(20 23 26 / 0.07);
+  --shadow-md: 0 10px 28px rgb(20 23 26 / 0.1);
+
+  /* ---------- Typography ---------- */
+  --font-sans: 'Inter', 'Noto Sans TC', 'PingFang TC', 'Microsoft JhengHei', system-ui, sans-serif;
+
+  --text-display: 2.25rem;
+  --text-display--line-height: 1.15;
+  --text-display--letter-spacing: -0.02em;
+  --text-page: 1.75rem;
+  --text-page--line-height: 1.25;
+  --text-page--letter-spacing: -0.015em;
+  --text-section: 1.25rem;
+  --text-section--line-height: 1.35;
+  --text-section--letter-spacing: -0.01em;
+  --text-card: 1rem;
+  --text-card--line-height: 1.45;
+  --text-meta: 0.8125rem;
+  --text-meta--line-height: 1.45;
+  --text-metric: 2rem;
+  --text-metric--line-height: 1.05;
+  --text-metric--letter-spacing: -0.025em;
+
+  /* ---------- Motion ---------- */
+  --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+  --default-transition-duration: 180ms;
+  --default-transition-timing-function: cubic-bezier(0.25, 1, 0.5, 1);
+
+  /* ---------- Layering ---------- */
+  --z-index-sticky: 20;
+  --z-index-dropdown: 30;
+  --z-index-overlay: 40;
+  --z-index-modal: 50;
+  --z-index-toast: 60;
+}

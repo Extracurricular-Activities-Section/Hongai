@@ -1,20 +1,26 @@
+import { Inbox } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 
+import { AmountDisplay } from '@/components/common/amount-display'
+import { DataTable, LinkRow, Pagination, Td, Th } from '@/components/common/data-table'
+import { FilterBar, FilterSelect, SearchInput } from '@/components/common/filter-bar'
+import { PageHeader } from '@/components/common/page-header'
+import { EmptyState, ErrorState } from '@/components/common/states'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { StatusBadge } from '@/features/applications/components/status-badge'
+import { SkeletonTable } from '@/components/ui/skeleton'
 import { adminListApplications } from '@/features/applications/api'
+import { StatusBadge } from '@/features/applications/components/status-badge'
 import type { Application } from '@/features/applications/types'
 import {
   APPLICATION_STATUS_LABELS,
   ELIGIBILITY_STATUS_LABELS,
-  formatAmount,
 } from '@/features/applications/utils/status-labels'
 import { adminListCategories, adminListPeriods } from '@/features/periods/api'
 import { formatTaipeiDateTime } from '@/lib/utils'
 import type { ApplicationCategory, ApplicationPeriod } from '@/types'
+
+const PER_PAGE = 20
 
 export function AdminApplicationsPage() {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -31,6 +37,8 @@ export function AdminApplicationsPage() {
   const period = searchParams.get('period') || ''
   const category = searchParams.get('category') || ''
   const page = Math.max(1, Number(searchParams.get('page') || 1))
+
+  const activeFilterCount = [status, eligibility, period, category].filter(Boolean).length
 
   const queryKey = useMemo(
     () => ({ q, status, eligibility, period, category, page }),
@@ -58,7 +66,7 @@ export function AdminApplicationsPage() {
       period: queryKey.period || undefined,
       category: queryKey.category || undefined,
       page: queryKey.page,
-      perPage: 20,
+      perPage: PER_PAGE,
     })
       .then((data) => {
         setItems(data.items)
@@ -76,177 +84,180 @@ export function AdminApplicationsPage() {
     setSearchParams(next)
   }
 
+  function clearFilters() {
+    const next = new URLSearchParams()
+    if (q) next.set('q', q)
+    setSearchParams(next)
+  }
+
+  const hasResults = items != null && items.length > 0
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold">案件管理</h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          可依狀態、梯次、類別與關鍵字篩選。Staff 僅顯示授權範圍內案件。
-        </p>
-      </div>
+      <PageHeader
+        title="案件管理"
+        description="承辦僅顯示授權範圍內的案件。可依關鍵字、狀態、資格、梯次與類別縮小範圍。"
+      />
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-        <Input
-          placeholder="搜尋編號／學號／姓名／項目"
+      <FilterBar>
+        <SearchInput
+          ariaLabel="搜尋案件"
+          placeholder="編號／學號／姓名／項目"
           defaultValue={q}
-          onBlur={(e) => updateParam('q', e.target.value.trim())}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              updateParam('q', (e.target as HTMLInputElement).value.trim())
-            }
-          }}
+          onSearch={(value) => updateParam('q', value)}
         />
-        <select
-          className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+        <FilterSelect
+          label="申請狀態"
+          allLabel="全部狀態"
           value={status}
-          onChange={(e) => updateParam('status', e.target.value)}
-        >
-          <option value="">全部狀態</option>
-          {Object.entries(APPLICATION_STATUS_LABELS).map(([value, label]) => (
-            <option key={value} value={value}>
-              {label}
-            </option>
-          ))}
-        </select>
-        <select
-          className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+          options={Object.entries(APPLICATION_STATUS_LABELS).map(([value, label]) => ({
+            value,
+            label,
+          }))}
+          onChange={(value) => updateParam('status', value)}
+        />
+        <FilterSelect
+          label="資格狀態"
+          allLabel="全部資格"
           value={eligibility}
-          onChange={(e) => updateParam('eligibility_status', e.target.value)}
-        >
-          <option value="">全部資格</option>
-          {Object.entries(ELIGIBILITY_STATUS_LABELS).map(([value, label]) => (
-            <option key={value} value={value}>
-              {label}
-            </option>
-          ))}
-        </select>
-        <select
-          className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+          options={Object.entries(ELIGIBILITY_STATUS_LABELS).map(([value, label]) => ({
+            value,
+            label,
+          }))}
+          onChange={(value) => updateParam('eligibility_status', value)}
+        />
+        <FilterSelect
+          label="申請梯次"
+          allLabel="全部梯次"
           value={period}
-          onChange={(e) => updateParam('period', e.target.value)}
-        >
-          <option value="">全部梯次</option>
-          {periods.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.name}
-            </option>
-          ))}
-        </select>
-        <select
-          className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+          options={periods.map((item) => ({ value: item.id, label: item.name }))}
+          onChange={(value) => updateParam('period', value)}
+        />
+        <FilterSelect
+          label="申請類別"
+          allLabel="全部類別"
           value={category}
-          onChange={(e) => updateParam('category', e.target.value)}
-        >
-          <option value="">全部類別</option>
-          {categories.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-            </option>
-          ))}
-        </select>
-      </div>
+          options={categories.map((item) => ({ value: item.id, label: item.name }))}
+          onChange={(value) => updateParam('category', value)}
+        />
+        {activeFilterCount > 0 ? (
+          <Button type="button" variant="ghost" size="sm" onClick={clearFilters}>
+            清除篩選（{activeFilterCount}）
+          </Button>
+        ) : null}
+      </FilterBar>
 
-      {error ? <p className="text-sm text-red-700">{error}</p> : null}
-      {!items && !error ? <p className="text-sm text-muted-foreground">載入中…</p> : null}
+      {error ? <ErrorState message={error} /> : null}
+      {!items && !error ? <SkeletonTable rows={8} /> : null}
 
       {items && items.length === 0 ? (
-        <p className="text-sm text-muted-foreground">沒有符合的案件。</p>
+        <EmptyState
+          icon={Inbox}
+          title="沒有符合條件的案件"
+          description={
+            activeFilterCount > 0 || q
+              ? '試著放寬篩選條件，或清除目前的關鍵字。'
+              : '目前授權範圍內尚無案件。'
+          }
+          action={
+            activeFilterCount > 0 ? (
+              <Button type="button" variant="outline" onClick={clearFilters}>
+                清除篩選
+              </Button>
+            ) : null
+          }
+        />
       ) : null}
 
-      {items && items.length > 0 ? (
+      {hasResults ? (
         <>
-          <div className="hidden overflow-x-auto rounded-md border border-border md:block">
-            <table className="w-full min-w-[720px] text-left text-sm">
-              <thead className="border-b border-border bg-muted/40">
-                <tr>
-                  <th className="px-3 py-2 font-medium">申請編號</th>
-                  <th className="px-3 py-2 font-medium">學生</th>
-                  <th className="px-3 py-2 font-medium">項目</th>
-                  <th className="px-3 py-2 font-medium">狀態</th>
-                  <th className="px-3 py-2 font-medium">金額</th>
-                  <th className="px-3 py-2 font-medium">送件時間</th>
-                  <th className="px-3 py-2 font-medium" />
-                </tr>
-              </thead>
-              <tbody>
-                {items.map((item) => (
-                  <tr key={item.id} className="border-b border-border">
-                    <td className="px-3 py-2 font-medium">{item.application_number}</td>
-                    <td className="px-3 py-2">
-                      <div>{item.student_name || '—'}</div>
-                      <div className="text-xs text-muted-foreground">{item.student_no}</div>
-                    </td>
-                    <td className="px-3 py-2">{item.category_name || item.category}</td>
-                    <td className="px-3 py-2">
-                      <StatusBadge status={item.status} />
-                    </td>
-                    <td className="px-3 py-2">
-                      {item.approved_amount != null
-                        ? formatAmount(item.approved_amount)
-                        : formatAmount(item.requested_amount)}
-                    </td>
-                    <td className="px-3 py-2 text-muted-foreground">
-                      {formatTaipeiDateTime(item.submitted_at)}
-                    </td>
-                    <td className="px-3 py-2 text-right">
-                      <Button asChild size="sm" variant="outline">
-                        <Link to={`/admin/applications/${item.id}`}>詳情</Link>
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          <div className="space-y-3 md:hidden">
+          {/* Desktop: dense scannable table. */}
+          <DataTable caption="案件清單" className="hidden md:block" head={
+            <>
+              <Th>申請編號</Th>
+              <Th>學生</Th>
+              <Th>項目</Th>
+              <Th>狀態</Th>
+              <Th align="right">金額</Th>
+              <Th>送件時間</Th>
+            </>
+          }>
             {items.map((item) => (
-              <Card key={item.id}>
-                <CardContent className="space-y-2 py-4 text-sm">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <p className="font-medium">{item.application_number}</p>
+              <LinkRow key={item.id} to={`/admin/applications/${item.id}`}>
+                <Td>
+                  <Link
+                    to={`/admin/applications/${item.id}`}
+                    className="rounded-sm font-medium text-foreground tabular hover:text-accent-strong"
+                  >
+                    {item.application_number}
+                  </Link>
+                </Td>
+                <Td>
+                  <span className="block text-foreground">{item.student_name || '—'}</span>
+                  <span className="block text-meta text-muted-foreground tabular">
+                    {item.student_no}
+                  </span>
+                </Td>
+                <Td className="text-subtle">{item.category_name || item.category}</Td>
+                <Td>
+                  <StatusBadge status={item.status} />
+                </Td>
+                <Td align="right">
+                  <AmountDisplay
+                    value={item.approved_amount != null ? item.approved_amount : item.requested_amount}
+                    muted={item.approved_amount == null}
+                  />
+                </Td>
+                <Td className="whitespace-nowrap text-meta text-muted-foreground">
+                  {formatTaipeiDateTime(item.submitted_at)}
+                </Td>
+              </LinkRow>
+            ))}
+          </DataTable>
+
+          {/* Mobile: the same record as a stacked card. */}
+          <ul className="space-y-3 md:hidden">
+            {items.map((item) => (
+              <li key={item.id}>
+                <Link
+                  to={`/admin/applications/${item.id}`}
+                  className="block rounded-lg border border-border bg-card p-4 transition-colors hover:border-border-strong"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <span className="text-sm font-medium text-foreground tabular">
+                      {item.application_number}
+                    </span>
                     <StatusBadge status={item.status} />
                   </div>
-                  <p>
-                    {item.student_name}（{item.student_no}）
+                  <p className="mt-2 text-sm text-foreground">
+                    {item.student_name}
+                    <span className="ml-2 text-meta text-muted-foreground tabular">
+                      {item.student_no}
+                    </span>
                   </p>
-                  <p className="text-muted-foreground">{item.category_name}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {formatTaipeiDateTime(item.submitted_at)}
-                  </p>
-                  <Button asChild size="sm" variant="outline" className="w-full">
-                    <Link to={`/admin/applications/${item.id}`}>查看詳情</Link>
-                  </Button>
-                </CardContent>
-              </Card>
+                  <p className="mt-0.5 text-meta text-subtle">{item.category_name}</p>
+                  <div className="mt-3 flex items-center justify-between gap-3">
+                    <AmountDisplay
+                      value={
+                        item.approved_amount != null ? item.approved_amount : item.requested_amount
+                      }
+                      muted={item.approved_amount == null}
+                    />
+                    <span className="text-meta text-muted-foreground">
+                      {formatTaipeiDateTime(item.submitted_at)}
+                    </span>
+                  </div>
+                </Link>
+              </li>
             ))}
-          </div>
+          </ul>
 
-          <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
-            <p className="text-muted-foreground">
-              共 {totalItems} 筆 · 第 {page} / {totalPages} 頁
-            </p>
-            <div className="flex gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                disabled={page <= 1}
-                onClick={() => updateParam('page', String(page - 1))}
-              >
-                上一頁
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                disabled={page >= totalPages}
-                onClick={() => updateParam('page', String(page + 1))}
-              >
-                下一頁
-              </Button>
-            </div>
-          </div>
+          <Pagination
+            page={page}
+            totalPages={totalPages}
+            totalItems={totalItems}
+            onPageChange={(next) => updateParam('page', String(next))}
+          />
         </>
       ) : null}
     </div>

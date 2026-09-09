@@ -42,7 +42,7 @@ export async function uploadAttachment(
     if (input.replaceAttachmentId) form.append('replace_attachment_id', input.replaceAttachmentId)
 
     const pb = clientFor(input.asStaff)
-    return await pb.send('/api/had/attachments/upload', {
+    return await pb.send('/api/hk/attachments/upload', {
       method: 'POST',
       body: form,
     })
@@ -58,7 +58,7 @@ export async function downloadAttachmentBlob(
   try {
     const token = authToken()
     const response = await fetch(
-      `${baseUrl()}/api/had/attachments/${encodeURIComponent(id)}/download?disposition=${disposition}`,
+      `${baseUrl()}/api/hk/attachments/${encodeURIComponent(id)}/download?disposition=${disposition}`,
       { headers: token ? { Authorization: token } : {} },
     )
     if (!response.ok) {
@@ -98,7 +98,7 @@ export async function softDeleteAttachment(
 ): Promise<{ attachment: Attachment; message: string }> {
   try {
     const pb = clientFor(asStaff)
-    return await pb.send(`/api/had/attachments/${id}/delete`, {
+    return await pb.send(`/api/hk/attachments/${id}/delete`, {
       method: 'POST',
       body: {},
     })

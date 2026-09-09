@@ -1,4 +1,4 @@
-import { zodResolver } from '@hookform/resolvers/zod'
+﻿import { zodResolver } from '@hookform/resolvers/zod'
 import { useState, type ReactNode } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import { Link, Navigate, useNavigate } from 'react-router-dom'
@@ -144,7 +144,7 @@ export function RegisterPage() {
               </Field>
             ) : null}
 
-            {error ? <p className="text-sm text-red-700 sm:col-span-2">{error}</p> : null}
+            {error ? <p className="text-sm font-medium text-danger sm:col-span-2">{error}</p> : null}
 
             <div className="flex flex-col gap-3 sm:col-span-2 sm:flex-row sm:items-center sm:justify-between">
               <Link to="/" className="text-sm font-medium text-primary underline-offset-4 hover:underline">
@@ -162,7 +162,7 @@ export function RegisterPage() {
 }
 
 const selectClass =
-  'flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
+  'flex h-10 w-full rounded-md border border-input bg-surface text-foreground transition-colors placeholder:text-muted-foreground hover:border-border-strong focus-visible:border-accent-strong disabled:cursor-not-allowed disabled:bg-surface-muted disabled:opacity-70 px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
 
 function Field({
   label,
@@ -179,7 +179,7 @@ function Field({
     <div className={cn('space-y-2', className)}>
       <Label>{label}</Label>
       {children}
-      {error ? <p className="text-xs text-red-700">{error}</p> : null}
+      {error ? <p className="text-meta font-medium text-danger">{error}</p> : null}
     </div>
   )
 }

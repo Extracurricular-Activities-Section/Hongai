@@ -59,7 +59,7 @@ export function mailProviderBanner(status: MailProviderStatus): {
     return {
       tone: 'warning',
       title: '郵件提供者未設定',
-      description: status.notes || '尚未設定 HAD_MAIL_PROVIDER，無法真正寄送信件。',
+      description: status.notes || '尚未設定 HK_MAIL_PROVIDER，無法真正寄送信件。',
     }
   }
   if (provider === 'development' || provider === 'console') {

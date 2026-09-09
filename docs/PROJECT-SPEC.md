@@ -1,4 +1,4 @@
-﻿# 專案規格（PROJECT SPEC）
+# 專案規格（PROJECT SPEC）
 
 中文名稱：弘愛築夢申請管理系統  
 英文名稱：Hong Ai Dream Application Management System  
@@ -6,16 +6,16 @@ Repository：`hong-ai-dream-system`
 
 ## 資料模型
 
-- 全部 Collection 使用 `had_` 前綴，與共用 PocketBase 實例上其他系統隔離。
+- 全部 Collection 使用 `hk_` 前綴，與共用 PocketBase 實例上其他系統隔離。
 - **禁止**使用 / 修改 production 既有 `students` / `users` / `teachers`。
-- Student 與 StudentProfile 分離：`had_students`（Auth）+ `had_student_profiles`（含完整 identity_number）。
-- Staff/Admin 共用：`had_staff_users`（`is_staff` / `is_admin` 不互斥）。
-- Department 多對多：`had_staff_departments`。
+- Student 與 StudentProfile 分離：`hk_students`（Auth）+ `hk_student_profiles`（含完整 identity_number）。
+- Staff/Admin 共用：`hk_staff_users`（`is_staff` / `is_admin` 不互斥）。
+- Department 多對多：`hk_staff_departments`。
 
 ## 學生認證
 
-- 首次註冊建立 Auth + Profile（server-side `/api/had/auth/register`）。
-- 登入：學號 + 身分證後四碼（`/api/had/auth/login`）。
+- 首次註冊建立 Auth + Profile（server-side `/api/hk/auth/register`）。
+- 登入：學號 + 身分證後四碼（`/api/hk/auth/login`）。
 - 不使用 Email OTP / 學生自訂密碼。
 - 內部 Auth password 為不可預測 random secret，永不回傳前端。
 - Lockout：連續 5 次失敗鎖定 15 分鐘。
@@ -67,9 +67,9 @@ Repository：`hong-ai-dream-system`
 
 ## 9 大申請項目與表單（Phase 5）
 
-- 主檔：`had_application_categories`（migration seed）。
-- 入口：`had_student_category_entries`（`not_started` | `draft`）。
-- Dynamic Form：`had_forms` / versions / sections / fields / options / rules。
+- 主檔：`hk_application_categories`（migration seed）。
+- 入口：`hk_student_category_entries`（`not_started` | `draft`）。
+- Dynamic Form：`hk_forms` / versions / sections / fields / options / rules。
 - Submission：`draft` | `completed`；完成時寫入含 Profile snapshot 的 submission version。
 - 共用資料不進 9 張表單；PDF 於第 6 段合併 StudentProfile + PeriodProfile + Form Submission。
 - 歷史 Form Detail 顯示該 period 最新有效 submission version。
@@ -77,7 +77,7 @@ Repository：`hong-ai-dream-system`
 
 ## 完整身分證
 
-- 存在 `had_student_profiles.identity_number`。
+- 存在 `hk_student_profiles.identity_number`。
 - Student 可看自己；Staff 可看**有權限案件**完整身分證（列表遮罩）；Admin 可看全部。
 - 列表預設遮罩；at-rest encryption 仍為 Infrastructure TODO。
 
@@ -90,22 +90,22 @@ Repository：`hong-ai-dream-system`
 
 ## 正式 PDF（Phase 6）
 
-- 來源：`had_form_submission_versions.snapshot`（含完整身分證於 snapshot，client API 不回傳）
-- Collection：`had_pdf_documents`（versioning / SHA-256 / verification_token）
+- 來源：`hk_form_submission_versions.snapshot`（含完整身分證於 snapshot，client API 不回傳）
+- Collection：`hk_pdf_documents`（versioning / SHA-256 / verification_token）
 - 產生需 current editable period（或 returned_for_edit + edit_override）；截止後僅下載既有 PDF（無 override）
 - 公開 `/verify/:token` 不洩漏 PII、不提供下載
 - 紙本簽核區依 category PDF config；電子簽／上傳已簽檔第 8 段
 
 ## 正式案件與審核（Phase 7）
 
-- Submission 與 Application 分離；送件 `POST /api/had/applications/submit`
+- Submission 與 Application 分離；送件 `POST /api/hk/applications/submit`
 - State machine：資格審核／待補件／退回修改／通過／不通過／核定
 - Staff scope：assignment + department；核定版本歷史；年度累計
 - 詳見 `docs/APPLICATION-WORKFLOW.md`
 
 ## 附件與後續任務（Phase 8）
 
-- `had_attachments` protected upload/download；file field 存 attachment IDs
+- `hk_attachments` protected upload/download；file field 存 attachment IDs
 - 已簽文件／`signature_upload_mode`；補件附件與 submissions
 - Follow-up templates／tasks／reviews；`requires_review`；derived overdue
 - 詳見 `docs/ATTACHMENT-ARCHITECTURE.md`、`docs/FOLLOW-UP-ARCHITECTURE.md`

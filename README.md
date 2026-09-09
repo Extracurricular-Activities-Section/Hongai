@@ -1,13 +1,14 @@
-# 弘愛築夢申請管理系統
+# 弘愛築夢申請／管理系統
 
-**Hong Ai Dream Application Management System**
+學生端：**弘愛築夢申請系統** · 管理端：**弘愛築夢管理系統**
 
-目前完成 **Phase / Prompt 10 of 10：Form Builder + Production 部署準備文件**（code + prep）。
+目前完成 **Phase / Prompt 10 of 10：Form Builder + Production 部署準備文件**（code + prep）。  
+進行中：`hk` namespace + Cloudflare 業務層遷移（見 `docs/IMPLEMENTATION-PLAN-HK-CLOUDFLARE.md`）。
 
 > Production：**NOT LIVE**  
 > Migration：**READY_FOR_MANUAL_MIGRATION**（需備份閘門後人工套用）  
 > Runtime matrix：見 [`docs/RUNTIME-VERIFICATION-MATRIX.md`](docs/RUNTIME-VERIFICATION-MATRIX.md)（多為 NOT VERIFIED／NOT CONFIGURED／NOT EXECUTED）  
-> Production Mail Provider：**NOT CONFIGURED**（可用 `HAD_MAIL_PROVIDER=disabled` 或 development 模擬；development ≠ 正式寄送）
+> Production Mail Provider：**NOT CONFIGURED**（可用 `HK_MAIL_PROVIDER=disabled` 或 development 模擬；development ≠ 正式寄送）
 
 ## 本機
 
@@ -21,11 +22,11 @@ npm run attachment:smoke
 npm run pdf:smoke
 ```
 
-排程（需 `HAD_SCHEDULER_SECRET`）：
+排程（需 `HK_SCHEDULER_SECRET`）：
 
-- `POST /api/had/internal/notifications/schedule`
-- `POST /api/had/internal/notifications/process`
-- `POST /api/had/internal/notifications/process-reminders`
+- `POST /api/hk/internal/notifications/schedule`
+- `POST /api/hk/internal/notifications/process`
+- `POST /api/hk/internal/notifications/process-reminders`
 
 ## Phase 10 文件
 

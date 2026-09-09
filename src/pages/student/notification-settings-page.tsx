@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useState } from 'react'
+﻿import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 
+import { PageSkeleton } from '@/components/common/states'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
@@ -47,14 +48,14 @@ export function StudentNotificationSettingsPage() {
     }
   }
 
-  if (error && !prefs) return <p className="text-sm text-red-700">{error}</p>
-  if (!prefs) return <p className="text-sm text-muted-foreground">載入中…</p>
+  if (error && !prefs) return <p className="text-sm font-medium text-danger">{error}</p>
+  if (!prefs) return <PageSkeleton />
 
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold">通知設定</h1>
+          <h1 className="text-page font-semibold text-foreground">通知設定</h1>
           <p className="mt-2 text-sm text-muted-foreground">調整提醒與 Email 偏好。</p>
         </div>
         <Button asChild size="sm" variant="outline">
@@ -62,8 +63,8 @@ export function StudentNotificationSettingsPage() {
         </Button>
       </div>
 
-      {message ? <p className="text-sm text-emerald-800">{message}</p> : null}
-      {error ? <p className="text-sm text-red-700">{error}</p> : null}
+      {message ? <p className="text-sm font-medium text-success">{message}</p> : null}
+      {error ? <p className="text-sm font-medium text-danger">{error}</p> : null}
 
       <Card>
         <CardHeader>

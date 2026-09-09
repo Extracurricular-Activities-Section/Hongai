@@ -32,5 +32,7 @@ test-fixtures/
 pb_data/
 coverage/
 .env.production
+workers/**/.dev.vars
+workers/**/.wrangler/
 *.pdf
 !docs/**

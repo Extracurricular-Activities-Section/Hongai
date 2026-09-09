@@ -15,7 +15,7 @@ const BackofficeAuthContext = createContext<BackofficeAuthContextValue | null>(n
 
 function readState(): BackofficeAuthState {
   const record = staffPb.authStore.record
-  const valid = staffPb.authStore.isValid && record?.collectionName === 'had_staff_users'
+  const valid = staffPb.authStore.isValid && record?.collectionName === 'hk_staff_users'
   const isStaff = Boolean(record?.is_staff)
   const isAdmin = Boolean(record?.is_admin)
   const active = Boolean(record?.active)

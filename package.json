@@ -15,7 +15,10 @@
     "notification:smoke": "node ./scripts/notification-render-smoke.mjs",
     "security:secrets": "node ./scripts/security-secrets-scan.mjs",
     "preflight": "node ./scripts/production-preflight.mjs",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "worker:dev": "npm --prefix ./workers/hk-api run dev",
+    "worker:typecheck": "npm --prefix ./workers/hk-api run typecheck",
+    "worker:install": "npm --prefix ./workers/hk-api install"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
@@ -51,6 +54,7 @@
     "oxlint": "^1.79.0",
     "tailwindcss": "^4.3.3",
     "typescript": "~6.0.2",
-    "vite": "^8.2.2"
+    "vite": "^8.2.2",
+    "wrangler": "^4.130.0"
   }
 }

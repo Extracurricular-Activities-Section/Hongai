@@ -12,7 +12,7 @@ Phase 10 — Admin Form Builder 靜態／手動驗證清單。
 | --- | --- | --- | --- |
 | 1 | Admin 開啟 `/admin/forms` | 顯示 9 大申請項目表單主檔與目前 published version | ☐ |
 | 2 | 非 Admin Staff 開啟 forms／builder | UI 拒絕或 API `403`（`requireAdminAuth`） | ☐ |
-| 3 | 學生呼叫 `/api/had/admin/forms/*` | `401`／`403` | ☐ |
+| 3 | 學生呼叫 `/api/hk/admin/forms/*` | `401`／`403` | ☐ |
 
 ## Draft lifecycle
 

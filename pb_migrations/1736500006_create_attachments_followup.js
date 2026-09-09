@@ -1,14 +1,14 @@
 /// <reference path="../pb_data/types.d.ts" />
 /**
  * Phase 8: Attachments, signed documents, supplements, follow-up tasks.
- * ONLY operates on had_* collections.
+ * ONLY operates on hk_* collections.
  */
 
 migrate(
   (app) => {
     const assertHadName = (name) => {
-      if (typeof name !== 'string' || !name.startsWith('had_')) {
-        throw new Error(`[hong-ai-dream] Refusing non-had_ collection name: ${name}`)
+      if (typeof name !== 'string' || !name.startsWith('hk_')) {
+        throw new Error(`[hk] Refusing non-hk_ collection name: ${name}`)
       }
     }
 
@@ -25,7 +25,7 @@ migrate(
     const createIfAbsent = (name, factory) => {
       assertHadName(name)
       if (exists(name)) {
-        console.log(`[hong-ai-dream] CONFLICT: "${name}" exists — skipped`)
+        console.log(`[hk] CONFLICT: "${name}" exists — skipped`)
         return null
       }
       const collection = factory()
@@ -47,32 +47,32 @@ migrate(
     }
 
     const required = [
-      'had_students',
-      'had_applications',
-      'had_form_submissions',
-      'had_supplement_requests',
-      'had_pdf_documents',
-      'had_staff_users',
-      'had_application_categories',
+      'hk_students',
+      'hk_applications',
+      'hk_form_submissions',
+      'hk_supplement_requests',
+      'hk_pdf_documents',
+      'hk_staff_users',
+      'hk_application_categories',
     ]
     for (var i = 0; i < required.length; i++) {
       if (!exists(required[i])) {
-        throw new Error('[hong-ai-dream] Phase 8 requires: ' + required[i])
+        throw new Error('[hk] Phase 8 requires: ' + required[i])
       }
     }
 
-    const students = app.findCollectionByNameOrId('had_students')
-    const applications = app.findCollectionByNameOrId('had_applications')
-    const submissions = app.findCollectionByNameOrId('had_form_submissions')
-    const supplementRequests = app.findCollectionByNameOrId('had_supplement_requests')
-    const pdfDocuments = app.findCollectionByNameOrId('had_pdf_documents')
-    const staff = app.findCollectionByNameOrId('had_staff_users')
-    const categories = app.findCollectionByNameOrId('had_application_categories')
+    const students = app.findCollectionByNameOrId('hk_students')
+    const applications = app.findCollectionByNameOrId('hk_applications')
+    const submissions = app.findCollectionByNameOrId('hk_form_submissions')
+    const supplementRequests = app.findCollectionByNameOrId('hk_supplement_requests')
+    const pdfDocuments = app.findCollectionByNameOrId('hk_pdf_documents')
+    const staff = app.findCollectionByNameOrId('hk_staff_users')
+    const categories = app.findCollectionByNameOrId('hk_application_categories')
 
-    createIfAbsent('had_follow_up_task_templates', () => {
+    createIfAbsent('hk_follow_up_task_templates', () => {
       return new Collection({
         type: 'base',
-        name: 'had_follow_up_task_templates',
+        name: 'hk_follow_up_task_templates',
         listRule: null,
         viewRule: null,
         createRule: null,
@@ -107,17 +107,17 @@ migrate(
           { name: 'review_instructions', type: 'text', required: false },
         ],
         indexes: [
-          'CREATE UNIQUE INDEX idx_had_follow_up_task_templates_code ON had_follow_up_task_templates (code)',
+          'CREATE UNIQUE INDEX idx_hk_follow_up_task_templates_code ON hk_follow_up_task_templates (code)',
         ],
       })
     })
 
-    const templates = app.findCollectionByNameOrId('had_follow_up_task_templates')
+    const templates = app.findCollectionByNameOrId('hk_follow_up_task_templates')
 
-    createIfAbsent('had_category_follow_up_templates', () => {
+    createIfAbsent('hk_category_follow_up_templates', () => {
       return new Collection({
         type: 'base',
-        name: 'had_category_follow_up_templates',
+        name: 'hk_category_follow_up_templates',
         listRule: null,
         viewRule: null,
         createRule: null,
@@ -149,10 +149,10 @@ migrate(
       })
     })
 
-    createIfAbsent('had_follow_up_tasks', () => {
+    createIfAbsent('hk_follow_up_tasks', () => {
       return new Collection({
         type: 'base',
-        name: 'had_follow_up_tasks',
+        name: 'hk_follow_up_tasks',
         listRule: null,
         viewRule: null,
         createRule: null,
@@ -240,12 +240,12 @@ migrate(
       })
     })
 
-    const tasks = app.findCollectionByNameOrId('had_follow_up_tasks')
+    const tasks = app.findCollectionByNameOrId('hk_follow_up_tasks')
 
-    createIfAbsent('had_attachments', () => {
+    createIfAbsent('hk_attachments', () => {
       return new Collection({
         type: 'base',
-        name: 'had_attachments',
+        name: 'hk_attachments',
         listRule: null,
         viewRule: null,
         createRule: null,
@@ -369,12 +369,12 @@ migrate(
       })
     })
 
-    const attachmentsCol = app.findCollectionByNameOrId('had_attachments')
+    const attachmentsCol = app.findCollectionByNameOrId('hk_attachments')
 
-    createIfAbsent('had_signed_documents', () => {
+    createIfAbsent('hk_signed_documents', () => {
       return new Collection({
         type: 'base',
-        name: 'had_signed_documents',
+        name: 'hk_signed_documents',
         listRule: null,
         viewRule: null,
         createRule: null,
@@ -437,9 +437,9 @@ migrate(
       })
     })
 
-    const signedDocs = app.findCollectionByNameOrId('had_signed_documents')
+    const signedDocs = app.findCollectionByNameOrId('hk_signed_documents')
 
-    addFieldIfAbsent('had_applications', 'signed_document', {
+    addFieldIfAbsent('hk_applications', 'signed_document', {
       type: 'relation',
       name: 'signed_document',
       required: false,
@@ -448,16 +448,16 @@ migrate(
       maxSelect: 1,
     })
 
-    addFieldIfAbsent('had_applications', 'follow_up_tasks_seeded', {
+    addFieldIfAbsent('hk_applications', 'follow_up_tasks_seeded', {
       type: 'bool',
       name: 'follow_up_tasks_seeded',
       required: false,
     })
 
-    createIfAbsent('had_supplement_submissions', () => {
+    createIfAbsent('hk_supplement_submissions', () => {
       return new Collection({
         type: 'base',
-        name: 'had_supplement_submissions',
+        name: 'hk_supplement_submissions',
         listRule: null,
         viewRule: null,
         createRule: null,
@@ -494,10 +494,10 @@ migrate(
       })
     })
 
-    createIfAbsent('had_follow_up_submissions', () => {
+    createIfAbsent('hk_follow_up_submissions', () => {
       return new Collection({
         type: 'base',
-        name: 'had_follow_up_submissions',
+        name: 'hk_follow_up_submissions',
         listRule: null,
         viewRule: null,
         createRule: null,
@@ -535,12 +535,12 @@ migrate(
       })
     })
 
-    const followSubs = app.findCollectionByNameOrId('had_follow_up_submissions')
+    const followSubs = app.findCollectionByNameOrId('hk_follow_up_submissions')
 
-    createIfAbsent('had_follow_up_reviews', () => {
+    createIfAbsent('hk_follow_up_reviews', () => {
       return new Collection({
         type: 'base',
-        name: 'had_follow_up_reviews',
+        name: 'hk_follow_up_reviews',
         listRule: null,
         viewRule: null,
         createRule: null,
@@ -587,14 +587,14 @@ migrate(
   },
   (app) => {
     const names = [
-      'had_follow_up_reviews',
-      'had_follow_up_submissions',
-      'had_supplement_submissions',
-      'had_signed_documents',
-      'had_attachments',
-      'had_follow_up_tasks',
-      'had_category_follow_up_templates',
-      'had_follow_up_task_templates',
+      'hk_follow_up_reviews',
+      'hk_follow_up_submissions',
+      'hk_supplement_submissions',
+      'hk_signed_documents',
+      'hk_attachments',
+      'hk_follow_up_tasks',
+      'hk_category_follow_up_templates',
+      'hk_follow_up_task_templates',
     ]
     for (var i = 0; i < names.length; i++) {
       try {

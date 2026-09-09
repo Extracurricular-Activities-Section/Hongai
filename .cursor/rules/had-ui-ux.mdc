@@ -1,0 +1,58 @@
+---
+description: 弘愛築夢 UI/UX + 架構遷移約束（視覺語言、tokens、a11y；業務／安全變更僅限正式遷移波次）
+globs: src/**/*.{tsx,ts,css}
+alwaysApply: true
+---
+
+# 弘愛築夢 UI / Architecture Project Rule
+
+Priority: **user formal instructions > this rule > external skills**.
+
+## Visual direction
+
+- User-attached screenshots / mockups take priority over any skill default.
+- Behance references define visual language; target **Modern SaaS / CRM workspace**.
+- Traditional Chinese UI copy. Prefer existing tokens / CSS variables; extend token-first, avoid one-off hex sprawl.
+- Product UI names: **弘愛築夢申請系統**（學生）／**弘愛築夢管理系統**（管理）。No English product subtitle.
+- Responsive: mobile + desktop. Prefer reusable layout/components over page-local one-offs.
+- Preserve the existing Design System (`tokens.css`, `src/components/common/*`). Do **not** redesign the whole site from scratch.
+
+## Accessibility
+
+- Semantic HTML, visible focus, keyboard paths, labeled controls, dialog titles.
+- WCAG AA contrast for body text. Icon-only buttons need accessible names.
+- Preserve Radix/shadcn focus & ARIA behavior; do not strip focus rings without replacement.
+
+## Architecture migration (authorized wave)
+
+When the user has approved `docs/IMPLEMENTATION-PLAN-HK-CLOUDFLARE.md`:
+
+- Namespace `had_*` → `hk_*`, `/api/had` → `/api/hk`, `HAD_*` → `HK_*` (semantic, not blind product-name replace).
+- Business logic runs **only** on Cloudflare Workers／Queues／Cron； PocketBase host is `hk_*` data layer + Rules + service account (no Superuser runtime).
+- **Do not** deploy `pb_hooks/` business hooks to PocketBase. Repo `pb_hooks/` is legacy reference until each row in `docs/PB-HOOKS-MIGRATION-MATRIX.md` is complete／switched／tested.
+- Dual entries (apply / manage) may share one repo; do not fake separation with route-hiding alone.
+
+Outside that approved wave, do **not** casually change workflow semantics, validation, or security model.
+
+## Hard non-goals
+
+- Do **not** production deploy, force-push, reset hard, or mutate production DB / run production migrations unless the user explicitly orders it.
+- Do **not** edit non-`hk_` collections (`students` / `users` / `teachers` / other shared data).
+- Do **not** put PocketBase Superuser credentials in Cloudflare runtime or browser.
+- Do **not** add dependencies unless needed for the approved plan (Workers/wrangler etc. are allowed for that plan).
+- Do **not** rewrite to Next.js, Vue, Angular, Supabase, or Firebase.
+- Do **not** weaken TypeScript strictness, lint, or security checks.
+- Do **not** print `.env` secrets.
+
+## Stack-compatible UI work
+
+- Compose with existing `src/components/ui/*` and feature components first.
+- Form Builder DnD (`@dnd-kit`): visual polish only unless user asks to change drag behavior.
+- After UI edits: verify locally (`npm.cmd run dev`). Use `visual-qa-testing` / `accessibility-auditing` when validating.
+- Authorization remains server-side (Cloudflare gateway + PocketBase Rules) — never route-guard-only claims.
+
+## Anti-patterns
+
+- Generic AI aesthetics (purple gradients, Inter-default stacks, cream+terracotta cliché) unless the user brief requires them.
+- Card-everything layouts; decorative gradients as the only visual idea.
+- Second parallel Design System fighting the existing tokens.

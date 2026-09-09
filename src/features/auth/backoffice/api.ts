@@ -1,6 +1,7 @@
 import { ClientResponseError } from 'pocketbase'
+import type { RecordModel } from 'pocketbase'
 
-import { HAD_COLLECTIONS, staffPb } from '@/lib/pocketbase'
+import { HK_COLLECTIONS, staffPb } from '@/lib/pocketbase'
 import { sanitizeApiError } from '@/lib/utils'
 import type { StaffLoginInput } from '@/lib/validation'
 import type { IdentityResetRequest, StaffUser } from '@/types'
@@ -18,8 +19,27 @@ function mapError(error: unknown, fallback: string): Error {
 
 export async function loginStaff(input: StaffLoginInput): Promise<StaffUser> {
   try {
+    // Prefer Cloudflare auth gateway when VITE_HK_API_BASE_URL is set.
+    if (import.meta.env.VITE_HK_API_BASE_URL?.trim()) {
+      const { hkApiSend } = await import('@/lib/api/hk-client')
+      const data = await hkApiSend<{ token: string; record: StaffUser & RecordModel }>(
+        '/api/hk/auth/staff/login',
+        {
+          method: 'POST',
+          body: input,
+        },
+      )
+      staffPb.authStore.save(data.token, data.record)
+      const record = data.record
+      if (!record.active || (!record.is_staff && !record.is_admin)) {
+        staffPb.authStore.clear()
+        throw new Error('登入失敗，請確認帳號狀態與權限。')
+      }
+      return record
+    }
+
     const result = await staffPb
-      .collection(HAD_COLLECTIONS.staffUsers)
+      .collection(HK_COLLECTIONS.staffUsers)
       .authWithPassword<StaffUser>(input.email, input.password)
 
     const record = result.record
@@ -44,7 +64,7 @@ export async function refreshStaffSession(): Promise<boolean> {
     return false
   }
   try {
-    const result = await staffPb.collection(HAD_COLLECTIONS.staffUsers).authRefresh<StaffUser>()
+    const result = await staffPb.collection(HK_COLLECTIONS.staffUsers).authRefresh<StaffUser>()
     const record = result.record
     if (!record.active || (!record.is_staff && !record.is_admin)) {
       staffPb.authStore.clear()
@@ -61,7 +81,7 @@ export async function listIdentityResets(status?: string): Promise<IdentityReset
   try {
     const query = status ? { status } : undefined
     const data = await staffPb.send<{ items: IdentityResetRequest[] }>(
-      '/api/had/admin/identity-resets',
+      '/api/hk/admin/identity-resets',
       {
         method: 'GET',
         query,
@@ -79,7 +99,7 @@ export async function updateIdentityResetStatus(
   resolution_note: string,
 ): Promise<void> {
   try {
-    await staffPb.send(`/api/had/admin/identity-resets/${id}/status`, {
+    await staffPb.send(`/api/hk/admin/identity-resets/${id}/status`, {
       method: 'POST',
       body: { status, resolution_note },
     })
@@ -90,7 +110,7 @@ export async function updateIdentityResetStatus(
 
 export async function unlockStudent(studentId: string): Promise<void> {
   try {
-    await staffPb.send(`/api/had/admin/students/${studentId}/unlock`, {
+    await staffPb.send(`/api/hk/admin/students/${studentId}/unlock`, {
       method: 'POST',
     })
   } catch (error) {

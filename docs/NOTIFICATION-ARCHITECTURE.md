@@ -7,8 +7,8 @@
 ```text
 Business Event
   → emitNotificationEvent()
-      → had_notifications (in-app, primary)
-      → had_notification_deliveries (email queue, secondary)
+      → hk_notifications (in-app, primary)
+      → hk_notification_deliveries (email queue, secondary)
 ```
 
 Email 失敗**不得** rollback 核定／審核等業務交易。
@@ -17,16 +17,16 @@ Email 失敗**不得** rollback 核定／審核等業務交易。
 
 | Collection | 用途 |
 | --- | --- |
-| had_notification_templates | 範本（code unique） |
-| had_notifications | 站內通知 |
-| had_notification_deliveries | Email 寄送紀錄 |
-| had_notification_preferences | 學生偏好 |
-| had_reminder_rules | 提醒 offset 規則 |
-| had_scheduled_notifications | 排程實例 + dedupe_key |
+| hk_notification_templates | 範本（code unique） |
+| hk_notifications | 站內通知 |
+| hk_notification_deliveries | Email 寄送紀錄 |
+| hk_notification_preferences | 學生偏好 |
+| hk_reminder_rules | 提醒 offset 規則 |
+| hk_scheduled_notifications | 排程實例 + dedupe_key |
 
 ## Template Engine
 
-僅安全 `{{variable}}` 替換（`had_notification_render.js`）。  
+僅安全 `{{variable}}` 替換（`hk_notification_render.js`）。  
 禁止 eval / Function / 任意 script。
 
 ## Critical vs Preferences
@@ -40,11 +40,11 @@ Critical（補件／退回／不通過／核定等）：`system_critical_email` 
 
 ## Scheduler
 
-內部端點（`X-HAD-Scheduler-Secret` = `HAD_SCHEDULER_SECRET`）：
+內部端點（`X-HAD-Scheduler-Secret` = `HK_SCHEDULER_SECRET`）：
 
-- `POST /api/had/internal/notifications/schedule`
-- `POST /api/had/internal/notifications/process`
-- `POST /api/had/internal/notifications/process-reminders`
+- `POST /api/hk/internal/notifications/schedule`
+- `POST /api/hk/internal/notifications/process`
+- `POST /api/hk/internal/notifications/process-reminders`
 
 供 Cron／Cloudflare Cron 呼叫；勿用長期 setInterval。
 

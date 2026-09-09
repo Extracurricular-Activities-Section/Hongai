@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from 'react'
+﻿import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 
+import { PageSkeleton } from '@/components/common/states'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useBackofficeAuth } from '@/features/auth/backoffice/context'
@@ -60,19 +61,19 @@ export function AdminFormsPage() {
   if (!isAdmin) {
     return <p className="text-sm text-muted-foreground">僅管理員可查看表單主檔。</p>
   }
-  if (error && !items) return <p className="text-sm text-red-700">{error}</p>
-  if (!items) return <p className="text-sm text-muted-foreground">載入中…</p>
+  if (error && !items) return <p className="text-sm font-medium text-danger">{error}</p>
+  if (!items) return <PageSkeleton />
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold">表單主檔</h1>
+        <h1 className="text-page font-semibold text-foreground">表單主檔</h1>
         <p className="mt-2 text-sm text-muted-foreground">
           管理表單版本、預覽與開啟 Form Builder。
         </p>
       </div>
 
-      {error ? <p className="text-sm text-red-700">{error}</p> : null}
+      {error ? <p className="text-sm font-medium text-danger">{error}</p> : null}
 
       <div className="space-y-3">
         {items.map((item) => {

@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react'
+﻿import { useEffect, useState } from 'react'
 
+import { PageSkeleton } from '@/components/common/states'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -77,13 +78,13 @@ export function AdminStudentsPage() {
     )
   }
 
-  if (error && !items) return <p className="text-sm text-red-700">{error}</p>
-  if (!items) return <p className="text-sm text-muted-foreground">載入中…</p>
+  if (error && !items) return <p className="text-sm font-medium text-danger">{error}</p>
+  if (!items) return <PageSkeleton />
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold">學生資料</h1>
+        <h1 className="text-page font-semibold text-foreground">學生資料</h1>
         <p className="mt-2 text-sm text-muted-foreground">
           身分證預設遮罩。可查看各梯次 Period Profile snapshot。
         </p>
@@ -95,7 +96,7 @@ export function AdminStudentsPage() {
         onChange={(e) => setQuery(e.target.value)}
       />
 
-      {error ? <p className="text-sm text-red-700">{error}</p> : null}
+      {error ? <p className="text-sm font-medium text-danger">{error}</p> : null}
 
       <div className="grid gap-4 lg:grid-cols-2">
         <div className="space-y-3">

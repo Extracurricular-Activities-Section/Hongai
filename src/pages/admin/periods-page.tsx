@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react'
+﻿import { useEffect, useMemo, useState, type FormEvent } from 'react'
 
+import { PageSkeleton } from '@/components/common/states'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -83,9 +84,9 @@ export function AdminPeriodsPage() {
     return <p className="text-sm text-muted-foreground">僅管理員可管理申請梯次。</p>
   }
 
-  if (error && !periods) return <p className="text-sm text-red-700">{error}</p>
+  if (error && !periods) return <p className="text-sm font-medium text-danger">{error}</p>
   if (!periods || !categories) {
-    return <p className="text-sm text-muted-foreground">載入中…</p>
+    return <PageSkeleton />
   }
 
   function startCreate() {
@@ -144,7 +145,7 @@ export function AdminPeriodsPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-semibold">申請梯次</h1>
+        <h1 className="text-page font-semibold text-foreground">申請梯次</h1>
         <p className="mt-2 text-sm text-muted-foreground">
           同一時間僅允許一個可重疊的 open 梯次。已有學生資料的梯次請改為停用或 archived，勿硬刪。
         </p>
@@ -180,7 +181,7 @@ export function AdminPeriodsPage() {
             <div className="space-y-2">
               <Label>學期</Label>
               <select
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                className="flex h-10 w-full rounded-md border border-input bg-surface text-foreground transition-colors placeholder:text-muted-foreground hover:border-border-strong focus-visible:border-accent-strong disabled:cursor-not-allowed disabled:bg-surface-muted disabled:opacity-70 px-3 text-sm"
                 value={form.semester}
                 disabled={saving}
                 onChange={(e) =>
@@ -217,7 +218,7 @@ export function AdminPeriodsPage() {
             <div className="space-y-2">
               <Label>狀態</Label>
               <select
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                className="flex h-10 w-full rounded-md border border-input bg-surface text-foreground transition-colors placeholder:text-muted-foreground hover:border-border-strong focus-visible:border-accent-strong disabled:cursor-not-allowed disabled:bg-surface-muted disabled:opacity-70 px-3 text-sm"
                 value={form.status}
                 disabled={saving}
                 onChange={(e) =>
@@ -252,7 +253,7 @@ export function AdminPeriodsPage() {
             <div className="space-y-2">
               <Label>最低申請規則</Label>
               <select
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                className="flex h-10 w-full rounded-md border border-input bg-surface text-foreground transition-colors placeholder:text-muted-foreground hover:border-border-strong focus-visible:border-accent-strong disabled:cursor-not-allowed disabled:bg-surface-muted disabled:opacity-70 px-3 text-sm"
                 value={form.min_application_rule}
                 disabled={saving}
                 onChange={(e) =>
@@ -296,7 +297,7 @@ export function AdminPeriodsPage() {
                 onChange={(e) => setForm((prev) => ({ ...prev, description: e.target.value }))}
               />
             </div>
-            {error ? <p className="text-sm text-red-700 sm:col-span-2">{error}</p> : null}
+            {error ? <p className="text-sm font-medium text-danger sm:col-span-2">{error}</p> : null}
             {message ? <p className="text-sm text-foreground sm:col-span-2">{message}</p> : null}
             <div className="flex flex-wrap gap-2 sm:col-span-2">
               <Button type="submit" disabled={saving}>

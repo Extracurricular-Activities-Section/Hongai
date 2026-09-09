@@ -6,14 +6,14 @@
 
 | 概念 | Collection | 用途 |
 | --- | --- | --- |
-| Submission | `had_form_submissions` + versions / answers | 學生填答與 snapshot |
-| Application | `had_applications` | 送交承辦後的行政案件 |
+| Submission | `hk_form_submissions` + versions / answers | 學生填答與 snapshot |
+| Application | `hk_applications` | 送交承辦後的行政案件 |
 
 PDF 來自 submission snapshot；審核／核定狀態不塞回 submission。
 
 ## State Machine
 
-允許轉換（server `had_application_workflow.js`）：
+允許轉換（server `hk_application_workflow.js`）：
 
 ```text
 submitted → eligibility_review
@@ -36,11 +36,11 @@ Client 傳 `action`，不直接寫 `status`。
 4. 可送件期間（open period）或 `returned_for_edit` + `edit_override_until`
 5. `signature_upload_mode != required`（required 時第 8 段才開放上傳後送件）
 
-`requested_amount` 由 server 依 snapshot + `had_funding_config.js` 計算。
+`requested_amount` 由 server 依 snapshot + `hk_funding_config.js` 計算。
 
 ## Eligibility
 
-資料來源：`had_period_student_profiles`（非表單文字）。
+資料來源：`hk_period_student_profiles`（非表單文字）。
 
 `eligibility_status`：`pending` | `qualified` | `supplement_required` | `disqualified`
 
@@ -54,13 +54,13 @@ Client 傳 `action`，不直接寫 `status`。
 | 用途 | 補證明／紙本／說明 | 退回改答案 |
 | 附件 | 第 8 段 | — |
 
-補件：`had_supplement_requests`（本段僅文字／狀態）。
+補件：`hk_supplement_requests`（本段僅文字／狀態）。
 
 ## Edit Override
 
 `application.edit_override_until`：截止後個別延長修改（非全局改 Period）。
 
-表單／PDF generate 經 `had_application_guards.js` 判定。
+表單／PDF generate 經 `hk_application_guards.js` 判定。
 
 ## Staff Scope
 
@@ -77,11 +77,11 @@ Staff **不可**修改學生 answers／snapshot。
 
 ## Funding
 
-- `had_funding_decisions` + `had_funding_decision_items`
+- `hk_funding_decisions` + `hk_funding_decision_items`
 - 申請明細自 snapshot 抽出；`approved_amount <= requested_amount`
 - `approved_total` = items SUM（server）
 - 修正核定：新版本 `final`，舊版 `superseded`；必填 `change_reason`
-- `had_funding_rules`：年度／類別上限 capability（預設不 seed 假上限；`warning_only`）
+- `hk_funding_rules`：年度／類別上限 capability（預設不 seed 假上限；`warning_only`）
 
 ## Internal vs Student Visible
 
@@ -102,7 +102,7 @@ Metadata 禁止完整身分證、答案全文、credential。
 ## Security
 
 - Collections deny-by-default
-- Trusted `/api/had/*` only
+- Trusted `/api/hk/*` only
 - Mass assignment：status / amounts / numbers server-owned
 - 截止後仍可審核與核定；僅限制學生新填（含 override 例外）
 
@@ -113,5 +113,5 @@ Form Builder；GitHub／Cloudflare Production Deployment。
 ## Notifications（Phase 9）
 
 業務事件 → 站內通知優先 → Email queue 次要。  
-提醒：`had_reminder_rules` + `had_scheduled_notifications`。  
+提醒：`hk_reminder_rules` + `hk_scheduled_notifications`。  
 詳見 `NOTIFICATION-ARCHITECTURE.md`。

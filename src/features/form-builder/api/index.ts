@@ -40,7 +40,7 @@ function toSession(payload: {
 export async function adminListFormVersions(formId: string): Promise<FormVersionSummary[]> {
   try {
     const data = await staffPb.send<{ items: FormVersionSummary[] }>(
-      `/api/had/admin/forms/${formId}/versions`,
+      `/api/hk/admin/forms/${formId}/versions`,
       { method: 'GET' },
     )
     return data.items
@@ -52,7 +52,7 @@ export async function adminListFormVersions(formId: string): Promise<FormVersion
 export async function adminGetFormDraft(formId: string): Promise<FormBuilderSession | null> {
   try {
     const data = await staffPb.send<{ schema: FormSchema }>(
-      `/api/had/admin/forms/${formId}/draft`,
+      `/api/hk/admin/forms/${formId}/draft`,
       { method: 'GET' },
     )
     return toSession(data)
@@ -70,7 +70,7 @@ export async function adminCreateFormDraft(
 ): Promise<FormBuilderSession> {
   try {
     const data = await staffPb.send<{ schema: FormSchema }>(
-      `/api/had/admin/forms/${formId}/draft`,
+      `/api/hk/admin/forms/${formId}/draft`,
       {
         method: 'POST',
         body: input || {},
@@ -101,7 +101,7 @@ export async function adminSaveFormSchema(
 ): Promise<FormBuilderSession> {
   try {
     const data = await staffPb.send<{ schema: FormSchema; saved_at?: string }>(
-      `/api/had/admin/forms/${formId}/versions/${versionId}/schema`,
+      `/api/hk/admin/forms/${formId}/versions/${versionId}/schema`,
       {
         method: 'PUT',
         body: {
@@ -122,7 +122,7 @@ export async function adminPublishFormVersion(
 ): Promise<FormBuilderSession> {
   try {
     const data = await staffPb.send<{ schema: FormSchema }>(
-      `/api/had/admin/forms/${formId}/versions/${versionId}/publish`,
+      `/api/hk/admin/forms/${formId}/versions/${versionId}/publish`,
       { method: 'POST', body: {} },
     )
     return toSession(data)

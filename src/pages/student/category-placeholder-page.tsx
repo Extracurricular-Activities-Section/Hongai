@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react'
+﻿import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 
+import { PageSkeleton } from '@/components/common/states'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { fetchStudentMe } from '@/features/auth/student/api'
@@ -41,13 +42,13 @@ export function StudentCategoryPlaceholderPage() {
     }
   }, [categoryCode])
 
-  if (error) return <p className="text-sm text-red-700">{error}</p>
-  if (!me || !category) return <p className="text-sm text-muted-foreground">載入中…</p>
+  if (error) return <p className="text-sm font-medium text-danger">{error}</p>
+  if (!me || !category) return <PageSkeleton />
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold">{category.name}</h1>
+        <h1 className="text-page font-semibold text-foreground">{category.name}</h1>
         <p className="mt-2 text-sm text-muted-foreground">
           申請內容將於下一階段（表單引擎）建立。
         </p>

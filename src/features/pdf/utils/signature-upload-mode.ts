@@ -1,6 +1,6 @@
 import type { SignatureUploadMode } from '@/features/pdf/types'
 
-/** Mirrors pb_hooks/had_funding_config.js SIGNATURE_UPLOAD_MODES */
+/** Mirrors pb_hooks/hk_funding_config.js SIGNATURE_UPLOAD_MODES */
 const SIGNATURE_UPLOAD_MODES: Record<string, SignatureUploadMode> = {
   language_certification: 'optional',
   academic_learning: 'optional',

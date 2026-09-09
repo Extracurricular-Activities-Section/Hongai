@@ -12,7 +12,7 @@ import { createServer } from 'node:http'
 import { generateHadApplicationPdf } from './generate.js'
 
 const port = Number(process.env.PDF_SERVICE_PORT || 8788)
-const secret = process.env.PDF_SERVICE_SECRET || 'had-dev-pdf-secret'
+const secret = process.env.PDF_SERVICE_SECRET || 'hk-dev-pdf-secret'
 
 const server = createServer(async (req, res) => {
   if (req.method === 'GET' && req.url === '/health') {

@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useState } from 'react'
+﻿import { useCallback, useEffect, useState } from 'react'
 import { Link, Navigate } from 'react-router-dom'
 
+import { PageSkeleton } from '@/components/common/states'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -68,8 +69,8 @@ export function AdminNotificationTemplatesPage() {
   }, [isAdmin, load])
 
   if (!isAdmin) return <Navigate to="/admin" replace />
-  if (error && !templates) return <p className="text-sm text-red-700">{error}</p>
-  if (!templates) return <p className="text-sm text-muted-foreground">載入中…</p>
+  if (error && !templates) return <p className="text-sm font-medium text-danger">{error}</p>
+  if (!templates) return <PageSkeleton />
 
   function resetForm() {
     setEditingCode(null)
@@ -157,7 +158,7 @@ export function AdminNotificationTemplatesPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold">通知範本</h1>
+          <h1 className="text-page font-semibold text-foreground">通知範本</h1>
           <p className="mt-2 text-sm text-muted-foreground">
             管理通知主旨與本文範本。預覽僅使用假資料（測試同學 / U0000000）。
           </p>
@@ -172,8 +173,8 @@ export function AdminNotificationTemplatesPage() {
         </div>
       </div>
 
-      {message ? <p className="text-sm text-emerald-800">{message}</p> : null}
-      {error ? <p className="text-sm text-red-700">{error}</p> : null}
+      {message ? <p className="text-sm font-medium text-success">{message}</p> : null}
+      {error ? <p className="text-sm font-medium text-danger">{error}</p> : null}
 
       <Card>
         <CardHeader>
@@ -198,7 +199,7 @@ export function AdminNotificationTemplatesPage() {
           <label className="space-y-1">
             <span className="text-muted-foreground">分類</span>
             <select
-              className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+              className="h-9 w-full rounded-md border border-input bg-surface text-foreground transition-colors placeholder:text-muted-foreground hover:border-border-strong focus-visible:border-accent-strong disabled:cursor-not-allowed disabled:bg-surface-muted disabled:opacity-70 px-3 text-sm"
               value={form.category}
               onChange={(e) => setForm((prev) => ({ ...prev, category: e.target.value }))}
             >
@@ -212,7 +213,7 @@ export function AdminNotificationTemplatesPage() {
           <label className="space-y-1">
             <span className="text-muted-foreground">通道</span>
             <select
-              className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+              className="h-9 w-full rounded-md border border-input bg-surface text-foreground transition-colors placeholder:text-muted-foreground hover:border-border-strong focus-visible:border-accent-strong disabled:cursor-not-allowed disabled:bg-surface-muted disabled:opacity-70 px-3 text-sm"
               value={form.channel}
               onChange={(e) => setForm((prev) => ({ ...prev, channel: e.target.value }))}
             >
@@ -231,7 +232,7 @@ export function AdminNotificationTemplatesPage() {
           <label className="space-y-1 sm:col-span-2">
             <span className="text-muted-foreground">本文範本 *</span>
             <textarea
-              className="min-h-32 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              className="min-h-32 w-full rounded-md border border-input bg-surface text-foreground transition-colors placeholder:text-muted-foreground hover:border-border-strong focus-visible:border-accent-strong disabled:cursor-not-allowed disabled:bg-surface-muted disabled:opacity-70 px-3 py-2 text-sm"
               value={form.body_template}
               onChange={(e) => setForm((prev) => ({ ...prev, body_template: e.target.value }))}
             />

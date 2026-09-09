@@ -1,14 +1,14 @@
 /// <reference path="../pb_data/types.d.ts" />
 /**
  * Phase 7: Application workflow, reviews, funding, assignments.
- * ONLY operates on had_* collections.
+ * ONLY operates on hk_* collections.
  */
 
 migrate(
   (app) => {
     const assertHadName = (name) => {
-      if (typeof name !== 'string' || !name.startsWith('had_')) {
-        throw new Error(`[hong-ai-dream] Refusing non-had_ collection name: ${name}`)
+      if (typeof name !== 'string' || !name.startsWith('hk_')) {
+        throw new Error(`[hk] Refusing non-hk_ collection name: ${name}`)
       }
     }
 
@@ -25,7 +25,7 @@ migrate(
     const createIfAbsent = (name, factory) => {
       assertHadName(name)
       if (exists(name)) {
-        console.log(`[hong-ai-dream] CONFLICT: "${name}" exists — skipped`)
+        console.log(`[hk] CONFLICT: "${name}" exists — skipped`)
         return null
       }
       const collection = factory()
@@ -34,29 +34,29 @@ migrate(
     }
 
     const required = [
-      'had_students',
-      'had_application_periods',
-      'had_application_categories',
-      'had_form_submissions',
-      'had_form_submission_versions',
-      'had_pdf_documents',
-      'had_staff_users',
-      'had_departments',
+      'hk_students',
+      'hk_application_periods',
+      'hk_application_categories',
+      'hk_form_submissions',
+      'hk_form_submission_versions',
+      'hk_pdf_documents',
+      'hk_staff_users',
+      'hk_departments',
     ]
     for (var i = 0; i < required.length; i++) {
       if (!exists(required[i])) {
-        throw new Error('[hong-ai-dream] Phase 7 requires prior collections: ' + required[i])
+        throw new Error('[hk] Phase 7 requires prior collections: ' + required[i])
       }
     }
 
-    const students = app.findCollectionByNameOrId('had_students')
-    const periods = app.findCollectionByNameOrId('had_application_periods')
-    const categories = app.findCollectionByNameOrId('had_application_categories')
-    const submissions = app.findCollectionByNameOrId('had_form_submissions')
-    const submissionVersions = app.findCollectionByNameOrId('had_form_submission_versions')
-    const pdfDocuments = app.findCollectionByNameOrId('had_pdf_documents')
-    const staff = app.findCollectionByNameOrId('had_staff_users')
-    const departments = app.findCollectionByNameOrId('had_departments')
+    const students = app.findCollectionByNameOrId('hk_students')
+    const periods = app.findCollectionByNameOrId('hk_application_periods')
+    const categories = app.findCollectionByNameOrId('hk_application_categories')
+    const submissions = app.findCollectionByNameOrId('hk_form_submissions')
+    const submissionVersions = app.findCollectionByNameOrId('hk_form_submission_versions')
+    const pdfDocuments = app.findCollectionByNameOrId('hk_pdf_documents')
+    const staff = app.findCollectionByNameOrId('hk_staff_users')
+    const departments = app.findCollectionByNameOrId('hk_departments')
 
     const APPLICATION_STATUSES = [
       'submitted',
@@ -71,10 +71,10 @@ migrate(
       'closed',
     ]
 
-    const appsCol = createIfAbsent('had_applications', () => {
+    const appsCol = createIfAbsent('hk_applications', () => {
       return new Collection({
         type: 'base',
-        name: 'had_applications',
+        name: 'hk_applications',
         listRule: null,
         viewRule: null,
         createRule: null,
@@ -173,19 +173,19 @@ migrate(
           { name: 'notification_pending', type: 'bool', required: false },
         ],
         indexes: [
-          'CREATE UNIQUE INDEX idx_had_applications_number ON had_applications (application_number)',
-          'CREATE UNIQUE INDEX idx_had_applications_student_period_category ON had_applications (student, period, category)',
+          'CREATE UNIQUE INDEX idx_hk_applications_number ON hk_applications (application_number)',
+          'CREATE UNIQUE INDEX idx_hk_applications_student_period_category ON hk_applications (student, period, category)',
         ],
       })
     })
 
     const applications =
-      appsCol || app.findCollectionByNameOrId('had_applications')
+      appsCol || app.findCollectionByNameOrId('hk_applications')
 
-    createIfAbsent('had_application_status_history', () => {
+    createIfAbsent('hk_application_status_history', () => {
       return new Collection({
         type: 'base',
-        name: 'had_application_status_history',
+        name: 'hk_application_status_history',
         listRule: null,
         viewRule: null,
         createRule: null,
@@ -231,10 +231,10 @@ migrate(
       })
     })
 
-    createIfAbsent('had_application_reviews', () => {
+    createIfAbsent('hk_application_reviews', () => {
       return new Collection({
         type: 'base',
-        name: 'had_application_reviews',
+        name: 'hk_application_reviews',
         listRule: null,
         viewRule: null,
         createRule: null,
@@ -286,10 +286,10 @@ migrate(
       })
     })
 
-    createIfAbsent('had_application_staff_assignments', () => {
+    createIfAbsent('hk_application_staff_assignments', () => {
       return new Collection({
         type: 'base',
-        name: 'had_application_staff_assignments',
+        name: 'hk_application_staff_assignments',
         listRule: null,
         viewRule: null,
         createRule: null,
@@ -340,10 +340,10 @@ migrate(
       })
     })
 
-    createIfAbsent('had_category_department_assignments', () => {
+    createIfAbsent('hk_category_department_assignments', () => {
       return new Collection({
         type: 'base',
-        name: 'had_category_department_assignments',
+        name: 'hk_category_department_assignments',
         listRule: null,
         viewRule: null,
         createRule: null,
@@ -378,10 +378,10 @@ migrate(
       })
     })
 
-    createIfAbsent('had_supplement_requests', () => {
+    createIfAbsent('hk_supplement_requests', () => {
       return new Collection({
         type: 'base',
-        name: 'had_supplement_requests',
+        name: 'hk_supplement_requests',
         listRule: null,
         viewRule: null,
         createRule: null,
@@ -420,10 +420,10 @@ migrate(
       })
     })
 
-    const fundingDecisions = createIfAbsent('had_funding_decisions', () => {
+    const fundingDecisions = createIfAbsent('hk_funding_decisions', () => {
       return new Collection({
         type: 'base',
-        name: 'had_funding_decisions',
+        name: 'hk_funding_decisions',
         listRule: null,
         viewRule: null,
         createRule: null,
@@ -465,8 +465,8 @@ migrate(
       })
     })
 
-    if (exists('had_funding_decisions')) {
-      const fundingDocs = app.findCollectionByNameOrId('had_funding_decisions')
+    if (exists('hk_funding_decisions')) {
+      const fundingDocs = app.findCollectionByNameOrId('hk_funding_decisions')
       var supersededField = null
       try {
         supersededField = fundingDocs.fields.getByName('superseded_by')
@@ -488,11 +488,11 @@ migrate(
       }
     }
 
-    const fundingCol = app.findCollectionByNameOrId('had_funding_decisions')
-    createIfAbsent('had_funding_decision_items', () => {
+    const fundingCol = app.findCollectionByNameOrId('hk_funding_decisions')
+    createIfAbsent('hk_funding_decision_items', () => {
       return new Collection({
         type: 'base',
-        name: 'had_funding_decision_items',
+        name: 'hk_funding_decision_items',
         listRule: null,
         viewRule: null,
         createRule: null,
@@ -517,10 +517,10 @@ migrate(
       })
     })
 
-    createIfAbsent('had_funding_rules', () => {
+    createIfAbsent('hk_funding_rules', () => {
       return new Collection({
         type: 'base',
-        name: 'had_funding_rules',
+        name: 'hk_funding_rules',
         listRule: null,
         viewRule: null,
         createRule: null,
@@ -561,15 +561,15 @@ migrate(
   },
   (app) => {
     const names = [
-      'had_funding_rules',
-      'had_funding_decision_items',
-      'had_funding_decisions',
-      'had_supplement_requests',
-      'had_category_department_assignments',
-      'had_application_staff_assignments',
-      'had_application_reviews',
-      'had_application_status_history',
-      'had_applications',
+      'hk_funding_rules',
+      'hk_funding_decision_items',
+      'hk_funding_decisions',
+      'hk_supplement_requests',
+      'hk_category_department_assignments',
+      'hk_application_staff_assignments',
+      'hk_application_reviews',
+      'hk_application_status_history',
+      'hk_applications',
     ]
     for (var i = 0; i < names.length; i++) {
       try {

@@ -1,13 +1,13 @@
 # PocketBase Migration Runbook
 
-人工套用 `had_*` migrations 的作業手冊。
+人工套用 `hk_*` migrations 的作業手冊。
 
 > **Default status：READY_FOR_MANUAL_MIGRATION**  
 > Preflight 通過 ≠ 已套用。本 runbook **不會**自動對 production 寫入。
 
 ## Principles
 
-1. 只操作 `had_*` collections；禁止動 `students`／`users`／`teachers`。
+1. 只操作 `hk_*` collections；禁止動 `students`／`users`／`teachers`。
 2. **Backup gate 優先於一切**。
 3. Rollback = **restore backup**，不以「空 down migration」當資料救星。
 4. 先 staging／複本，再 production。
@@ -26,7 +26,7 @@
 
 ```bash
 npm run preflight
-# optional: HAD_PREFLIGHT_PB_URL=https://your-pb-host
+# optional: HK_PREFLIGHT_PB_URL=https://your-pb-host
 ```
 
 預期：
@@ -44,24 +44,20 @@ npm run security:secrets
 
 ## 2. Review
 
-- [ ] 閱讀 `pb_migrations/` 新增檔（含 `1736500008_phase10_adjustments.js` 等）
-- [ ] 確認僅 `had_*`
-- [ ] 對照 `docs/DATABASE-SCHEMA.md`
-- [ ] 部署對應 `pb_hooks/` 版本（Form Builder、notifications、PDF…）
+- [ ] 閱讀 `pb_migrations/`（含 policy／finance／service accounts）
+- [ ] 確認僅 `hk_*`
+- [ ] 對照 `docs/DATABASE-SCHEMA.md`／`docs/POCKETBASE-DATA-LAYER.md`
+- [ ] **不要**部署 `pb_hooks/` 到 PocketBase 主機（業務在 Cloudflare；見 `docs/PB-HOOKS-MIGRATION-MATRIX.md`）
 
 ## 3. Manual apply（controlled environment first）
 
 依組織 PocketBase 作業方式擇一（範例，**以實際主機程序為準**）：
 
-1. 將新 migrations／hooks 同步到主機。
-2. 重啟或讓 PocketBase 載入 hooks。
-3. 依官方／既有維運流程套用 migrations（或首次啟動自動 migrate — **僅在已 backup 後**）。
-4. 驗證：
-
-   - Admin UI／API 可見新／更新的 `had_*` 欄位
-   - Form Builder draft／publish 抽樣
-   - Notification delivery status 含 `skipped_provider_disabled`（若套用 phase10 patch）
-   - 非 `had_*` collections 未被改動
+1. 將 **`pb_migrations/`** 同步到主機（**不要**同步 `pb_hooks/`）。
+2. 重啟或依維運流程讓 PocketBase **套用 migrations**（建立 `hk_*` schema／seed）。
+3. 驗證：Admin UI 可見 `hk_*`；API Rules／indexes 符合預期；非 `hk_*` 未被改動。
+4. 建立受限 **service account**；用 Cloudflare Worker secrets 驗證可讀 `hk_*`。
+5. `/api/hk/*` **不會**因 PB 重啟而出現 — 該路徑由 Cloudflare Worker 提供。
 
 ## 4. Production apply
 

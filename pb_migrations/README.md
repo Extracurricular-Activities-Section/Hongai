@@ -4,16 +4,16 @@
 
 ## 硬性規則
 
-- **只**操作 `had_*` Collections
-- **禁止** delete / alter / recreate：`students`、`users`、`teachers` 或其他非 `had_` Collection
+- **只**操作 `hk_*` Collections
+- **禁止** delete / alter / recreate：`students`、`users`、`teachers` 或其他非 `hk_` Collection
 - **禁止** destructive database reset
-- 同名 `had_*` 已存在時：跳過、不覆蓋
+- 同名 `hk_*` 已存在時：跳過、不覆蓋
 
 ## 檔案
 
 | 檔案 | 說明 |
 | --- | --- |
-| `1736500001_create_foundation_collections.js` | 建立全部 `had_*` 基礎 Collections（含 Auth `had_students`） |
+| `1736500001_create_foundation_collections.js` | 建立全部 `hk_*` 基礎 Collections（含 Auth `hk_students`） |
 
 ## 套用
 

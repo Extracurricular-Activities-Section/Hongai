@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react'
+﻿import { useEffect, useState } from 'react'
 
+import { PageSkeleton } from '@/components/common/states'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -26,13 +27,13 @@ export function AdminDocumentsPage() {
   if (!isAdmin) {
     return <p className="text-sm text-muted-foreground">僅管理員可管理 PDF 文件。</p>
   }
-  if (error && !items) return <p className="text-sm text-red-700">{error}</p>
-  if (!items) return <p className="text-sm text-muted-foreground">載入中…</p>
+  if (error && !items) return <p className="text-sm font-medium text-danger">{error}</p>
+  if (!items) return <PageSkeleton />
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold">正式申請文件</h1>
+        <h1 className="text-page font-semibold text-foreground">正式申請文件</h1>
         <p className="mt-2 text-sm text-muted-foreground">可搜尋文件編號、學號、申請項目。不顯示身分證。</p>
       </div>
 
@@ -41,7 +42,7 @@ export function AdminDocumentsPage() {
         value={query}
         onChange={(e) => setQuery(e.target.value)}
       />
-      {error ? <p className="text-sm text-red-700">{error}</p> : null}
+      {error ? <p className="text-sm font-medium text-danger">{error}</p> : null}
 
       <div className="grid gap-4 lg:grid-cols-2">
         <div className="space-y-3">

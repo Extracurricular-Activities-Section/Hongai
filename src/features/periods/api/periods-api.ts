@@ -22,7 +22,7 @@ function mapError(error: unknown, fallback: string): Error {
 
 export async function fetchCurrentPeriodState(): Promise<CurrentPeriodState> {
   try {
-    return await studentPb.send<CurrentPeriodState>('/api/had/student/current-period', {
+    return await studentPb.send<CurrentPeriodState>('/api/hk/student/current-period', {
       method: 'GET',
     })
   } catch (error) {
@@ -46,7 +46,7 @@ export interface PeriodBootstrapResponse {
 export async function fetchPeriodBootstrap(): Promise<PeriodBootstrapResponse> {
   try {
     return await studentPb.send<PeriodBootstrapResponse>(
-      '/api/had/student/period-profile/bootstrap',
+      '/api/hk/student/period-profile/bootstrap',
       { method: 'GET' },
     )
   } catch (error) {
@@ -70,7 +70,7 @@ export async function confirmPeriodProfile(
 ): Promise<PeriodStudentProfile> {
   try {
     const data = await studentPb.send<{ profile: PeriodStudentProfile }>(
-      '/api/had/student/period-profile/confirm',
+      '/api/hk/student/period-profile/confirm',
       { method: 'POST', body: input },
     )
     return data.profile
@@ -84,7 +84,7 @@ export async function updatePeriodProfile(
 ): Promise<PeriodStudentProfile> {
   try {
     const data = await studentPb.send<{ profile: PeriodStudentProfile }>(
-      '/api/had/student/period-profile/update',
+      '/api/hk/student/period-profile/update',
       { method: 'POST', body: input },
     )
     return data.profile
@@ -109,7 +109,7 @@ export interface CurrentCategoriesResponse {
 export async function fetchCurrentCategories(): Promise<CurrentCategoriesResponse> {
   try {
     return await studentPb.send<CurrentCategoriesResponse>(
-      '/api/had/student/current/categories',
+      '/api/hk/student/current/categories',
       { method: 'GET' },
     )
   } catch (error) {
@@ -122,7 +122,7 @@ export async function startCategory(code: string): Promise<{
   category: ApplicationCategory
 }> {
   try {
-    return await studentPb.send(`/api/had/student/current/categories/${code}/start`, {
+    return await studentPb.send(`/api/hk/student/current/categories/${code}/start`, {
       method: 'POST',
     })
   } catch (error) {
@@ -136,7 +136,7 @@ export async function copyPreviousCategory(code: string): Promise<{
   message: string
 }> {
   try {
-    return await studentPb.send(`/api/had/student/current/categories/${code}/copy-previous`, {
+    return await studentPb.send(`/api/hk/student/current/categories/${code}/copy-previous`, {
       method: 'POST',
     })
   } catch (error) {
@@ -147,7 +147,7 @@ export async function copyPreviousCategory(code: string): Promise<{
 export async function fetchStudentHistory(): Promise<HistoryPeriodSummary[]> {
   try {
     const data = await studentPb.send<{ items: HistoryPeriodSummary[] }>(
-      '/api/had/student/history',
+      '/api/hk/student/history',
       { method: 'GET' },
     )
     return data.items
@@ -162,7 +162,7 @@ export async function fetchStudentHistoryDetail(periodId: string): Promise<{
   entries: Array<{ entry: StudentCategoryEntry; category: ApplicationCategory | null }>
 }> {
   try {
-    return await studentPb.send(`/api/had/student/history/${periodId}`, { method: 'GET' })
+    return await studentPb.send(`/api/hk/student/history/${periodId}`, { method: 'GET' })
   } catch (error) {
     throw mapError(error, '無法載入歷史詳情')
   }
@@ -170,7 +170,7 @@ export async function fetchStudentHistoryDetail(periodId: string): Promise<{
 
 export async function adminListPeriods(): Promise<ApplicationPeriod[]> {
   try {
-    const data = await staffPb.send<{ items: ApplicationPeriod[] }>('/api/had/admin/periods', {
+    const data = await staffPb.send<{ items: ApplicationPeriod[] }>('/api/hk/admin/periods', {
       method: 'GET',
     })
     return data.items
@@ -195,7 +195,7 @@ export type AdminPeriodInput = {
 
 export async function adminCreatePeriod(input: AdminPeriodInput): Promise<ApplicationPeriod> {
   try {
-    const data = await staffPb.send<{ period: ApplicationPeriod }>('/api/had/admin/periods', {
+    const data = await staffPb.send<{ period: ApplicationPeriod }>('/api/hk/admin/periods', {
       method: 'POST',
       body: input,
     })
@@ -211,7 +211,7 @@ export async function adminUpdatePeriod(
 ): Promise<ApplicationPeriod> {
   try {
     const data = await staffPb.send<{ period: ApplicationPeriod }>(
-      `/api/had/admin/periods/${id}`,
+      `/api/hk/admin/periods/${id}`,
       { method: 'POST', body: input },
     )
     return data.period
@@ -223,7 +223,7 @@ export async function adminUpdatePeriod(
 export async function adminListCategories(): Promise<ApplicationCategory[]> {
   try {
     const data = await staffPb.send<{ items: ApplicationCategory[] }>(
-      '/api/had/admin/categories',
+      '/api/hk/admin/categories',
       { method: 'GET' },
     )
     return data.items
@@ -238,7 +238,7 @@ export async function adminUpdateCategory(
 ): Promise<ApplicationCategory> {
   try {
     const data = await staffPb.send<{ category: ApplicationCategory }>(
-      `/api/had/admin/categories/${id}`,
+      `/api/hk/admin/categories/${id}`,
       { method: 'POST', body: input },
     )
     return data.category
@@ -265,7 +265,7 @@ export async function adminListStudents(query = ''): Promise<
         department_name: string
         identity_masked: string
       }>
-    }>('/api/had/admin/students', {
+    }>('/api/hk/admin/students', {
       method: 'GET',
       query: { q: query },
     })
@@ -291,7 +291,7 @@ export async function adminGetStudentDetail(id: string): Promise<{
   }>
 }> {
   try {
-    return await staffPb.send(`/api/had/admin/students/${id}`, { method: 'GET' })
+    return await staffPb.send(`/api/hk/admin/students/${id}`, { method: 'GET' })
   } catch (error) {
     throw mapError(error, '無法載入學生詳情')
   }

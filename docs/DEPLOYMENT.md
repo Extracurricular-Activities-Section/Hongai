@@ -27,7 +27,7 @@
 │  Scheduler (external)    │
 │  Cloudflare Cron /       │
 │  system cron / worker    │
-│  → /api/had/internal/    │
+│  → /api/hk/internal/    │
 │    notifications/*       │
 └──────────────────────────┘
 ```
@@ -37,8 +37,8 @@
 | Component | Hosting | Responsibility |
 | --- | --- | --- |
 | Frontend SPA | **Cloudflare Pages** | 靜態建置產物；`VITE_*` 公開變數 |
-| PocketBase | **獨立主機／VM／容器**（非 Workers） | Auth、API Rules、hooks、`had_*` data、檔案 |
-| PDF sidecar | 獨立 Node 服務（或相容 runtime） | `pdf-lib` 繪製；hooks 以 `HAD_PDF_SERVICE_*` 呼叫 |
+| PocketBase | **獨立主機／VM／容器**（非 Workers） | Auth、API Rules、hooks、`hk_*` data、檔案 |
+| PDF sidecar | 獨立 Node 服務（或相容 runtime） | `pdf-lib` 繪製；hooks 以 `HK_PDF_SERVICE_*` 呼叫 |
 | Scheduler | Cron／Worker 僅當 client | 帶 secret 呼叫內部排程端點 |
 
 ## Hard rules
@@ -73,7 +73,7 @@ npm run typecheck && npm run lint && npm run build
 建議 checklist（人工執行，本文件不假裝已做）：
 
 - [ ] 安裝／升級相容 PocketBase 版本
-- [ ] 部署 `pb_hooks/` 與確認僅 `had_*` migrations
+- [ ] 部署 `pb_migrations/`（僅 `hk_*`）；**不要**部署 business `pb_hooks/`（業務在 Cloudflare）
 - [ ] **先備份** `pb_data`（含 storage files）
 - [ ] 手動套用 migrations（見 `POCKETBASE-MIGRATION-RUNBOOK.md`）
 - [ ] 設定 server env（見 `ENVIRONMENT-VARIABLES.md`／`PRODUCTION-ENV.md`）
@@ -82,7 +82,7 @@ npm run typecheck && npm run lint && npm run build
 
 ## PDF sidecar
 
-- Hooks → `HAD_PDF_SERVICE_URL` + `HAD_PDF_SERVICE_SECRET`
+- Hooks → `HK_PDF_SERVICE_URL` + `HK_PDF_SERVICE_SECRET`
 - 引擎為純 JS（`pdf-lib`），避免 Chromium／Puppeteer（Workers 不相容）
 - Production：**NOT CONFIGURED** 直到 sidecar URL／secret／字型路徑就緒
 
@@ -90,9 +90,9 @@ npm run typecheck && npm run lint && npm run build
 
 內部端點（需 header `X-HAD-Scheduler-Secret`，**禁止** query string）：
 
-- `POST /api/had/internal/notifications/schedule`
-- `POST /api/had/internal/notifications/process`
-- `POST /api/had/internal/notifications/process-reminders`
+- `POST /api/hk/internal/notifications/schedule`
+- `POST /api/hk/internal/notifications/process`
+- `POST /api/hk/internal/notifications/process-reminders`
 
 建議間隔依負載調整（例如 process 每 1–5 分鐘）。  
 Secret 未輪替／Cron 未掛上 → **NOT CONFIGURED**。

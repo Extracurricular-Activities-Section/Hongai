@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react'
+﻿import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 
+import { PageSkeleton } from '@/components/common/states'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { identityTypeLabel } from '@/features/periods/constants/eligibility'
@@ -39,7 +40,7 @@ export function StudentHistoryDetailPage() {
   if (error) {
     return (
       <div className="space-y-3">
-        <p className="text-sm text-red-700">{error}</p>
+        <p className="text-sm font-medium text-danger">{error}</p>
         <Button asChild variant="outline">
           <Link to="/student/history">返回歷史</Link>
         </Button>
@@ -47,13 +48,13 @@ export function StudentHistoryDetailPage() {
     )
   }
 
-  if (!period) return <p className="text-sm text-muted-foreground">載入中…</p>
-  if (!profile) return <p className="text-sm text-muted-foreground">載入中…</p>
+  if (!period) return <PageSkeleton />
+  if (!profile) return <PageSkeleton />
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold">{period.name}</h1>
+        <h1 className="text-page font-semibold text-foreground">{period.name}</h1>
         <p className="mt-2 text-sm text-muted-foreground">歷史紀錄（唯讀）</p>
       </div>
 

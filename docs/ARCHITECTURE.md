@@ -15,8 +15,8 @@
                                             ▼
 ┌───────────────┐   cron+secret   ┌─────────────────────────────────┐
 │ Scheduler     │────────────────►│     PocketBase (separate host)  │
-│ (CF Cron / OS)│                 │  had_* collections + pb_hooks   │
-└───────────────┘                 │  /api/had/* trusted routes      │
+│ (CF Cron / OS)│                 │  hk_* collections + pb_hooks   │
+└───────────────┘                 │  /api/hk/* trusted routes      │
                                   └────────────┬────────────────────┘
                          ┌─────────────────────┼─────────────────────┐
                          ▼                     ▼                     ▼
@@ -36,7 +36,7 @@ Mail provider (optional): PocketBase hooks → provider abstraction
 2. Browser ↔ PocketBase（真正授權：API Rules + hooks）
 3. PocketBase ↔ PDF sidecar（shared secret）
 4. Scheduler ↔ PocketBase internal routes（scheduler secret）
-5. Superuser ≠ 應用 Admin（`had_staff_users.is_admin`）
+5. Superuser ≠ 應用 Admin（`hk_staff_users.is_admin`）
 
 ## User flows（摘要）
 

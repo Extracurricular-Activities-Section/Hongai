@@ -1,9 +1,10 @@
-import { zodResolver } from '@hookform/resolvers/zod'
+﻿import { zodResolver } from '@hookform/resolvers/zod'
 import { useEffect, useMemo, useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import { Link, useNavigate } from 'react-router-dom'
 import { z } from 'zod'
 
+import { PageSkeleton } from '@/components/common/states'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -143,9 +144,9 @@ export function StudentCurrentConfirmPage() {
   }
 
   if (error && !boot) {
-    return <p className="text-sm text-red-700">{error}</p>
+    return <p className="text-sm font-medium text-danger">{error}</p>
   }
-  if (!boot) return <p className="text-sm text-muted-foreground">載入中…</p>
+  if (!boot) return <PageSkeleton />
 
   if (mode === 'choose' && boot.previous_period && boot.previous_profile) {
     return (
@@ -278,13 +279,13 @@ export function StudentCurrentConfirmPage() {
             <Label>資格說明{needsQualificationNote(types) ? '（必填）' : '（選填）'}</Label>
             <Input disabled={submitting} {...form.register('qualification_note')} />
             {form.formState.errors.qualification_note ? (
-              <p className="text-xs text-red-700">
+              <p className="text-meta font-medium text-danger">
                 {form.formState.errors.qualification_note.message}
               </p>
             ) : null}
           </div>
 
-          {error ? <p className="text-sm text-red-700">{error}</p> : null}
+          {error ? <p className="text-sm font-medium text-danger">{error}</p> : null}
 
           <div className="flex flex-wrap gap-2">
             <Button type="submit" disabled={submitting}>

@@ -40,7 +40,7 @@ export async function submitApplication(submissionId: string): Promise<{
   message: string
 }> {
   try {
-    return await studentPb.send('/api/had/applications/submit', {
+    return await studentPb.send('/api/hk/applications/submit', {
       method: 'POST',
       body: { submission_id: submissionId },
     })
@@ -51,7 +51,7 @@ export async function submitApplication(submissionId: string): Promise<{
 
 export async function listMyApplications(): Promise<Application[]> {
   try {
-    const data = await studentPb.send<{ items: Application[] }>('/api/had/applications/mine', {
+    const data = await studentPb.send<{ items: Application[] }>('/api/hk/applications/mine', {
       method: 'GET',
     })
     return data.items
@@ -62,7 +62,7 @@ export async function listMyApplications(): Promise<Application[]> {
 
 export async function getMyApplication(id: string): Promise<StudentApplicationDetail> {
   try {
-    return await studentPb.send(`/api/had/applications/mine/${id}`, { method: 'GET' })
+    return await studentPb.send(`/api/hk/applications/mine/${id}`, { method: 'GET' })
   } catch (error) {
     throw mapError(error, '無法載入申請詳情')
   }
@@ -74,7 +74,7 @@ export async function replySupplement(
   attachmentIds: string[] = [],
 ): Promise<{ message: string; supplements: SupplementRequest[] }> {
   try {
-    return await studentPb.send(`/api/had/applications/${id}/supplement-reply`, {
+    return await studentPb.send(`/api/hk/applications/${id}/supplement-reply`, {
       method: 'POST',
       body: { reply, attachment_ids: attachmentIds },
     })
@@ -89,7 +89,7 @@ export async function replySupplement(
 
 export async function adminApplicationsSummary(): Promise<ApplicationSummaryCounts> {
   try {
-    return await staffPb.send('/api/had/admin/applications/summary', { method: 'GET' })
+    return await staffPb.send('/api/hk/admin/applications/summary', { method: 'GET' })
   } catch (error) {
     throw mapError(error, '無法載入案件摘要')
   }
@@ -109,7 +109,7 @@ export async function adminListApplications(
     if (params.page != null) query.page = String(params.page)
     if (params.perPage != null) query.perPage = String(params.perPage)
     if (params.sort) query.sort = params.sort
-    return await staffPb.send('/api/had/admin/applications', {
+    return await staffPb.send('/api/hk/admin/applications', {
       method: 'GET',
       query,
     })
@@ -120,7 +120,7 @@ export async function adminListApplications(
 
 export async function adminGetApplication(id: string): Promise<AdminApplicationDetail> {
   try {
-    return await staffPb.send(`/api/had/admin/applications/${id}`, { method: 'GET' })
+    return await staffPb.send(`/api/hk/admin/applications/${id}`, { method: 'GET' })
   } catch (error) {
     throw mapError(error, '無法載入案件詳情')
   }
@@ -131,7 +131,7 @@ export async function adminApplicationAction(
   payload: ApplicationActionPayload,
 ): Promise<{ application: Application; message: string }> {
   try {
-    return await staffPb.send(`/api/had/admin/applications/${id}/action`, {
+    return await staffPb.send(`/api/hk/admin/applications/${id}/action`, {
       method: 'POST',
       body: payload,
     })
@@ -145,7 +145,7 @@ export async function adminAssignApplication(
   payload: ApplicationAssignPayload,
 ): Promise<{ application: Application; assignment: unknown }> {
   try {
-    return await staffPb.send(`/api/had/admin/applications/${id}/assign`, {
+    return await staffPb.send(`/api/hk/admin/applications/${id}/assign`, {
       method: 'POST',
       body: payload,
     })
@@ -156,7 +156,7 @@ export async function adminAssignApplication(
 
 export async function adminFundingPreview(id: string): Promise<FundingPreviewResponse> {
   try {
-    return await staffPb.send(`/api/had/admin/applications/${id}/funding-preview`, {
+    return await staffPb.send(`/api/hk/admin/applications/${id}/funding-preview`, {
       method: 'GET',
     })
   } catch (error) {
@@ -174,7 +174,7 @@ export async function adminCreateFunding(
   message: string
 }> {
   try {
-    return await staffPb.send(`/api/had/admin/applications/${id}/funding`, {
+    return await staffPb.send(`/api/hk/admin/applications/${id}/funding`, {
       method: 'POST',
       body: payload,
     })
@@ -189,7 +189,7 @@ export async function adminCreateFunding(
 
 export async function adminListStaffUsers(): Promise<StaffUserAdmin[]> {
   try {
-    const data = await staffPb.send<{ items: StaffUserAdmin[] }>('/api/had/admin/staff-users', {
+    const data = await staffPb.send<{ items: StaffUserAdmin[] }>('/api/hk/admin/staff-users', {
       method: 'GET',
     })
     return data.items
@@ -211,7 +211,7 @@ export async function adminCreateStaffUser(input: {
   department_ids?: string[]
 }): Promise<StaffUser> {
   try {
-    const data = await staffPb.send<{ staff_user: StaffUser }>('/api/had/admin/staff-users', {
+    const data = await staffPb.send<{ staff_user: StaffUser }>('/api/hk/admin/staff-users', {
       method: 'POST',
       body: input,
     })
@@ -236,7 +236,7 @@ export async function adminUpdateStaffUser(
   },
 ): Promise<StaffUser> {
   try {
-    const data = await staffPb.send<{ staff_user: StaffUser }>(`/api/had/admin/staff-users/${id}`, {
+    const data = await staffPb.send<{ staff_user: StaffUser }>(`/api/hk/admin/staff-users/${id}`, {
       method: 'POST',
       body: input,
     })
@@ -248,7 +248,7 @@ export async function adminUpdateStaffUser(
 
 export async function adminListDepartmentsApi(): Promise<Department[]> {
   try {
-    const data = await staffPb.send<{ items: Department[] }>('/api/had/admin/departments', {
+    const data = await staffPb.send<{ items: Department[] }>('/api/hk/admin/departments', {
       method: 'GET',
     })
     return data.items
@@ -267,7 +267,7 @@ export async function adminSaveDepartment(input: {
   deactivate?: boolean
 }): Promise<Department> {
   try {
-    const data = await staffPb.send<{ department: Department }>('/api/had/admin/departments', {
+    const data = await staffPb.send<{ department: Department }>('/api/hk/admin/departments', {
       method: 'POST',
       body: input,
     })
@@ -282,7 +282,7 @@ export async function adminListCategoryDepartmentAssignments(
 ): Promise<CategoryDepartmentAssignment[]> {
   try {
     const data = await staffPb.send<{ items: CategoryDepartmentAssignment[] }>(
-      '/api/had/admin/category-department-assignments',
+      '/api/hk/admin/category-department-assignments',
       {
         method: 'GET',
         query: category ? { category } : {},
@@ -303,7 +303,7 @@ export async function adminSaveCategoryDepartmentAssignment(input: {
 }): Promise<CategoryDepartmentAssignment> {
   try {
     const data = await staffPb.send<{ assignment: CategoryDepartmentAssignment }>(
-      '/api/had/admin/category-department-assignments',
+      '/api/hk/admin/category-department-assignments',
       {
         method: 'POST',
         body: input,

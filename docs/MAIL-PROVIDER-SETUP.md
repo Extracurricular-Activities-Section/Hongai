@@ -7,7 +7,7 @@ Production／Staging 郵件提供者設定清單。
 
 ## Provider modes
 
-| `HAD_MAIL_PROVIDER` | Behavior | Production OK? |
+| `HK_MAIL_PROVIDER` | Behavior | Production OK? |
 | --- | --- | --- |
 | （空）／`none` | `PROVIDER_NOT_CONFIGURED`；不假成功 | 僅表示未接好 |
 | `disabled` | 站內通知正常；delivery → `skipped_provider_disabled` | Yes（明確停用 Email） |
@@ -26,10 +26,10 @@ Secrets 僅 server env；**禁止** `VITE_*`。
 ### Credentials（正式寄信時）
 
 - [ ] From 網域驗證（SPF／DKIM／DMARC）
-- [ ] `HAD_MAIL_FROM_EMAIL`／`HAD_MAIL_FROM_NAME`
+- [ ] `HK_MAIL_FROM_EMAIL`／`HK_MAIL_FROM_NAME`
 - [ ] SMTP 或 API key 存入 secret manager（非 Git）
-- [ ] `HAD_APP_BASE_URL` 指向正式前端（通知連結）
-- [ ] 支援信箱／電話（`HAD_SUPPORT_*`）
+- [ ] `HK_APP_BASE_URL` 指向正式前端（通知連結）
+- [ ] 支援信箱／電話（`HK_SUPPORT_*`）
 
 ### Runtime verification（staging）
 
@@ -40,7 +40,7 @@ Secrets 僅 server env；**禁止** `VITE_*`。
 
 ### Disabled mode
 
-- [ ] `HAD_MAIL_PROVIDER=disabled`
+- [ ] `HK_MAIL_PROVIDER=disabled`
 - [ ] 站內通知仍建立
 - [ ] Email delivery 標記 `skipped_provider_disabled`（非假 `sent`）
 

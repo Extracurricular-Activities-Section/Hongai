@@ -2,14 +2,14 @@
 /**
  * Production preflight — READ ONLY checks. Never mutates PocketBase.
  * Usage: node scripts/production-preflight.mjs
- * Optional: HAD_PREFLIGHT_PB_URL=https://db.keson.pro
+ * Optional: HK_PREFLIGHT_PB_URL=https://db.keson.pro
  */
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
-const pbUrl = (process.env.HAD_PREFLIGHT_PB_URL || process.env.VITE_POCKETBASE_URL || '').replace(
+const pbUrl = (process.env.HK_PREFLIGHT_PB_URL || process.env.VITE_POCKETBASE_URL || '').replace(
   /\/$/,
   '',
 )
@@ -51,19 +51,19 @@ add(
 const envExample = readFileSync(path.join(root, '.env.example'), 'utf8')
 add(
   'scheduler_secret_documented',
-  envExample.includes('HAD_SCHEDULER_SECRET'),
-  'HAD_SCHEDULER_SECRET in .env.example',
+  envExample.includes('HK_SCHEDULER_SECRET'),
+  'HK_SCHEDULER_SECRET in .env.example',
 )
 add(
   'mail_provider_documented',
-  envExample.includes('HAD_MAIL_PROVIDER'),
-  'HAD_MAIL_PROVIDER in .env.example',
+  envExample.includes('HK_MAIL_PROVIDER'),
+  'HK_MAIL_PROVIDER in .env.example',
 )
 
 // Optional reachability (no auth, no mutation)
 async function pingPb() {
   if (!pbUrl) {
-    add('pocketbase_url', false, 'HAD_PREFLIGHT_PB_URL / VITE_POCKETBASE_URL not set', false)
+    add('pocketbase_url', false, 'HK_PREFLIGHT_PB_URL / VITE_POCKETBASE_URL not set', false)
     return
   }
   try {

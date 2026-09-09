@@ -1,6 +1,6 @@
 /**
  * Static smoke tests for notification template rendering.
- * Does not connect to PocketBase. Mirrors pb_hooks/had_notification_render.js
+ * Does not connect to PocketBase. Mirrors pb_hooks/hk_notification_render.js
  * (CommonJS) with inline ESM copies of the pure functions.
  */
 import { writeFileSync, mkdirSync } from 'node:fs'

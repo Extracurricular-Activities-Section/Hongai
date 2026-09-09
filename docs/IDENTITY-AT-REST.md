@@ -1,6 +1,6 @@
 # Identity at Rest
 
-完整身分證字號（`had_student_profiles.identity_number`）與 submission snapshot 內之身分資料，目前依 **存取控制**（API Rules／hooks／列表遮罩）保護。  
+完整身分證字號（`hk_student_profiles.identity_number`）與 submission snapshot 內之身分資料，目前依 **存取控制**（API Rules／hooks／列表遮罩）保護。  
 應用層／磁碟加密仍為 **Infrastructure TODO → NOT CONFIGURED**。
 
 > 本文件比較選項，**建議不要在沒有 KMS／金鑰治理下倉促上線自管加解密**。

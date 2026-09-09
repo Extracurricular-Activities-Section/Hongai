@@ -1,5 +1,4 @@
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+﻿import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import type {
@@ -46,8 +45,13 @@ function CheckboxRow({
   onChange: (next: boolean) => void
 }) {
   return (
-    <label className="flex items-center gap-2 text-sm">
-      <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} />
+    <label className="flex cursor-pointer items-center gap-2.5 text-sm text-foreground">
+      <input
+        type="checkbox"
+        className="size-4 shrink-0 accent-accent-strong"
+        checked={checked}
+        onChange={(e) => onChange(e.target.checked)}
+      />
       {label}
     </label>
   )
@@ -79,7 +83,7 @@ function SectionSettings({
       <div className="space-y-1">
         <Label>說明</Label>
         <textarea
-          className="min-h-20 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+          className="min-h-20 w-full rounded-md border border-input bg-surface text-foreground transition-colors placeholder:text-muted-foreground hover:border-border-strong focus-visible:border-accent-strong disabled:cursor-not-allowed disabled:bg-surface-muted disabled:opacity-70 px-3 py-2 text-sm"
           value={section.description || ''}
           onChange={(e) => onChange({ description: e.target.value })}
         />
@@ -212,7 +216,7 @@ function FieldSettings({
       <div className="space-y-1">
         <Label>說明文字</Label>
         <textarea
-          className="min-h-16 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+          className="min-h-16 w-full rounded-md border border-input bg-surface text-foreground transition-colors placeholder:text-muted-foreground hover:border-border-strong focus-visible:border-accent-strong disabled:cursor-not-allowed disabled:bg-surface-muted disabled:opacity-70 px-3 py-2 text-sm"
           value={field.help_text || ''}
           onChange={(e) => onChange({ help_text: e.target.value })}
         />
@@ -290,7 +294,7 @@ function FieldSettings({
         <div className="space-y-2 rounded-md border border-border p-3">
           <Label>計算設定</Label>
           <select
-            className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+            className="flex h-10 w-full rounded-md border border-input bg-surface text-foreground transition-colors placeholder:text-muted-foreground hover:border-border-strong focus-visible:border-accent-strong disabled:cursor-not-allowed disabled:bg-surface-muted disabled:opacity-70 px-3 text-sm"
             value={(field.config as ComputedFieldConfig | null)?.operation || 'sum'}
             onChange={(e) => {
               const operation = e.target.value as ComputedFieldConfig['operation']
@@ -392,7 +396,7 @@ function FieldSettings({
                 }}
               />
               <select
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                className="flex h-10 w-full rounded-md border border-input bg-surface text-foreground transition-colors placeholder:text-muted-foreground hover:border-border-strong focus-visible:border-accent-strong disabled:cursor-not-allowed disabled:bg-surface-muted disabled:opacity-70 px-3 text-sm"
                 value={column.field_type}
                 onChange={(e) => {
                   const columns = [...((field.config as RepeatGroupConfig).columns || [])]
@@ -547,7 +551,7 @@ function FieldSettings({
         {fieldRules.map((rule) => (
           <div key={rule.id} className="space-y-2 rounded border border-border p-2">
             <select
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+              className="flex h-10 w-full rounded-md border border-input bg-surface text-foreground transition-colors placeholder:text-muted-foreground hover:border-border-strong focus-visible:border-accent-strong disabled:cursor-not-allowed disabled:bg-surface-muted disabled:opacity-70 px-3 text-sm"
               value={rule.rule_type}
               onChange={(e) => {
                 onRulesChange(
@@ -566,7 +570,7 @@ function FieldSettings({
               ))}
             </select>
             <select
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+              className="flex h-10 w-full rounded-md border border-input bg-surface text-foreground transition-colors placeholder:text-muted-foreground hover:border-border-strong focus-visible:border-accent-strong disabled:cursor-not-allowed disabled:bg-surface-muted disabled:opacity-70 px-3 text-sm"
               value={rule.source_field_code}
               onChange={(e) => {
                 onRulesChange(
@@ -586,7 +590,7 @@ function FieldSettings({
                 ))}
             </select>
             <select
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+              className="flex h-10 w-full rounded-md border border-input bg-surface text-foreground transition-colors placeholder:text-muted-foreground hover:border-border-strong focus-visible:border-accent-strong disabled:cursor-not-allowed disabled:bg-surface-muted disabled:opacity-70 px-3 text-sm"
               value={rule.operator}
               onChange={(e) => {
                 onRulesChange(
@@ -660,16 +664,20 @@ export function FormBuilderSettingsPanel({
     selection?.type === 'field' ? findField(document, selection.fieldId)?.field || null : null
 
   return (
-    <Card className="h-full overflow-hidden">
-      <CardHeader className="py-3">
-        <CardTitle className="text-base">設定</CardTitle>
-        <p className="text-xs text-muted-foreground">
-          {field ? '欄位設定' : section ? '區塊設定' : '選擇畫布上的項目'}
+    <div className="flex min-h-0 flex-col rounded-lg border border-border bg-card">
+      <header className="border-b border-border px-4 py-2.5">
+        <h2 className="text-sm font-semibold text-foreground">
+          {field ? '欄位設定' : section ? '區塊設定' : '設定'}
+        </h2>
+        <p className="mt-0.5 truncate text-meta text-muted-foreground">
+          {field ? `${field.label} · ${field.code}` : section ? section.title : '選擇畫布上的項目'}
         </p>
-      </CardHeader>
-      <CardContent className="max-h-[calc(100vh-12rem)] space-y-3 overflow-y-auto pb-4">
+      </header>
+      <div className="scrollbar-thin flex-1 space-y-4 overflow-y-auto p-4">
         {!selection ? (
-          <p className="text-sm text-muted-foreground">尚未選取任何區塊或欄位。</p>
+          <p className="rounded-md border border-dashed border-border-strong px-4 py-8 text-center text-meta text-muted-foreground">
+            點選左側畫布上的區塊或欄位，即可在此編輯設定。
+          </p>
         ) : null}
         {selection?.type === 'section' && section ? (
           <SectionSettings
@@ -687,7 +695,7 @@ export function FormBuilderSettingsPanel({
             onRulesChange={onUpdateRules}
           />
         ) : null}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   )
 }
