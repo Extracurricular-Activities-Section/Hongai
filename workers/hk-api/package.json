@@ -11,7 +11,7 @@
     "pocketbase": "^0.28.1"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20250910.0",
+    "@cloudflare/workers-types": "^5.20260908.1",
     "typescript": "~5.9.2",
     "wrangler": "^4.34.0"
   }
