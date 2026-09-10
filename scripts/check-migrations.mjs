@@ -74,6 +74,15 @@ const files = readdirSync(migrationsDir)
   .filter((name) => name.endsWith('.js'))
   .sort()
 
+const ACTIVE_COLLECTIONS = new Set([
+  'hk_students',
+  'hk_staff_users',
+  'hk_forms',
+  'hk_applications',
+  'hk_settings',
+  'hk_events',
+])
+
 if (files.length === 0) {
   console.error('No migration .js files found in pb_migrations/')
   process.exit(1)
@@ -114,6 +123,15 @@ for (const file of files) {
     // Also forbid delete/alter of known external names in comments-free code via explicit API calls
     if (/findCollectionByNameOrId\(\s*['"]students['"]\s*\)/.test(source)) {
       throw new Error(`${file} references external collection "students"`)
+    }
+
+    for (const match of source.matchAll(/name:\s*['"](hk_[^'"]+)['"]/g)) {
+      const collectionName = match[1]
+      if (!ACTIVE_COLLECTIONS.has(collectionName)) {
+        throw new Error(
+          `${file} creates "${collectionName}", which is not part of the six-collection data layer.`,
+        )
+      }
     }
 
     console.log(`OK  ${file}`)

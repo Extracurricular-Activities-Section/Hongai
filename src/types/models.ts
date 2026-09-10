@@ -29,8 +29,16 @@ export type AuditActorType = 'student' | 'staff' | 'admin' | 'system'
 export interface StaffUser extends BaseRecord {
   email: string
   name: string
+  role?: 'staff' | 'admin' | 'super_admin' | 'service'
   is_staff: boolean
   is_admin: boolean
+  department_code?: string
+  department_name?: string
+  department_contact_json?: Record<string, unknown>
+  departments_json?: Array<Record<string, unknown>>
+  permissions_json?: Record<string, unknown>
+  can_manage_forms?: boolean
+  can_publish_forms?: boolean
   active: boolean
   phone?: string
   job_title?: string
@@ -61,6 +69,18 @@ export interface Student extends BaseRecord {
   email?: string
   student_no: string
   identity_last4: string
+  name?: string
+  gender?: Gender
+  department_name?: string
+  program_type?: string
+  division?: string
+  grade?: string
+  phone?: string
+  line_id?: string
+  bank_account_registered?: boolean
+  bank_account_note?: string
+  profile_json?: Record<string, unknown>
+  notification_preferences_json?: Record<string, unknown>
   active: boolean
   locked_until?: string
   failed_login_count: number

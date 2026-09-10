@@ -1,7 +1,6 @@
 import { json, type WorkerEnv } from './http'
 
 const ALLOWED_PREFIXES = [
-  '/api/hk/',
   '/api/collections/',
   '/api/files/',
   '/api/realtime',
@@ -10,12 +9,8 @@ const ALLOWED_PREFIXES = [
 /**
  * Transitional gateway helper.
  *
- * TARGET ARCHITECTURE: Cloudflare owns all /api/hk/* business routes;
- * PocketBase host must NOT run business pb_hooks. Prefer CF-native handlers.
- *
- * Forwarding /api/hk/* to PocketBase is a legacy path and will 404 on a
- * hooks-free PB host. Collections/files proxy is for CF→PB data access with
- * the caller's or service-account token — never Superuser.
+ * Cloudflare owns all /api/hk/* business routes. This proxy is only for
+ * PocketBase collection/file APIs used during staged migration.
  */
 export async function proxyToPocketBase(
   request: Request,

@@ -19,12 +19,8 @@ export async function createServicePb(env: WorkerEnv): Promise<PocketBase> {
     throw new Error('Service account secrets missing (HK_PB_SERVICE_EMAIL / HK_PB_SERVICE_PASSWORD)')
   }
 
-  // Preferred: hk_service_accounts. Fallback during bootstrap: hk_staff_users service user.
-  try {
-    await pb.collection(assertHkCollection('hk_service_accounts')).authWithPassword(email, password)
-  } catch {
-    await pb.collection(assertHkCollection('hk_staff_users')).authWithPassword(email, password)
-  }
+  // Six-collection schema: service accounts live in hk_staff_users with role="service".
+  await pb.collection(assertHkCollection('hk_staff_users')).authWithPassword(email, password)
 
   return pb
 }

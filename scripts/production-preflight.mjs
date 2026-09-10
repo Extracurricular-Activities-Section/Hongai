@@ -35,10 +35,19 @@ function add(name, pass, detail, blocker = false) {
 
 // Local repo checks
 const migrations = readdirSync(path.join(root, 'pb_migrations')).filter((f) => f.endsWith('.js'))
-add('migrations_present', migrations.length >= 7, `found ${migrations.length} migration files`)
+add(
+  'six_collection_migration_present',
+  migrations.includes('1736500001_create_six_collection_data_layer.js'),
+  `found ${migrations.length} active migration file(s)`,
+  true,
+)
 
 const hooks = readdirSync(path.join(root, 'pb_hooks')).filter((f) => f.endsWith('.js'))
-add('hooks_present', hooks.length > 10, `found ${hooks.length} hook files`)
+add(
+  'hooks_repo_only',
+  existsSync(path.join(root, 'pb_hooks', 'README.md')),
+  `found ${hooks.length} legacy hook files; they must not be deployed to PocketBase`,
+)
 
 add('env_example', existsSync(path.join(root, '.env.example')), '.env.example exists')
 add('gitignore', existsSync(path.join(root, '.gitignore')), '.gitignore exists')
@@ -47,6 +56,23 @@ add(
   !existsSync(path.join(root, 'pb_data')),
   'pb_data should not be committed',
 )
+
+const collectionSource = readFileSync(path.join(root, 'src/lib/pocketbase/collections.ts'), 'utf8')
+for (const collection of [
+  'hk_students',
+  'hk_staff_users',
+  'hk_forms',
+  'hk_applications',
+  'hk_settings',
+  'hk_events',
+]) {
+  add(
+    `active_collection_${collection}`,
+    collectionSource.includes(`'${collection}'`),
+    `${collection} is part of the six-collection data layer`,
+    true,
+  )
+}
 
 const envExample = readFileSync(path.join(root, '.env.example'), 'utf8')
 add(
@@ -63,7 +89,7 @@ add(
 // Optional reachability (no auth, no mutation)
 async function pingPb() {
   if (!pbUrl) {
-    add('pocketbase_url', false, 'HK_PREFLIGHT_PB_URL / VITE_POCKETBASE_URL not set', false)
+    add('pocketbase_url_optional', true, 'HK_PREFLIGHT_PB_URL / VITE_POCKETBASE_URL not set; reachability check skipped')
     return
   }
   try {

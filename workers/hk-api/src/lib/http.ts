@@ -1,9 +1,17 @@
 /**
  * PocketBase access from Cloudflare Workers.
- * Runtime MUST use hk_service_accounts (or interim staff service user) — never Superuser.
+ * Runtime MUST use hk_staff_users with role="service" — never Superuser.
  */
 
 const HK_PREFIX = 'hk_'
+const HK_ALLOWED_COLLECTIONS = new Set([
+  'hk_students',
+  'hk_staff_users',
+  'hk_forms',
+  'hk_applications',
+  'hk_settings',
+  'hk_events',
+])
 
 export type WorkerEnv = {
   HK_POCKETBASE_URL: string
@@ -23,6 +31,9 @@ export function assertHkCollection(name: string): string {
   const forbidden = new Set(['students', 'users', 'teachers', '_superusers', 'superusers'])
   if (forbidden.has(name) || forbidden.has(name.replace(HK_PREFIX, ''))) {
     throw new Error(`Refusing forbidden collection: ${name}`)
+  }
+  if (!HK_ALLOWED_COLLECTIONS.has(name)) {
+    throw new Error(`Refusing non-active Hongai collection: ${name}`)
   }
   return name
 }

@@ -7,7 +7,7 @@
 - `hk_*` collections／records／files／relations
 - required fields、unique constraints、indexes
 - API Rules（deny-by-default；僅授權角色／service account）
-- Auth records：`hk_students`、`hk_staff_users`、`hk_service_accounts`
+- Auth records：`hk_students`、`hk_staff_users`
 - Protected file storage
 - `pb_migrations/` 套用與 seed
 
@@ -28,9 +28,18 @@ Browser **不應**直接對敏感 collections 做 CRUD。
 
 ## Service account
 
-Collection：`hk_service_accounts`  
-Roles：`api_runtime`／`scheduler`／`pdf_orchestrator`  
+Collection：`hk_staff_users`  
+Role：`service`  
 Secrets：僅存在 Worker（`.dev.vars`／wrangler secrets），永不 `VITE_*`。
+
+## Active collections
+
+- `hk_students`
+- `hk_staff_users`
+- `hk_forms`
+- `hk_applications`
+- `hk_settings`
+- `hk_events`
 
 ## Legacy hooks
 

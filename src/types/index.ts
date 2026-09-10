@@ -38,3 +38,17 @@ export type {
   FundingDecisionItem,
   AnnualFundingSummary,
 } from '@/features/funding/types'
+export type {
+  EventType,
+  HkApplicationStatus,
+  HkApplicationRecord,
+  HkEligibilityStatus,
+  HkEventRecord,
+  HkFormRecord,
+  HkJsonObject,
+  HkSettingRecord,
+  HkStaffUserRecord,
+  HkStudentRecord,
+  SettingType,
+  StaffRole,
+} from './six-collection-schema'

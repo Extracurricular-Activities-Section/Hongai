@@ -68,7 +68,10 @@ export async function logoutStudent(): Promise<void> {
 
 export async function fetchStudentMe(): Promise<StudentMeResponse> {
   try {
-    return await studentPb.send<StudentMeResponse>('/api/hk/student/me', { method: 'GET' })
+    return await hkApiSend<StudentMeResponse>('/api/hk/student/me', {
+      method: 'GET',
+      token: studentPb.authStore.token,
+    })
   } catch (error) {
     throw mapAuthError(error, '無法載入學生資料，請重新登入。')
   }
@@ -78,11 +81,12 @@ export async function updateStudentProfile(
   input: StudentProfileUpdateInput,
 ): Promise<StudentProfile> {
   try {
-    const data = await studentPb.send<{ success: boolean; profile: StudentProfile }>(
+    const data = await hkApiSend<{ success: boolean; profile: StudentProfile }>(
       '/api/hk/student/profile/update',
       {
         method: 'POST',
         body: input,
+        token: studentPb.authStore.token,
       },
     )
     return data.profile

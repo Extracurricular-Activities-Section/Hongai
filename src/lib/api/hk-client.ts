@@ -1,6 +1,6 @@
 /**
- * Browser → Cloudflare HK API (preferred) with PocketBase fallback.
- * When VITE_HK_API_BASE_URL is set, /api/hk/* goes to the Worker.
+ * Browser -> Cloudflare HK API.
+ * /api/hk/* must not fall back to the PocketBase host.
  */
 
 function trimSlash(url: string) {
@@ -9,11 +9,10 @@ function trimSlash(url: string) {
 
 export function getHkApiBaseUrl(): string {
   const hk = import.meta.env.VITE_HK_API_BASE_URL as string | undefined
-  const pb = import.meta.env.VITE_POCKETBASE_URL as string | undefined
-  const base = (hk && hk.trim()) || (pb && pb.trim())
+  const base = hk && hk.trim()
   if (!base) {
     throw new Error(
-      'VITE_HK_API_BASE_URL or VITE_POCKETBASE_URL must be set (see .env.example).',
+      'VITE_HK_API_BASE_URL must be set for /api/hk/* (see .env.example).',
     )
   }
   return trimSlash(base)
