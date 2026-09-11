@@ -165,6 +165,8 @@ console.log(
       sha256: result.sha256,
       pageCount: result.pageCount,
       fontPath: result.fontPath,
+      cjkFontPath: result.cjkFontPath,
+      latinFontPath: result.latinFontPath,
       documentNumber,
     },
     null,

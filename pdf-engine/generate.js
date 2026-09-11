@@ -31,47 +31,144 @@ function formatDateTaipei(value) {
     const raw = String(value)
     return raw.length >= 10 ? raw.slice(0, 10).replace(/-/g, '/') : dash(value)
   }
-  return new Intl.DateTimeFormat('zh-TW', {
-    timeZone: 'Asia/Taipei',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  })
-    .format(date)
-    .replace(/\//g, '/')
+  return pdfSafeText(
+    new Intl.DateTimeFormat('zh-TW', {
+      timeZone: 'Asia/Taipei',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).format(date),
+  )
 }
 
 function formatDateTimeTaipei(value) {
   if (!value) return '—'
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return dash(value)
-  return new Intl.DateTimeFormat('zh-TW', {
-    timeZone: 'Asia/Taipei',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-  }).format(date)
+  return pdfSafeText(
+    new Intl.DateTimeFormat('zh-TW', {
+      timeZone: 'Asia/Taipei',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    }).format(date),
+  )
 }
 
-function resolveFontPath() {
-  if (process.env.PDF_FONT_PATH && existsSync(process.env.PDF_FONT_PATH)) {
-    return process.env.PDF_FONT_PATH
-  }
-  // Prefer TTF/OTF — many .ttc system fonts are not fully supported by fontkit+pdf-lib.
-  const candidates = [
+function firstExisting(paths) {
+  return paths.find((p) => p && existsSync(p)) || null
+}
+
+/**
+ * 中文：標楷體（kaiu / DFKai-SB）。
+ * Linux 容器預設用開源楷體近似（AR PL KaitiM）；正式可掛 PDF_FONT_CJK_PATH=kaiu.ttf。
+ */
+function resolveCjkFontPath(explicit) {
+  return firstExisting([
+    explicit,
+    process.env.PDF_FONT_CJK_PATH,
+    process.env.PDF_FONT_PATH,
+    '/app/fonts/kaiu.ttf',
+    '/app/fonts/kaiu.ttc',
     'C:/Windows/Fonts/kaiu.ttf',
-    'C:/Windows/Fonts/simkai.ttf',
+    'C:/Windows/Fonts/kaiu.ttc',
+    'C:/Windows/Fonts/DFKAI-SB.TTF',
     'C:/Windows/Fonts/STKAITI.TTF',
-    'C:/Windows/Fonts/msyh.ttf',
-    'C:/Windows/Fonts/simhei.ttf',
-    '/usr/share/fonts/truetype/noto/NotoSansCJKtc-Regular.otf',
-    '/usr/share/fonts/opentype/noto/NotoSansCJKtc-Regular.otf',
-    '/System/Library/Fonts/Supplemental/Songti.ttc',
-  ]
-  return candidates.find((path) => existsSync(path)) || null
+    'C:/Windows/Fonts/simkai.ttf',
+    '/usr/share/fonts/truetype/arphic/bkai00mp.ttf',
+    '/usr/share/fonts/opentype/noto/NotoSerifCJK-Regular.ttc',
+  ])
+}
+
+/**
+ * 英文／數字：Times New Roman。
+ * Linux 預設 Liberation Serif（Times 計量相容）；正式可掛 PDF_FONT_LATIN_PATH=times.ttf。
+ */
+function resolveLatinFontPath(explicit) {
+  return firstExisting([
+    explicit,
+    process.env.PDF_FONT_LATIN_PATH,
+    '/app/fonts/times.ttf',
+    '/app/fonts/Times New Roman.ttf',
+    'C:/Windows/Fonts/times.ttf',
+    'C:/Windows/Fonts/Times.ttf',
+    'C:/Windows/Fonts/Times New Roman.ttf',
+    '/usr/share/fonts/truetype/liberation/LiberationSerif-Regular.ttf',
+    '/usr/share/fonts/truetype/liberation2/LiberationSerif-Regular.ttf',
+  ])
+}
+
+function resolveLatinBoldFontPath() {
+  return firstExisting([
+    process.env.PDF_FONT_LATIN_BOLD_PATH,
+    '/app/fonts/timesbd.ttf',
+    'C:/Windows/Fonts/timesbd.ttf',
+    'C:/Windows/Fonts/Timesbd.ttf',
+    'C:/Windows/Fonts/Times New Roman Bold.ttf',
+    '/usr/share/fonts/truetype/liberation/LiberationSerif-Bold.ttf',
+    '/usr/share/fonts/truetype/liberation2/LiberationSerif-Bold.ttf',
+  ])
+}
+
+/** ASCII 英數與半形標點 → Latin；其餘（含中文）→ CJK。 */
+function isLatinRunChar(ch) {
+  const code = ch.codePointAt(0) ?? 0
+  if (code >= 0x30 && code <= 0x39) return true // 0-9
+  if (code >= 0x41 && code <= 0x5a) return true // A-Z
+  if (code >= 0x61 && code <= 0x7a) return true // a-z
+  // 半形空白與常見半形標點跟英數一起用 Times，版面較穩
+  if (code < 0x80 && /[\s.,;:!? '"`()\[\]{}\-_/=+*&^%$#@\\|<>~]/.test(ch)) return true
+  return false
+}
+
+/**
+ * @param {string} text
+ * @param {import('pdf-lib').PDFFont} latinFont
+ * @param {import('pdf-lib').PDFFont} cjkFont
+ */
+function splitFontRuns(text, latinFont, cjkFont) {
+  /** @type {Array<{ font: import('pdf-lib').PDFFont, text: string }>} */
+  const runs = []
+  for (const ch of text) {
+    const font = isLatinRunChar(ch) ? latinFont : cjkFont
+    const last = runs[runs.length - 1]
+    if (last && last.font === font) last.text += ch
+    else runs.push({ font, text: ch })
+  }
+  return runs
+}
+
+function widthOfMixed(text, size, latinFont, cjkFont) {
+  return splitFontRuns(text, latinFont, cjkFont).reduce(
+    (sum, run) => sum + run.font.widthOfTextAtSize(run.text, size),
+    0,
+  )
+}
+
+function drawMixedLine(page, text, x, y, size, latinFont, cjkFont, color) {
+  let cursor = x
+  for (const run of splitFontRuns(text, latinFont, cjkFont)) {
+    if (!run.text) continue
+    page.drawText(run.text, { x: cursor, y, size, font: run.font, color })
+    cursor += run.font.widthOfTextAtSize(run.text, size)
+  }
+}
+
+async function embedFontBytes(pdfDoc, filePath) {
+  const bytes = readFileSync(filePath)
+  try {
+    return await pdfDoc.embedFont(bytes, { subset: false })
+  } catch {
+    return await pdfDoc.embedFont(bytes, { subset: true })
+  }
+}
+
+/** Normalize strings for pdf-lib (thin/nbsp separators break some viewers). */
+function pdfSafeText(value) {
+  return String(value).replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u2000-\u200B\u202F\u205F\u3000\uFEFF]/g, ' ')
 }
 
 export function sha256Hex(buffer) {
@@ -138,7 +235,8 @@ function fieldDisplayValue(field, answers) {
  * @param {string} input.documentNumber
  * @param {number} input.documentVersion
  * @param {string} input.verificationUrl
- * @param {string} [input.fontPath]
+ * @param {string} [input.fontPath] CJK font override（標楷體）
+ * @param {string} [input.latinFontPath] Latin font override（Times New Roman）
  */
 export async function generateHadApplicationPdf(input) {
   const snapshot = input.snapshot
@@ -159,23 +257,42 @@ export async function generateHadApplicationPdf(input) {
   const pdfDoc = await PDFDocument.create()
   pdfDoc.registerFontkit(fontkit)
 
-  const fontPath = input.fontPath || resolveFontPath()
-  let font
-  let fontBold
-  if (fontPath) {
-    const bytes = readFileSync(fontPath)
-    // TTC/some system fonts do not support subsetting via fontkit.
-    const useSubset = !fontPath.toLowerCase().endsWith('.ttc')
-    try {
-      font = await pdfDoc.embedFont(bytes, { subset: useSubset })
-    } catch {
-      font = await pdfDoc.embedFont(bytes, { subset: false })
-    }
-    fontBold = font
+  const cjkFontPath = resolveCjkFontPath(input.fontPath)
+  const latinFontPath = resolveLatinFontPath(input.latinFontPath)
+  const latinBoldPath = resolveLatinBoldFontPath()
+
+  /** @type {import('pdf-lib').PDFFont} */
+  let cjkFont
+  /** @type {import('pdf-lib').PDFFont} */
+  let latinFont
+  /** @type {import('pdf-lib').PDFFont} */
+  let latinBold
+
+  if (cjkFontPath) {
+    cjkFont = await embedFontBytes(pdfDoc, cjkFontPath)
   } else {
-    font = await pdfDoc.embedFont(StandardFonts.Helvetica)
-    fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold)
+    // 無中文字型時僅能顯示拉丁字；正式環境必須提供標楷體路徑
+    cjkFont = await pdfDoc.embedFont(StandardFonts.TimesRoman)
   }
+
+  if (latinFontPath) {
+    latinFont = await embedFontBytes(pdfDoc, latinFontPath)
+  } else {
+    latinFont = await pdfDoc.embedFont(StandardFonts.TimesRoman)
+  }
+
+  if (latinBoldPath) {
+    latinBold = await embedFontBytes(pdfDoc, latinBoldPath)
+  } else {
+    try {
+      latinBold = await pdfDoc.embedFont(StandardFonts.TimesRomanBold)
+    } catch {
+      latinBold = latinFont
+    }
+  }
+
+  const cjkBold = cjkFont
+  const fontPath = cjkFontPath
 
   const qrPng = await QRCode.toBuffer(input.verificationUrl, {
     type: 'png',
@@ -333,13 +450,16 @@ export async function generateHadApplicationPdf(input) {
   const pages = [page]
 
   const drawFooter = (currentPage, pageIndex, pageCount) => {
-    currentPage.drawText(`${input.documentNumber}  |  PDF V${input.documentVersion}  |  第 ${pageIndex} / ${pageCount} 頁`, {
-      x: MARGIN,
-      y: 24,
-      size: 8,
-      font,
-      color: rgb(0.35, 0.35, 0.35),
-    })
+    drawMixedLine(
+      currentPage,
+      `${input.documentNumber}  |  PDF V${input.documentVersion}  |  第 ${pageIndex} / ${pageCount} 頁`,
+      MARGIN,
+      24,
+      8,
+      latinFont,
+      cjkFont,
+      rgb(0.35, 0.35, 0.35),
+    )
   }
 
   const ensureSpace = (needed) => {
@@ -351,17 +471,18 @@ export async function generateHadApplicationPdf(input) {
   }
 
   const drawWrapped = (text, size = 10, bold = false) => {
-    const useFont = bold ? fontBold : font
+    const useLatin = bold ? latinBold : latinFont
+    const useCjk = bold ? cjkBold : cjkFont
     const maxWidth = CONTENT_WIDTH
-    const content = String(text || '')
+    const content = pdfSafeText(text || '')
     const chars = [...content]
     let line = ''
     for (const ch of chars) {
       const test = line + ch
-      const width = useFont.widthOfTextAtSize(test, size)
+      const width = widthOfMixed(test, size, useLatin, useCjk)
       if (width > maxWidth && line) {
         ensureSpace(size + 4)
-        page.drawText(line, { x: MARGIN, y: y - size, size, font: useFont, color: rgb(0.1, 0.1, 0.1) })
+        drawMixedLine(page, line, MARGIN, y - size, size, useLatin, useCjk, rgb(0.1, 0.1, 0.1))
         y -= size + 4
         line = ch
       } else {
@@ -370,7 +491,7 @@ export async function generateHadApplicationPdf(input) {
     }
     if (line) {
       ensureSpace(size + 4)
-      page.drawText(line, { x: MARGIN, y: y - size, size, font: useFont, color: rgb(0.1, 0.1, 0.1) })
+      drawMixedLine(page, line, MARGIN, y - size, size, useLatin, useCjk, rgb(0.1, 0.1, 0.1))
       y -= size + 4
     }
   }
@@ -428,5 +549,7 @@ export async function generateHadApplicationPdf(input) {
     sha256: sha256Hex(Buffer.from(bytes)),
     pageCount,
     fontPath: fontPath || null,
+    cjkFontPath: cjkFontPath || null,
+    latinFontPath: latinFontPath || 'StandardFonts.TimesRoman',
   }
 }

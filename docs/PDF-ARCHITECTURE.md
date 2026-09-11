@@ -17,10 +17,10 @@
 
 ## Generation
 
-- PocketBase hooks（Goja）負責授權、編號、token、supersede、存檔
+- Cloudflare Worker `hk-api` 負責授權、編號、token、supersede、存檔（不再部署 PB business hooks）
 - 實際繪製由 **pdf-lib** 引擎（`pdf-engine/`）執行
-- 本機：`npm run pdf:service`（`HK_PDF_SERVICE_URL`）
-- 正式環境建議：同一引擎打包為 Cloudflare Worker（純 JS，無 Chromium）
+- 正式環境：**Cloudflare Containers**（`workers/hk-pdf`）— 見 `docs/PDF-CONTAINER.md`
+- 勿在 `hk-api` Worker 內嵌中文字型產檔
 
 ## Versioning
 
@@ -54,13 +54,13 @@
 
 ## Font Strategy
 
-- `PDF_FONT_PATH` 指向授權中文字型（建議 Noto Sans TC）
-- 本機可暫用系統字型（如微軟正黑體）
+- **中文：標楷體**（`PDF_FONT_CJK_PATH`，Windows 預設 `kaiu.ttf`）
+- **英文／數字：Times New Roman**（`PDF_FONT_LATIN_PATH`，Windows 預設 `times.ttf`）
+- 混排：同一行依字元切換字型（見 `pdf-engine/generate.js`）
+- Container：未提供專有字型時用 AR PL KaitiM + Liberation Serif 近似；可把 `kaiu.ttf`／`times.ttf` 放進 `pdf-engine/fonts/`（勿 commit 未授權檔）
 - **勿**隨意 commit 未授權字型檔
-- Production 部署前確認授權與可部署性
 
 ## Cloudflare / PocketBase
 
-- Hooks 無法直接 `require('pdf-lib')`（Goja）
-- 因此採用 hooks → trusted PDF service / Worker
-- 避免 Puppeteer/Chromium（Workers 不相容）
+- 產檔：`workers/hk-pdf` Container 跑 `pdf-engine`（見 `docs/PDF-CONTAINER.md`）
+- 調度／存檔：`hk-api` → PocketBase；避免 Puppeteer／Chromium

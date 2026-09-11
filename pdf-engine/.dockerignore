@@ -1,0 +1,4 @@
+node_modules
+npm-debug.log*
+smoke.mjs
+# Allow baking local licensed fonts into the private CF image (still gitignored).

@@ -36,3 +36,10 @@ workers/**/.dev.vars
 workers/**/.wrangler/
 *.pdf
 !docs/**
+
+# Proprietary PDF fonts (optional local/container bake-in)
+pdf-engine/fonts/*.ttf
+pdf-engine/fonts/*.ttc
+pdf-engine/fonts/*.otf
+!pdf-engine/fonts/.gitkeep
+!pdf-engine/fonts/README.md

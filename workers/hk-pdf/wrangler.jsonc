@@ -1,0 +1,37 @@
+{
+  "name": "hk-pdf",
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-09-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1
+  },
+  "containers": [
+    {
+      "class_name": "PdfEngineContainer",
+      "image": "../../pdf-engine/Dockerfile",
+      "image_build_context": "../../pdf-engine",
+      "max_instances": 3,
+      // CJK fonts + pdf-lib need more than lite defaults
+      "instance_type": "basic"
+    }
+  ],
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "PDF_ENGINE",
+        "class_name": "PdfEngineContainer"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["PdfEngineContainer"]
+    }
+  ]
+  // Secret (required before useful /render):
+  //   npx wrangler secret put HK_PDF_SERVICE_SECRET -c workers/hk-pdf/wrangler.jsonc
+}
