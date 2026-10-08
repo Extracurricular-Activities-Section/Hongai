@@ -13,9 +13,9 @@ export type StaffAuthContext = {
 }
 
 function bearerToken(request: Request): string | null {
+  // PocketBase JS SDK sends the raw token; hk-client prefixes "Bearer ".
   const header = request.headers.get('Authorization') || ''
-  if (!header.startsWith('Bearer ')) return null
-  const token = header.slice(7).trim()
+  const token = header.replace(/^Bearer\s+/i, '').trim()
   return token || null
 }
 

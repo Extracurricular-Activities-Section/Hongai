@@ -18,6 +18,7 @@ import { handlePolicyAdmin } from './routes/policy-admin'
 import { handleFaq } from './routes/faq'
 import { handleInternalJobs, onScheduled } from './routes/internal-jobs'
 import { handleStudentPeriods } from './routes/student-periods'
+import { handleAdminRead } from './routes/admin-read'
 
 export default {
   async fetch(request: Request, env: WorkerEnv): Promise<Response> {
@@ -59,6 +60,9 @@ export default {
 
       const studentPeriods = await handleStudentPeriods(request, env, path)
       if (studentPeriods) return withCors(env, request, studentPeriods)
+
+      const adminRead = await handleAdminRead(request, env, path)
+      if (adminRead) return withCors(env, request, adminRead)
 
       if (
         path.startsWith('/api/collections/') ||
