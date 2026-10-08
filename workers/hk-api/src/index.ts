@@ -17,6 +17,7 @@ import { handleRulesCompute } from './routes/rules-compute'
 import { handlePolicyAdmin } from './routes/policy-admin'
 import { handleFaq } from './routes/faq'
 import { handleInternalJobs, onScheduled } from './routes/internal-jobs'
+import { handleStudentPeriods } from './routes/student-periods'
 
 export default {
   async fetch(request: Request, env: WorkerEnv): Promise<Response> {
@@ -55,6 +56,9 @@ export default {
 
       const studentAuth = await handleStudentAuth(request, env, path)
       if (studentAuth) return withCors(env, request, studentAuth)
+
+      const studentPeriods = await handleStudentPeriods(request, env, path)
+      if (studentPeriods) return withCors(env, request, studentPeriods)
 
       if (
         path.startsWith('/api/collections/') ||
