@@ -1,6 +1,7 @@
 import type PocketBase from 'pocketbase'
 
 import { requireStaff, type StaffAuthContext } from '../lib/auth-staff'
+import { categoryFromSetting, ensureCategorySeed } from '../lib/categories'
 import { json, type WorkerEnv } from '../lib/http'
 import { createServicePb } from '../lib/pb'
 import { compareLatestFirst, periodFromSetting, studentPeriodProfiles } from '../lib/periods'
@@ -332,22 +333,8 @@ const routes: Array<{ pattern: RegExp; adminOnly?: boolean; handler: Handler }> 
   {
     pattern: /^\/api\/hk\/admin\/categories$/,
     handler: async ({ pb }) => {
-      const rows = await settingsByType(pb, 'category')
-      const items = rows
-        .map((row) => {
-          const value = obj(row.value_json)
-          return {
-            ...baseFields(row),
-            code: str(value.code),
-            name: str(value.name),
-            description: nullable(value.description),
-            active: Boolean(row.active),
-            sort_order: Number(value.sort_order) || 0,
-            allow_copy_previous: Boolean(value.allow_copy_previous),
-          }
-        })
-        .sort(bySortOrder)
-      return json({ items })
+      const rows = await ensureCategorySeed(pb)
+      return json({ items: rows.map(categoryFromSetting).sort(bySortOrder) })
     },
   },
   {

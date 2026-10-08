@@ -156,6 +156,19 @@ export async function adminListForms(): Promise<
   }
 }
 
+export async function adminCreateForm(input: {
+  form_code: string
+  name: string
+  description?: string
+  category_code?: string
+}): Promise<{ schema: FormSchema }> {
+  try {
+    return await staffPb.send('/api/hk/admin/forms', { method: 'POST', body: input })
+  } catch (error) {
+    throw mapError(error, '建立表單失敗')
+  }
+}
+
 export async function adminPreviewFormVersion(
   formId: string,
   versionId: string,

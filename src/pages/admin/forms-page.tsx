@@ -1,13 +1,17 @@
-﻿import { useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+﻿import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 
 import { PageSkeleton } from '@/components/common/states'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { useBackofficeAuth } from '@/features/auth/backoffice/context'
 import { adminListFormVersions, adminPreviewFormVersion } from '@/features/form-builder/api'
 import type { FormVersionSummary } from '@/features/form-builder/types'
-import { adminListForms } from '@/features/forms/api'
+import { adminCreateForm, adminListForms } from '@/features/forms/api'
+import { adminListCategories } from '@/features/periods/api'
+import type { ApplicationCategory } from '@/types'
 import { DynamicFormRenderer } from '@/features/forms/components/dynamic-form-renderer'
 import { buildInitialValues, evaluateRules } from '@/features/forms/engine'
 import type { FormSchema } from '@/features/forms/types'
@@ -26,13 +30,39 @@ export function AdminFormsPage() {
   const [previewSchema, setPreviewSchema] = useState<FormSchema | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loadingVersions, setLoadingVersions] = useState<string | null>(null)
+  const [categories, setCategories] = useState<ApplicationCategory[]>([])
+  const [newForm, setNewForm] = useState({ form_code: '', name: '', category_code: '' })
+  const [creating, setCreating] = useState(false)
+  const [createError, setCreateError] = useState<string | null>(null)
+  const navigate = useNavigate()
 
   useEffect(() => {
     if (!isAdmin) return
     void adminListForms()
       .then(setItems)
       .catch((err) => setError(err instanceof Error ? err.message : '載入失敗'))
+    void adminListCategories()
+      .then(setCategories)
+      .catch(() => setCategories([]))
   }, [isAdmin])
+
+  async function onCreateForm(event: FormEvent) {
+    event.preventDefault()
+    setCreating(true)
+    setCreateError(null)
+    try {
+      const { schema } = await adminCreateForm({
+        form_code: newForm.form_code.trim(),
+        name: newForm.name.trim(),
+        category_code: newForm.category_code || undefined,
+      })
+      navigate(`/admin/forms/${schema.form.id}/builder`)
+    } catch (err) {
+      setCreateError(err instanceof Error ? err.message : '建立表單失敗')
+    } finally {
+      setCreating(false)
+    }
+  }
 
   const previewValues = useMemo(
     () => (previewSchema ? buildInitialValues(previewSchema) : {}),
@@ -75,7 +105,68 @@ export function AdminFormsPage() {
 
       {error ? <p className="text-sm font-medium text-danger">{error}</p> : null}
 
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">新增表單</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form className="grid gap-4 sm:grid-cols-3" onSubmit={(e) => void onCreateForm(e)}>
+            <div className="space-y-2">
+              <Label htmlFor="new-form-name">表單名稱</Label>
+              <Input
+                id="new-form-name"
+                value={newForm.name}
+                disabled={creating}
+                onChange={(e) => setNewForm((prev) => ({ ...prev, name: e.target.value }))}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="new-form-code">表單代碼</Label>
+              <Input
+                id="new-form-code"
+                value={newForm.form_code}
+                placeholder="例：academic_learning"
+                pattern="[a-z][a-z0-9_]{1,49}"
+                title="小寫英文開頭，只能包含小寫英文、數字與底線"
+                disabled={creating}
+                onChange={(e) => setNewForm((prev) => ({ ...prev, form_code: e.target.value }))}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="new-form-category">申請項目</Label>
+              <select
+                id="new-form-category"
+                className="flex h-10 w-full rounded-md border border-input bg-surface px-3 text-sm text-foreground transition-colors hover:border-border-strong focus-visible:border-accent-strong disabled:cursor-not-allowed disabled:bg-surface-muted disabled:opacity-70"
+                value={newForm.category_code}
+                disabled={creating}
+                onChange={(e) => setNewForm((prev) => ({ ...prev, category_code: e.target.value }))}
+              >
+                <option value="">不綁定申請項目</option>
+                {categories.map((category) => (
+                  <option key={category.id} value={category.code}>
+                    {category.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            {createError ? (
+              <p className="text-sm font-medium text-danger sm:col-span-3">{createError}</p>
+            ) : null}
+            <div className="sm:col-span-3">
+              <Button type="submit" disabled={creating}>
+                {creating ? '建立中…' : '建立並開啟 Builder'}
+              </Button>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
+
       <div className="space-y-3">
+        {items.length === 0 ? (
+          <p className="text-sm text-muted-foreground">尚無表單，請先在上方新增。</p>
+        ) : null}
         {items.map((item) => {
           const versions = versionsByForm[item.id] || []
           const draft = versions.find((version) => version.status === 'draft')

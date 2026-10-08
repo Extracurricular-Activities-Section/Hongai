@@ -37,6 +37,11 @@ export const studentPb = new PocketBase(
  */
 export const staffPb = new PocketBase(apiBaseUrl, createSessionAuthStore('hk_staff_auth'))
 
+// Auto-cancellation aborts duplicate in-flight requests (e.g. StrictMode double effects),
+// which surfaces as spurious "載入失敗" errors.
+studentPb.autoCancellation(false)
+staffPb.autoCancellation(false)
+
 /** @deprecated Prefer studentPb or staffPb explicitly */
 export const pb = studentPb
 
