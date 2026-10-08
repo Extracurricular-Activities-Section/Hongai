@@ -2,6 +2,7 @@ import type PocketBase from 'pocketbase'
 
 import { requireStaff, type StaffAuthContext } from '../lib/auth-staff'
 import { categoryFromSetting, categoryKey } from '../lib/categories'
+import { schemaJson, toSchema } from '../lib/forms'
 import { json, type WorkerEnv } from '../lib/http'
 import { createServicePb } from '../lib/pb'
 
@@ -12,8 +13,6 @@ import { createServicePb } from '../lib/pb'
  */
 
 type Row = Record<string, unknown>
-type Section = Row & { id: string; fields: Field[] }
-type Field = Row & { id: string; code: string; options: Row[] }
 
 const FORM_CODE_PATTERN = /^[a-z][a-z0-9_]{1,49}$/
 
@@ -29,34 +28,6 @@ class HttpError extends Error {
 const str = (value: unknown): string => (value == null ? '' : String(value))
 const nullable = (value: unknown): string | null => (value ? String(value) : null)
 const asArray = (value: unknown): Row[] => (Array.isArray(value) ? (value as Row[]) : [])
-
-function schemaJson(record: Row): { sections: Section[]; rules: Row[] } {
-  const value = (record.schema_json && typeof record.schema_json === 'object'
-    ? record.schema_json
-    : {}) as Row
-  return { sections: asArray(value.sections) as Section[], rules: asArray(value.rules) }
-}
-
-function toSchema(record: Row) {
-  const { sections, rules } = schemaJson(record)
-  return {
-    form: {
-      id: str(record.form_code),
-      name: str(record.name),
-      description: nullable(record.description),
-      category_id: str(record.category_code),
-      category_code: str(record.category_code),
-      category_name: str(record.category_name),
-    },
-    version: {
-      id: str(record.id),
-      version_number: Number(record.version) || 1,
-      status: str(record.status),
-    },
-    sections,
-    rules,
-  }
-}
 
 function toVersionSummary(record: Row) {
   return {

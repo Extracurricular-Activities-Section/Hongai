@@ -1,5 +1,6 @@
 import type PocketBase from 'pocketbase'
 
+import { applicationToPlain, maskIdentity } from '../lib/applications'
 import { requireStaff, type StaffAuthContext } from '../lib/auth-staff'
 import { categoryFromSetting, ensureCategorySeed } from '../lib/categories'
 import { json, type WorkerEnv } from '../lib/http'
@@ -29,11 +30,6 @@ function baseFields(record: Row) {
   return { id: str(record.id), created: str(record.created), updated: str(record.updated) }
 }
 
-function maskIdentity(last4: unknown): string {
-  const tail = str(last4)
-  return tail ? `******${tail}` : ''
-}
-
 async function settingsByType(pb: PocketBase, type: string, keyPrefix?: string): Promise<Row[]> {
   const filter = keyPrefix
     ? pb.filter('setting_type = {:type} && key ~ {:prefix}', { type, prefix: `${keyPrefix}%` })
@@ -49,48 +45,8 @@ function bySortOrder(a: Row, b: Row): number {
   return (Number(a.sort_order) || 0) - (Number(b.sort_order) || 0)
 }
 
-function applicationToPlain(record: Row): Row {
-  const workflow = obj(record.workflow_json)
-  const period = obj(record.period_json)
-  const student = obj(obj(record.expand).student)
-  const department = obj(record.current_department_json)
-  return {
-    ...baseFields(record),
-    student: str(record.student),
-    period: str(record.period_key),
-    category: str(record.category_code),
-    submission: str(workflow.submission),
-    submission_version: str(workflow.submission_version),
-    pdf_document: str(workflow.pdf_document),
-    signed_document: nullable(workflow.signed_document),
-    application_number: str(record.application_number),
-    status: str(record.status),
-    submitted_at: nullable(record.submitted_at),
-    current_staff: nullable(record.current_staff),
-    current_department: nullable(department.id ?? department.code),
-    eligibility_status: str(record.eligibility_status) || 'pending',
-    requested_amount: record.requested_amount ?? null,
-    approved_amount: record.approved_amount ?? null,
-    latest_reviewed_at: nullable(record.latest_reviewed_at),
-    closed_at: nullable(record.closed_at),
-    edit_override_until: nullable(record.edit_override_until),
-    supplement_message: nullable(workflow.supplement_message),
-    supplement_due_at: nullable(workflow.supplement_due_at),
-    return_reason: nullable(workflow.return_reason),
-    reject_reason: nullable(workflow.reject_reason),
-    notification_pending: Boolean(workflow.notification_pending),
-    category_code: str(record.category_code),
-    category_name: str(record.category_name),
-    period_name: str(period.name),
-    student_no: str(student.student_no),
-    student_name: str(student.name),
-    identity_masked: maskIdentity(student.identity_last4),
-    department_name: str(student.department_name),
-  }
-}
-
 function applicationFilter(pb: PocketBase, url: URL): string {
-  const parts: string[] = []
+  const parts: string[] = ['status != "draft"']
   const q = url.searchParams.get('q')?.trim()
   if (q) {
     parts.push(
@@ -129,7 +85,7 @@ const routes: Array<{ pattern: RegExp; adminOnly?: boolean; handler: Handler }> 
     handler: async ({ pb }) => {
       const rows = (await pb
         .collection('hk_applications')
-        .getFullList({ fields: 'status,eligibility_status' })) as Row[]
+        .getFullList({ filter: 'status != "draft"', fields: 'status,eligibility_status' })) as Row[]
       const byStatus: Record<string, number> = {}
       const byEligibility: Record<string, number> = {}
       for (const row of rows) {
@@ -156,7 +112,7 @@ const routes: Array<{ pattern: RegExp; adminOnly?: boolean; handler: Handler }> 
         perPage: result.perPage,
         totalItems: result.totalItems,
         totalPages: result.totalPages,
-        items: (result.items as Row[]).map(applicationToPlain),
+        items: (result.items as Row[]).map((row) => applicationToPlain(row)),
       })
     },
   },
