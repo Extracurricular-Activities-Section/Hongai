@@ -1,6 +1,8 @@
 import type PocketBase from 'pocketbase'
 
+import { writeAudit } from '../lib/application-workflow'
 import { requireStudent, type StudentRecord } from '../lib/auth-student'
+import { canStudentSubmit, taskAttachments, taskToPlain } from '../lib/follow-up'
 import { json, type WorkerEnv } from '../lib/http'
 import { createServicePb } from '../lib/pb'
 
@@ -162,43 +164,6 @@ async function updatePreferences({ pb, student, body }: Ctx) {
 // Follow-up tasks
 // ---------------------------------------------------------------------------
 
-const SUBMITTABLE = new Set(['pending', 'supplement_required', 'overdue'])
-
-function taskToPlain(task: Row, application: Row): Row {
-  const dueMs = Date.parse(str(task.due_at))
-  const status = str(task.status) || 'pending'
-  return {
-    template: null,
-    task_type: 'other',
-    description: null,
-    required: true,
-    requires_review: true,
-    due_at: null,
-    completed_at: null,
-    created_by: null,
-    student_instructions: null,
-    event_start_at: null,
-    event_end_at: null,
-    event_location: null,
-    event_note: null,
-    allow_resubmit: false,
-    max_files: null,
-    max_file_size_mb: null,
-    allowed_extensions: null,
-    created: str(application.created),
-    updated: str(application.updated),
-    ...task,
-    submissions: undefined,
-    reviews: undefined,
-    id: str(task.id),
-    application: str(application.id),
-    student: str(application.student),
-    name: str(task.name) || '追蹤任務',
-    status,
-    is_overdue: !Number.isNaN(dueMs) && dueMs < Date.now() && SUBMITTABLE.has(status),
-  }
-}
-
 async function ownApplications(pb: PocketBase, studentId: string, applicationId?: string | null) {
   const filter = [
     pb.filter('student = {:sid}', { sid: studentId }),
@@ -208,7 +173,7 @@ async function ownApplications(pb: PocketBase, studentId: string, applicationId?
     .join(' && ')
   return (await pb.collection('hk_applications').getFullList({
     filter,
-    fields: 'id,student,tasks_json,created,updated',
+    fields: 'id,student,application_number,category_name,tasks_json,files_json,created,updated',
   })) as Row[]
 }
 
@@ -233,7 +198,7 @@ async function taskDetail({ pb, student }: Ctx, id: string) {
   return json({
     task: taskToPlain(task, application),
     submissions: arr(task.submissions),
-    attachments: [],
+    attachments: taskAttachments(application, id),
     reviews: arr(task.reviews).map((review) => ({ ...review, internal_note: undefined })),
   })
 }
@@ -241,38 +206,67 @@ async function taskDetail({ pb, student }: Ctx, id: string) {
 async function submitTask({ pb, student, body }: Ctx, id: string) {
   const { application, tasks, index } = await findTask(pb, student.id, id)
   const task = tasks[index]
-  const status = str(task.status) || 'pending'
-  const canResubmit = status === 'rejected' && task.allow_resubmit === true
-  if (!SUBMITTABLE.has(status) && !canResubmit) throw new HttpError(400, '此任務目前不可繳交')
+  if (!canStudentSubmit(task)) throw new HttpError(400, '此任務目前不可繳交')
 
   const text = str(body.text_content).trim()
-  if (!text) throw new HttpError(400, '請填寫繳交內容（附件上傳尚未開放）')
+  const requested = Array.isArray(body.attachment_ids) ? body.attachment_ids.map(str).filter(Boolean) : []
+  const owned = new Set(taskAttachments(application, id).map((entry) => str(entry.id)))
+  const invalid = requested.filter((attachmentId) => !owned.has(attachmentId))
+  if (invalid.length) throw new HttpError(400, '附件不屬於此任務或已刪除，請重新上傳')
+  const attachmentIds = [...new Set(requested)]
+
+  const taskType = str(task.task_type) || 'other'
+  const maxFiles = Number(task.max_files) > 0 ? Number(task.max_files) : 5
+  if (attachmentIds.length > maxFiles) throw new HttpError(400, `附件最多 ${maxFiles} 個`)
+  if ((taskType === 'file_upload' || taskType === 'file_and_text') && !attachmentIds.length) {
+    throw new HttpError(400, '請上傳至少一個附件')
+  }
+  if ((taskType === 'text' || taskType === 'file_and_text') && !text) {
+    throw new HttpError(400, '請填寫繳交內容')
+  }
+  if ((taskType === 'event_attendance' || taskType === 'other') && !text && !attachmentIds.length) {
+    throw new HttpError(400, '請填寫繳交內容或上傳附件')
+  }
 
   const now = nowIso()
   const dueMs = Date.parse(str(task.due_at))
-  const submissions = arr(task.submissions)
+  const submissions = arr(task.submissions).map((item) =>
+    item.status === 'submitted' ? { ...item, status: 'superseded', updated: now } : item,
+  )
   const submission = {
     id: crypto.randomUUID(),
     task: id,
     student: student.id,
     submission_version: submissions.length + 1,
-    text_content: text,
+    text_content: text || null,
+    attachment_ids: attachmentIds,
     status: 'submitted',
     submitted_at: now,
     is_overdue_at_submit: !Number.isNaN(dueMs) && dueMs < Date.now(),
     created: now,
     updated: now,
   }
+  const autoApprove = task.requires_review === false
   const nextTask: Row = {
     ...task,
-    status: task.requires_review === false ? 'approved' : 'submitted',
-    completed_at: task.requires_review === false ? now : task.completed_at ?? null,
+    status: autoApprove ? 'approved' : 'submitted',
+    completed_at: autoApprove ? now : task.completed_at ?? null,
+    allow_resubmit: false,
     submissions: [...submissions, submission],
     updated: now,
   }
   const nextTasks = tasks.map((item, i) => (i === index ? nextTask : item))
   await pb.collection('hk_applications').update(str(application.id), { tasks_json: nextTasks })
-  return json({ task: taskToPlain(nextTask, application), message: '已繳交' })
+  await writeAudit(pb, {
+    actorStudent: student.id,
+    action: 'follow_up.submit',
+    targetId: str(application.id),
+    payload: { task: id, submission: submission.id, attachments: attachmentIds.length },
+  })
+  return json({
+    task: taskToPlain(nextTask, application),
+    message: autoApprove ? '已繳交並完成' : '已繳交，等待承辦審核',
+  })
 }
 
 // ---------------------------------------------------------------------------

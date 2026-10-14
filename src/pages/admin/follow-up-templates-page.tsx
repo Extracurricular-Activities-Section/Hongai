@@ -16,8 +16,7 @@ import {
 } from '@/features/follow-up/api'
 import type { CategoryFollowUpTemplate, FollowUpTaskTemplate } from '@/features/follow-up/types'
 import { followUpTypeLabel } from '@/features/follow-up/utils/status-labels'
-import { staffPb } from '@/lib/pocketbase'
-import { HK_COLLECTIONS } from '@/lib/pocketbase/collections'
+import { adminListCategories } from '@/features/periods/api'
 
 interface CategoryOption {
   id: string
@@ -63,11 +62,7 @@ export function AdminFollowUpTemplatesPage() {
     const [tpl, asg, cats] = await Promise.all([
       adminListFollowUpTemplates(),
       adminListCategoryFollowUpTemplates(),
-      staffPb.collection(HK_COLLECTIONS.applicationCategories).getFullList<{
-        id: string
-        code: string
-        name: string
-      }>({ sort: 'sort_order' }),
+      adminListCategories(),
     ])
     setTemplates(tpl)
     setAssignments(asg)

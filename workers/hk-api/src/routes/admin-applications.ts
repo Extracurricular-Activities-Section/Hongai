@@ -18,6 +18,7 @@ import {
 } from '../lib/application-workflow'
 import { applicationToPlain, maskIdentity } from '../lib/applications'
 import { requireStaff, type StaffAuthContext } from '../lib/auth-staff'
+import { ensureFollowUpTasks } from '../lib/follow-up'
 import { toSchema } from '../lib/forms'
 import { json, type WorkerEnv } from '../lib/http'
 import { createServicePb } from '../lib/pb'
@@ -514,6 +515,12 @@ async function createFunding({ pb, staff, body }: Ctx, id: string) {
       }`,
       actionUrl: studentActionUrl(application),
     })
+  }
+
+  try {
+    await ensureFollowUpTasks(pb, saved)
+  } catch {
+    // default tasks can be created later from the case page
   }
 
   return json({

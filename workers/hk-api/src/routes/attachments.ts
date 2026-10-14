@@ -19,6 +19,7 @@ import {
   type AttachmentContext,
 } from '../lib/attachments'
 import { requireStaff, type StaffAuthContext } from '../lib/auth-staff'
+import { canStudentSubmit, findTask, taskAttachments } from '../lib/follow-up'
 import { requireStudent, type StudentRecord } from '../lib/auth-student'
 import { json, type WorkerEnv } from '../lib/http'
 import { createServicePb } from '../lib/pb'
@@ -84,7 +85,6 @@ async function upload({ pb, actor, request }: Ctx) {
   const field = (key: string) => str(form.get(key)).trim()
   const context = field('context') as AttachmentContext
   if (!ATTACHMENT_CONTEXTS.includes(context)) throw new WorkflowError(400, 'context 無效')
-  if (context === 'follow_up') throw new WorkflowError(400, '追蹤任務附件尚未開放')
   if (actor.kind === 'staff' && context !== 'supplement') {
     throw new WorkflowError(403, '工作人員僅可於補件情境上傳')
   }
@@ -99,8 +99,26 @@ async function upload({ pb, actor, request }: Ctx) {
   const status = str(application.status)
   const workflow = workflowOf(application)
   let supplementRequest: string | null = null
+  let followUpTask: string | null = null
+  let allowedExtensions = allowedExtensionsFor(context)
+  let maxSizeMb = maxUploadMb()
 
-  if (context === 'application') {
+  if (context === 'follow_up') {
+    followUpTask = field('follow_up_task_id')
+    const { tasks, index } = findTask(application, followUpTask)
+    if (index < 0) throw new WorkflowError(404, '找不到追蹤任務')
+    const task = tasks[index]
+    if (!canStudentSubmit(task)) throw new WorkflowError(400, '此任務目前不可上傳附件')
+    const maxFiles = Number(task.max_files) > 0 ? Number(task.max_files) : 5
+    if (taskAttachments(application, followUpTask).length >= maxFiles) {
+      throw new WorkflowError(400, `此任務附件最多 ${maxFiles} 個`)
+    }
+    const taskExtensions = Array.isArray(task.allowed_extensions)
+      ? (task.allowed_extensions as unknown[]).map((ext) => str(ext).toLowerCase())
+      : []
+    if (taskExtensions.length) allowedExtensions = allowedExtensions.filter((ext) => taskExtensions.includes(ext))
+    if (Number(task.max_file_size_mb) > 0) maxSizeMb = Math.min(Number(task.max_file_size_mb), SCHEMA_MAX_UPLOAD_MB)
+  } else if (context === 'application') {
     const overridden =
       Boolean(application.edit_override_until) &&
       Date.parse(str(application.edit_override_until)) > Date.now()
@@ -119,8 +137,8 @@ async function upload({ pb, actor, request }: Ctx) {
   const checked = validateUpload({
     filename: originalFilename,
     bytes,
-    allowedExtensions: allowedExtensionsFor(context),
-    maxSizeMb: maxUploadMb(),
+    allowedExtensions,
+    maxSizeMb,
   })
   if (!checked.ok) throw new WorkflowError(400, checked.errors.join('；'))
   const sha256 = await sha256Hex(bytes)
@@ -144,7 +162,7 @@ async function upload({ pb, actor, request }: Ctx) {
     attachment_type: context,
     field_code: field('field_code') || null,
     supplement_request: supplementRequest,
-    follow_up_task: null,
+    follow_up_task: followUpTask,
     original_filename: originalFilename,
     mime_type: checked.mimeType,
     extension: checked.extension,
@@ -240,6 +258,10 @@ function isLocked(application: Row, entry: Row): boolean {
     }
     case 'signed_document':
       return !SIGNED_EDITABLE.has(status)
+    case 'follow_up': {
+      const { tasks, index } = findTask(application, str(entry.follow_up_task))
+      return index < 0 || !canStudentSubmit(tasks[index])
+    }
     default:
       return true
   }

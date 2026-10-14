@@ -273,6 +273,7 @@ export async function notifyStudent(
     message: string
     actionUrl: string
     supplementId?: string
+    followUpTaskId?: string
   },
 ): Promise<void> {
   try {
@@ -289,6 +290,7 @@ export async function notifyStudent(
         message: input.message,
         application: input.applicationId,
         supplement_request: input.supplementId ?? null,
+        follow_up_task: input.followUpTaskId ?? null,
         action_url: input.actionUrl,
         read_at: null,
       },

@@ -13,6 +13,7 @@ import { compareLatestFirst, periodFromSetting, studentPeriodProfiles } from '..
  * Storage for concepts without a dedicated setting_type uses
  * hk_settings setting_type="system" with these key prefixes:
  *   department:, category_department:, follow_up_template:, category_follow_up_template:
+ * (follow-up template routes live in routes/admin-follow-up).
  * Identity reset requests are hk_events (event_type="auth", event_key="identity_reset").
  */
 
@@ -114,42 +115,6 @@ const routes: Array<{ pattern: RegExp; adminOnly?: boolean; handler: Handler }> 
         totalPages: result.totalPages,
         items: (result.items as Row[]).map((row) => applicationToPlain(row)),
       })
-    },
-  },
-  {
-    pattern: /^\/api\/hk\/admin\/follow-up\/tasks$/,
-    handler: async ({ pb, url }) => {
-      const applicationId = url.searchParams.get('application_id')
-      const status = url.searchParams.get('status')
-      const rows = (await pb.collection('hk_applications').getFullList({
-        filter: applicationId ? pb.filter('id = {:id}', { id: applicationId }) : '',
-        fields: 'id,tasks_json',
-      })) as Row[]
-      const items = rows
-        .flatMap((row) =>
-          arr(row.tasks_json).map((task): Row => ({ ...task, application: str(row.id) })),
-        )
-        .filter((task) => !status || task.status === status)
-      return json({ items })
-    },
-  },
-  {
-    pattern: /^\/api\/hk\/admin\/follow-up\/templates$/,
-    handler: async ({ pb }) => {
-      const rows = await settingsByType(pb, 'system', 'follow_up_template:')
-      return json({ items: rows.map(settingItem).sort(bySortOrder) })
-    },
-  },
-  {
-    pattern: /^\/api\/hk\/admin\/follow-up\/category-templates$/,
-    handler: async ({ pb, url }) => {
-      const categoryId = url.searchParams.get('category_id')
-      const rows = await settingsByType(pb, 'system', 'category_follow_up_template:')
-      const items = rows
-        .map(settingItem)
-        .filter((item) => !categoryId || item.category === categoryId)
-        .sort(bySortOrder)
-      return json({ items })
     },
   },
   {
