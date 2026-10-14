@@ -22,6 +22,7 @@ import { handleAdminRead } from './routes/admin-read'
 import { handleAdminPeriods } from './routes/admin-periods'
 import { handleAdminForms } from './routes/admin-forms'
 import { handleStudentFlow } from './routes/student-flow'
+import { handleStudentInbox } from './routes/student-inbox'
 
 export default {
   async fetch(request: Request, env: WorkerEnv): Promise<Response> {
@@ -75,6 +76,9 @@ export default {
 
       const studentFlow = await handleStudentFlow(request, env, path)
       if (studentFlow) return withCors(env, request, studentFlow)
+
+      const studentInbox = await handleStudentInbox(request, env, path)
+      if (studentInbox) return withCors(env, request, studentInbox)
 
       if (
         path.startsWith('/api/collections/') ||
