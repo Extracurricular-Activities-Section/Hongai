@@ -12,8 +12,9 @@
   // Secrets: HK_PB_SERVICE_EMAIL, HK_PB_SERVICE_PASSWORD, HK_SCHEDULER_SECRET, …
   "vars": {
     "HK_POCKETBASE_URL": "https://db.keson.pro",
-    "HK_STUDENT_APP_URL": "http://localhost:5173",
-    "HK_MANAGE_APP_URL": "http://localhost:5173"
+    "HK_STUDENT_APP_URL": "https://hong-ai-dream-frontend.pages.dev",
+    "HK_MANAGE_APP_URL": "https://hong-ai-dream-frontend.pages.dev",
+    "HK_EXTRA_ORIGINS": "http://localhost:5173"
   },
   // Enable after secrets + PB host ready. Local `wrangler dev` accepts triggers without prod deploy.
   "triggers": {

@@ -17,6 +17,8 @@ export type WorkerEnv = {
   HK_POCKETBASE_URL: string
   HK_STUDENT_APP_URL: string
   HK_MANAGE_APP_URL: string
+  /** Comma-separated extra CORS origins (e.g. local dev). */
+  HK_EXTRA_ORIGINS?: string
   HK_PB_SERVICE_EMAIL?: string
   HK_PB_SERVICE_PASSWORD?: string
   HK_SCHEDULER_SECRET?: string
@@ -47,7 +49,9 @@ export function json(data: unknown, init: ResponseInit = {}): Response {
 export function corsHeaders(env: WorkerEnv, request: Request): Headers {
   const origin = request.headers.get('Origin') || ''
   const allowed = new Set(
-    [env.HK_STUDENT_APP_URL, env.HK_MANAGE_APP_URL].map((u) => u.replace(/\/$/, '')),
+    [env.HK_STUDENT_APP_URL, env.HK_MANAGE_APP_URL, ...(env.HK_EXTRA_ORIGINS || '').split(',')]
+      .map((u) => u.trim().replace(/\/$/, ''))
+      .filter(Boolean),
   )
   const headers = new Headers()
   if (origin && allowed.has(origin.replace(/\/$/, ''))) {
