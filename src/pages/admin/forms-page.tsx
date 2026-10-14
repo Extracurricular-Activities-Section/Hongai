@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label'
 import { useBackofficeAuth } from '@/features/auth/backoffice/context'
 import { adminListFormVersions, adminPreviewFormVersion } from '@/features/form-builder/api'
 import type { FormVersionSummary } from '@/features/form-builder/types'
-import { adminCreateForm, adminListForms } from '@/features/forms/api'
+import { adminCreateForm, adminListForms, adminSetFormActive } from '@/features/forms/api'
 import { adminListCategories } from '@/features/periods/api'
 import type { ApplicationCategory } from '@/types'
 import { DynamicFormRenderer } from '@/features/forms/components/dynamic-form-renderer'
@@ -34,7 +34,23 @@ export function AdminFormsPage() {
   const [newForm, setNewForm] = useState({ form_code: '', name: '', category_code: '' })
   const [creating, setCreating] = useState(false)
   const [createError, setCreateError] = useState<string | null>(null)
+  const [togglingId, setTogglingId] = useState<string | null>(null)
   const navigate = useNavigate()
+
+  async function toggleActive(formId: string, active: boolean) {
+    setTogglingId(formId)
+    setError(null)
+    try {
+      await adminSetFormActive(formId, active)
+      setItems((current) =>
+        current ? current.map((item) => (item.id === formId ? { ...item, active } : item)) : current,
+      )
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '更新表單狀態失敗')
+    } finally {
+      setTogglingId(null)
+    }
+  }
 
   useEffect(() => {
     if (!isAdmin) return
@@ -175,10 +191,16 @@ export function AdminFormsPage() {
               <CardContent className="space-y-3 py-4 text-sm">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                   <div>
-                    <p className="font-medium">{item.name}</p>
+                    <p className="font-medium">
+                      {item.name}
+                      {item.active ? null : <span className="ml-2 text-muted-foreground">（已停用）</span>}
+                    </p>
                     <p className="text-muted-foreground">
-                      {item.category_name}（{item.category_code}）· Published V
-                      {item.current_published_version_number ?? '—'} · {item.current_published_status}
+                      {item.category_code ? `${item.category_name}（${item.category_code}）` : '未綁定申請項目'}
+                      {' · '}
+                      {item.current_published_version_number
+                        ? `已發布 V${item.current_published_version_number}`
+                        : '尚未發布'}
                     </p>
                   </div>
                   <div className="flex flex-wrap gap-2">
@@ -206,6 +228,15 @@ export function AdminFormsPage() {
                       onClick={() => void ensureVersions(item.id)}
                     >
                       {loadingVersions === item.id ? '載入版本…' : '顯示版本'}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={togglingId === item.id}
+                      onClick={() => void toggleActive(item.id, !item.active)}
+                    >
+                      {togglingId === item.id ? '更新中…' : item.active ? '停用' : '啟用'}
                     </Button>
                   </div>
                 </div>

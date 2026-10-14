@@ -217,7 +217,7 @@ export async function handleAdminForms(
   path: string,
 ): Promise<Response | null> {
   const match = path.match(
-    /^\/api\/hk\/admin\/forms(?:\/([^/]+)(?:\/(versions|draft)(?:\/([^/]+)\/(schema|publish|preview))?)?)?$/,
+    /^\/api\/hk\/admin\/forms(?:\/([^/]+)(?:\/(versions|draft|active)(?:\/([^/]+)\/(schema|publish|preview))?)?)?$/,
   )
   if (!match) return null
   const [, rawCode, segment, rawVersionId, action] = match
@@ -271,6 +271,21 @@ export async function handleAdminForms(
     if (segment === 'draft' && !action && method === 'POST') {
       const draft = await createDraft(pb, staff, formCode, body)
       return json({ schema: toSchema(draft) })
+    }
+
+    if (segment === 'active' && !action && method === 'POST') {
+      if (!staff.is_admin) {
+        return json({ error: 'forbidden', message: '僅管理員可停用或啟用表單' }, { status: 403 })
+      }
+      if (typeof body.active !== 'boolean') throw new HttpError(400, 'active 必須為 true 或 false')
+      const versions = await requireVersions(pb, formCode)
+      for (const version of versions) {
+        await pb.collection('hk_forms').update(str(version.id), { active: body.active })
+      }
+      await writeAudit(pb, staff, body.active ? 'form_activated' : 'form_deactivated', str(versions[0].id), {
+        form_code: formCode,
+      })
+      return json({ form_code: formCode, active: body.active, message: body.active ? '表單已啟用' : '表單已停用' })
     }
 
     if (segment === 'versions' && action === 'preview' && method === 'GET') {

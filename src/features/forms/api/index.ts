@@ -175,6 +175,20 @@ export async function adminCreateForm(input: {
   }
 }
 
+export async function adminSetFormActive(
+  formId: string,
+  active: boolean,
+): Promise<{ active: boolean; message: string }> {
+  try {
+    return await staffPb.send(`/api/hk/admin/forms/${formId}/active`, {
+      method: 'POST',
+      body: { active },
+    })
+  } catch (error) {
+    throw mapError(error, active ? '啟用表單失敗' : '停用表單失敗')
+  }
+}
+
 export async function adminPreviewFormVersion(
   formId: string,
   versionId: string,
