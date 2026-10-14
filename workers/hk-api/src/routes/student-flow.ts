@@ -706,6 +706,7 @@ async function myApplicationDetail({ pb, student }: Ctx, id: string) {
     : null
   const pendingSupplements = (Array.isArray(workflow.supplements) ? (workflow.supplements as Row[]) : [])
     .filter((item) => item.status === 'pending')
+    .map((item) => ({ ...item, reason: undefined, requested_by: undefined }))
     .reverse()
   return json({
     application: applicationToPlain(application, student),
@@ -713,7 +714,13 @@ async function myApplicationDetail({ pb, student }: Ctx, id: string) {
     funding,
     pending_supplements: pendingSupplements,
     status_history: (Array.isArray(workflow.status_history) ? (workflow.status_history as Row[]) : [])
-      .slice()
+      .map((entry) => ({
+        id: entry.id,
+        from_status: entry.from_status ?? null,
+        to_status: entry.to_status,
+        changed_by_type: entry.changed_by_type,
+        created: entry.created,
+      }))
       .reverse(),
   })
 }
@@ -739,6 +746,8 @@ async function supplementReply({ pb, student, body }: Ctx, id: string) {
     item.student_reply = reply
   }
   workflow.supplements = supplements
+  workflow.supplement_message = ''
+  workflow.supplement_due_at = null
   workflow.status_history = [
     ...(Array.isArray(workflow.status_history) ? workflow.status_history : []),
     historyEntry({

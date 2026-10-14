@@ -20,6 +20,10 @@ export function applicationToPlain(record: Row, studentRecord?: Row): Row {
   const period = obj(record.period_json)
   const student = studentRecord ?? obj(obj(record.expand).student)
   const department = obj(record.current_department_json)
+  const decisions = obj(record.funding_json).decisions
+  // PocketBase stores an unset number as 0, so "not decided yet" must come from the decisions.
+  const hasFinalDecision =
+    Array.isArray(decisions) && decisions.some((decision) => obj(decision).status === 'final')
   return {
     id: str(record.id),
     created: str(record.created),
@@ -38,7 +42,7 @@ export function applicationToPlain(record: Row, studentRecord?: Row): Row {
     current_department: nullable(department.id ?? department.code),
     eligibility_status: str(record.eligibility_status) || 'pending',
     requested_amount: record.requested_amount ?? null,
-    approved_amount: record.approved_amount ?? null,
+    approved_amount: hasFinalDecision ? (record.approved_amount ?? 0) : null,
     latest_reviewed_at: nullable(record.latest_reviewed_at),
     closed_at: nullable(record.closed_at),
     edit_override_until: nullable(record.edit_override_until),

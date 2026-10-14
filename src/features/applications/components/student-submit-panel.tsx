@@ -16,7 +16,7 @@ import {
   submitApplication,
 } from '../api'
 import type { Application, SignatureUploadModeProp, SupplementRequest } from '../types'
-import { formatAmount, studentFacingStatusLabel } from '../utils/status-labels'
+import { formatAmount } from '../utils/status-labels'
 import { StatusBadge } from './status-badge'
 import { formatTaipeiDateTime } from '@/lib/utils'
 
@@ -42,7 +42,6 @@ export function StudentSubmitPanel({
   const [pendingSupplement, setPendingSupplement] = useState<SupplementRequest | null>(null)
   const [signedIds, setSignedIds] = useState<string[]>([])
   const [signedDocs, setSignedDocs] = useState<SignedDocument[]>([])
-  const [supplementIds, setSupplementIds] = useState<string[]>([])
   const [studentNote, setStudentNote] = useState('')
 
   const showSignedUpload =
@@ -150,10 +149,9 @@ export function StudentSubmitPanel({
     setError(null)
     setMessage(null)
     try {
-      const result = await replySupplement(application.id, reply, supplementIds)
+      const result = await replySupplement(application.id, reply.trim(), [])
       setMessage(result.message)
       setReply('')
-      setSupplementIds([])
       await load()
     } catch (err) {
       setError(err instanceof Error ? err.message : '補件回覆失敗')
@@ -292,32 +290,31 @@ export function StudentSubmitPanel({
                 <span className="font-medium">{application.application_number}</span>
               </div>
               <p>補件說明：{detailNote || application.supplement_message || '—'}</p>
-              {application.supplement_due_at ? (
+              {application.supplement_due_at || pendingSupplement?.due_at ? (
                 <p className="text-xs text-muted-foreground">
-                  截止：{formatTaipeiDateTime(application.supplement_due_at)}
+                  截止：
+                  {formatTaipeiDateTime(
+                    application.supplement_due_at || pendingSupplement?.due_at || '',
+                  )}
                 </p>
               ) : null}
-              <SecureFileUpload
-                allowedExtensions={['pdf', 'jpg', 'jpeg', 'png', 'docx']}
-                maxFiles={5}
-                maxSizeMb={10}
-                context="supplement"
-                applicationId={application.id}
-                supplementRequestId={pendingSupplement?.id}
-                value={supplementIds}
-                onChange={setSupplementIds}
-                helpText="可上傳補件相關證明文件（選填）。"
-              />
               <label className="block space-y-1">
-                <span className="text-muted-foreground">回覆說明（選填）</span>
+                <span className="text-muted-foreground">
+                  回覆說明<span className="ml-1 text-danger">*</span>
+                </span>
                 <textarea
                   className="min-h-24 w-full rounded-md border border-input bg-surface text-foreground transition-colors placeholder:text-muted-foreground hover:border-border-strong focus-visible:border-accent-strong disabled:cursor-not-allowed disabled:bg-surface-muted disabled:opacity-70 px-3 py-2 text-sm"
                   value={reply}
                   onChange={(e) => setReply(e.target.value)}
-                  placeholder="可填寫補充說明"
+                  placeholder="請說明補件內容；若需補交紙本或檔案，請依承辦說明送至課指組"
+                  required
                 />
               </label>
-              <Button type="button" disabled={busy} onClick={() => void handleSupplementReply()}>
+              <Button
+                type="button"
+                disabled={busy || !reply.trim()}
+                onClick={() => void handleSupplementReply()}
+              >
                 {busy ? '送出中…' : '送出補件回覆'}
               </Button>
             </div>
@@ -331,18 +328,13 @@ export function StudentSubmitPanel({
                 <StatusBadge status={application.status} />
                 <span className="font-medium">{application.application_number}</span>
               </div>
-              <p>
-                {studentFacingStatusLabel(application.status, {
-                  approved_amount: application.approved_amount,
-                })}
-              </p>
               {application.requested_amount != null ? (
                 <p className="text-muted-foreground">
-                  申請金額：{formatAmount(application.requested_amount)}
+                  申請金額：{formatAmount(application.requested_amount)} 元
                 </p>
               ) : null}
-              {application.status === 'funding_decided' && application.approved_amount != null ? (
-                <p>核定金額：{formatAmount(application.approved_amount)}</p>
+              {application.approved_amount != null ? (
+                <p className="font-medium">核定金額：{formatAmount(application.approved_amount)} 元</p>
               ) : null}
               {application.reject_reason ? <p>原因：{application.reject_reason}</p> : null}
               {application.submitted_at ? (

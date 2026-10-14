@@ -35,6 +35,37 @@ const INDICATOR_STATE: Record<SaveState, IndicatorState> = {
   error: 'error',
 }
 
+function completionBanner(application: FormWorkspaceResponse['application']) {
+  const paperReminder = '若尚未送交紙本，請列印申請表交由系輔導老師簽名，送至課指組。'
+  if (!application.application_number || application.status === 'draft') {
+    return {
+      positive: true,
+      title: '申請內容已完成',
+      body: '下一步請送交承辦取得申請編號，再列印申請表交由系輔導老師簽名，送至課指組完成申請。',
+    }
+  }
+  switch (application.status) {
+    case 'returned_for_edit':
+      return { positive: false, title: '申請已退回修改', body: '請依承辦說明修改內容後重新送交。' }
+    case 'supplement_required':
+      return { positive: false, title: '申請需要補件', body: '請依通知中的補件說明回覆承辦。' }
+    case 'rejected':
+      return { positive: false, title: '申請未通過', body: '詳細說明請查看通知。' }
+    case 'approved':
+    case 'funding_pending':
+      return { positive: true, title: '申請審核通過', body: `補助金額核定中，結果會以通知告知。${paperReminder}` }
+    case 'funding_decided':
+    case 'closed':
+      return { positive: true, title: '補助已核定', body: `核定結果如下。${paperReminder}` }
+    default:
+      return {
+        positive: true,
+        title: '申請已送交',
+        body: `承辦審核中，結果會以通知告知。${paperReminder}`,
+      }
+  }
+}
+
 export function StudentCategoryFormPage() {
   const { categoryCode = '' } = useParams()
   const navigate = useNavigate()
@@ -48,6 +79,8 @@ export function StudentCategoryFormPage() {
   const [dirty, setDirty] = useState(false)
   const timerRef = useRef<number | null>(null)
   const valuesRef = useRef<FormValues>({})
+  const revisionRef = useRef(0)
+  const saveChainRef = useRef<Promise<void>>(Promise.resolve())
   const contentRef = useRef<HTMLDivElement>(null)
 
   const load = useCallback(async () => {
@@ -81,9 +114,17 @@ export function StudentCategoryFormPage() {
     }
   }, [blocker, saveState])
 
-  async function persist(createSnapshot = false) {
+  // Saves run one at a time so an older request can never land after a newer one.
+  function persist(createSnapshot = false): Promise<void> {
+    const run = saveChainRef.current.then(() => persistNow(createSnapshot))
+    saveChainRef.current = run.catch(() => undefined)
+    return run
+  }
+
+  async function persistNow(createSnapshot: boolean) {
     if (!workspace) return
     setSaveState('pending')
+    const revision = revisionRef.current
     try {
       const computed = calculateComputedFields(workspace.schema, valuesRef.current)
       const result = await saveFormSubmission({
@@ -91,11 +132,15 @@ export function StudentCategoryFormPage() {
         answers: computed,
         create_snapshot: createSnapshot,
       })
-      setValues(result.answers)
-      valuesRef.current = result.answers
+      // Edits made while the request was in flight win; the pending debounce saves them.
+      const editedMeanwhile = revisionRef.current !== revision
+      if (!editedMeanwhile) {
+        setValues(result.answers)
+        valuesRef.current = result.answers
+        setSaveState('saved')
+        setDirty(false)
+      }
       setIssues(result.issues || [])
-      setSaveState('saved')
-      setDirty(false)
       setCompleted(false)
       setWorkspace((prev) =>
         prev
@@ -106,7 +151,7 @@ export function StudentCategoryFormPage() {
                 status: result.status as 'draft' | 'completed',
                 last_saved_at: result.last_saved_at,
               },
-              answers: result.answers,
+              answers: editedMeanwhile ? prev.answers : result.answers,
             }
           : prev,
       )
@@ -118,6 +163,7 @@ export function StudentCategoryFormPage() {
 
   function updateField(code: string, value: FormFieldValue) {
     if (!workspace) return
+    revisionRef.current += 1
     setDirty(true)
     setSaveState('pending')
     setValues((prev) => {
@@ -133,7 +179,12 @@ export function StudentCategoryFormPage() {
 
   async function handleComplete() {
     if (!workspace) return
-    const computed = calculateComputedFields(workspace.schema, values)
+    if (timerRef.current) {
+      window.clearTimeout(timerRef.current)
+      timerRef.current = null
+    }
+    await saveChainRef.current
+    const computed = calculateComputedFields(workspace.schema, valuesRef.current)
     const localIssues = validateFormValues(workspace.schema, computed, 'complete')
     const errors = localIssues.filter((issue) => issue.severity === 'error')
     setIssues(localIssues)
@@ -189,16 +240,23 @@ export function StudentCategoryFormPage() {
   const warningIssues = issues.filter((issue) => issue.severity === 'warning')
 
   if (completed) {
+    const banner = completionBanner(workspace.application)
     return (
       <div className="mx-auto max-w-3xl space-y-6">
-        <div className="rounded-xl border border-success-border bg-success-soft p-6">
-          <span className="inline-flex size-10 items-center justify-center rounded-pill bg-success text-white">
-            <Check className="size-5" strokeWidth={2.5} />
-          </span>
-          <h1 className="mt-4 text-section font-semibold text-foreground">申請內容已完成</h1>
-          <p className="mt-2 max-w-xl text-sm leading-relaxed text-subtle">
-            下一步請送交承辦取得申請編號，再列印申請表交由系輔導老師簽名，送至課指組完成申請。
-          </p>
+        <div
+          className={
+            banner.positive
+              ? 'rounded-xl border border-success-border bg-success-soft p-6'
+              : 'rounded-xl border border-border bg-surface-muted p-6'
+          }
+        >
+          {banner.positive ? (
+            <span className="mb-4 inline-flex size-10 items-center justify-center rounded-pill bg-success text-white">
+              <Check className="size-5" strokeWidth={2.5} />
+            </span>
+          ) : null}
+          <h1 className="text-section font-semibold text-foreground">{banner.title}</h1>
+          <p className="mt-2 max-w-xl text-sm leading-relaxed text-subtle">{banner.body}</p>
         </div>
 
         <StudentPaperPanel
@@ -403,6 +461,7 @@ export function StudentCategoryFormPage() {
                     void (async () => {
                       try {
                         const result = await copyPreviousFormSubmission(categoryCode)
+                        revisionRef.current += 1
                         setValues(result.answers)
                         valuesRef.current = result.answers
                         setIssues([])

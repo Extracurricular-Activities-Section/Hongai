@@ -75,11 +75,14 @@ async function detail({ pb }: Ctx, id: string) {
   if (application.status === 'draft') throw new WorkflowError(404, '找不到案件')
   const student = studentOf(application)
   const workflow = workflowOf(application)
-  const form = await loadForm(pb, application)
   const snapshot = obj(application.submission_snapshot_json)
   const periodId = str(application.period_key)
   const storedProfile = readState(student).period_profiles[periodId]
   const academicYear = num(obj(application.period_json).academic_year)
+  const [form, annualSummary] = await Promise.all([
+    loadForm(pb, application),
+    annualFundingSummary(pb, str(application.student), academicYear),
+  ])
 
   return json({
     application: applicationToPlain(application),
@@ -105,7 +108,7 @@ async function detail({ pb }: Ctx, id: string) {
     assignments: arr(workflow.assignments).slice().reverse(),
     supplements: arr(workflow.supplements).slice().reverse(),
     status_history: arr(workflow.status_history).slice().reverse(),
-    annual_funding_summary: await annualFundingSummary(pb, str(application.student), academicYear),
+    annual_funding_summary: annualSummary,
   })
 }
 
@@ -134,6 +137,7 @@ async function action({ pb, staff, body }: Ctx, id: string) {
   const fromStatus = str(application.status)
   const toStatus = resolveAction(actionName, fromStatus)
   if (REASON_REQUIRED.has(actionName) && !reason) throw new WorkflowError(400, '請填寫原因')
+  const studentFacing = studentMessage || reason
 
   const now = nowIso()
   const workflow = { ...workflowOf(application) }
@@ -170,19 +174,20 @@ async function action({ pb, staff, body }: Ctx, id: string) {
       break
     case 'disqualify_eligibility':
       update.eligibility_status = 'disqualified'
-      workflow.reject_reason = reason
-      review('eligibility', 'disqualified', reason, studentMessage || reason)
+      workflow.reject_reason = studentFacing
+      review('eligibility', 'disqualified', reason, studentFacing)
       break
     case 'request_supplement': {
       if (fromStatus === 'eligibility_review') update.eligibility_status = 'supplement_required'
-      workflow.supplement_message = reason
+      workflow.supplement_message = studentFacing
       workflow.supplement_due_at = dueAt || null
       supplementId = crypto.randomUUID()
       supplements.push({
         id: supplementId,
         application: id,
         requested_by: staff.id,
-        message: reason,
+        message: studentFacing,
+        reason,
         due_at: dueAt || null,
         status: 'pending',
         submitted_at: null,
@@ -194,7 +199,7 @@ async function action({ pb, staff, body }: Ctx, id: string) {
         fromStatus === 'eligibility_review' ? 'eligibility' : 'content',
         'supplement_required',
         reason,
-        studentMessage || reason,
+        studentFacing,
       )
       break
     }
@@ -211,20 +216,24 @@ async function action({ pb, staff, body }: Ctx, id: string) {
       review('content', 'note_only', '接受補件')
       break
     case 'return_for_edit':
-      workflow.return_reason = reason
+      workflow.return_reason = studentFacing
       if (editOverrideUntil) update.edit_override_until = editOverrideUntil
-      review('content', 'returned_for_edit', reason, studentMessage || reason)
+      review('content', 'returned_for_edit', reason, studentFacing)
       break
     case 'approve':
+      // A supplement reply resets eligibility to pending; approval settles it.
+      if (str(application.eligibility_status || 'pending') === 'pending') {
+        update.eligibility_status = 'qualified'
+      }
       review('final', 'approved', reason)
       break
     case 'reject':
-      workflow.reject_reason = reason
+      workflow.reject_reason = studentFacing
       review(
         fromStatus === 'eligibility_review' ? 'eligibility' : 'content',
         'rejected',
         reason,
-        studentMessage || reason,
+        studentFacing,
       )
       break
     case 'close': {
@@ -266,7 +275,7 @@ async function action({ pb, staff, body }: Ctx, id: string) {
   if (notice) {
     const number = str(application.application_number)
     const category = str(application.category_name)
-    const detailText = studentMessage || reason
+    const detailText = studentMessage || (REASON_REQUIRED.has(actionName) ? reason : '')
     await notifyStudent(pb, {
       studentId: str(application.student),
       applicationId: id,
@@ -357,11 +366,11 @@ async function extractedFor(pb: PocketBase, application: Row) {
 async function fundingPreview({ pb }: Ctx, id: string) {
   const application = await loadApplication(pb, id)
   const academicYear = num(obj(application.period_json).academic_year)
-  return json({
-    extracted: await extractedFor(pb, application),
-    annual_funding_summary: await annualFundingSummary(pb, str(application.student), academicYear),
-    warnings: [],
-  })
+  const [extracted, summary] = await Promise.all([
+    extractedFor(pb, application),
+    annualFundingSummary(pb, str(application.student), academicYear),
+  ])
+  return json({ extracted, annual_funding_summary: summary, warnings: [] })
 }
 
 async function createFunding({ pb, staff, body }: Ctx, id: string) {

@@ -87,6 +87,36 @@ const ACTIONS_NEEDING_REASON = new Set<string>([
   'request_supplement',
 ])
 
+const REVIEW_TYPE_LABELS: Record<string, string> = {
+  eligibility: '資格審核',
+  content: '內容審核',
+  final: '最終審核',
+}
+
+const REVIEW_DECISION_LABELS: Record<string, string> = {
+  note_only: '紀錄',
+  qualified: '資格符合',
+  disqualified: '資格不符',
+  supplement_required: '要求補件',
+  returned_for_edit: '退回修改',
+  approved: '審核通過',
+  rejected: '不通過',
+}
+
+const SUPPLEMENT_STATUS_LABELS: Record<string, string> = {
+  pending: '待學生回覆',
+  submitted: '學生已回覆',
+  accepted: '已接受',
+  rejected: '不接受',
+  cancelled: '已取消',
+}
+
+const FUNDING_STATUS_LABELS: Record<string, string> = {
+  final: '有效',
+  superseded: '已被取代',
+  draft: '草稿',
+}
+
 type Section = 'summary' | 'student' | 'form' | 'review' | 'funding' | 'followup' | 'history'
 
 /** Readable view of the submitted snapshot, with raw JSON kept one click away. */
@@ -158,7 +188,7 @@ export function AdminApplicationDetailPage() {
   const [approvedMap, setApprovedMap] = useState<Record<string, string>>({})
   const [decisionNote, setDecisionNote] = useState('')
   const [changeReason, setChangeReason] = useState('')
-  const [notifyStudent, setNotifyStudent] = useState(false)
+  const [notifyStudent, setNotifyStudent] = useState(true)
   const [fundingConfirm, setFundingConfirm] = useState<'complete' | 'revise' | null>(null)
 
   const [followUpTasks, setFollowUpTasks] = useState<FollowUpTask[]>([])
@@ -383,7 +413,7 @@ export function AdminApplicationDetailPage() {
       />
 
       {message ? <InlineNotice tone="positive">{message}</InlineNotice> : null}
-      {error ? <ErrorState message={error} /> : null}
+      {error ? <ErrorState title="無法完成操作" message={error} /> : null}
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_20rem]">
         <div className="min-w-0 space-y-5">
@@ -702,7 +732,9 @@ export function AdminApplicationDetailPage() {
                 <Timeline
                   entries={detail.reviews.map((review, index) => ({
                     id: review.id,
-                    title: `${review.review_type} · ${review.decision}`,
+                    title: `${REVIEW_TYPE_LABELS[review.review_type] ?? review.review_type} · ${
+                      REVIEW_DECISION_LABELS[review.decision] ?? review.decision
+                    }`,
                     meta: formatTaipeiDateTime(review.created),
                     body: review.comment || review.student_message || '—',
                     tone: index === 0 ? 'current' : 'default',
@@ -817,10 +849,9 @@ export function AdminApplicationDetailPage() {
                       type="checkbox"
                       className="size-4 accent-accent-strong"
                       checked={notifyStudent}
-                      disabled
-                      onChange={() => setNotifyStudent(false)}
+                      onChange={(event) => setNotifyStudent(event.target.checked)}
                     />
-                    通知學生（Email 尚未實作）
+                    通知學生（站內通知）
                   </label>
 
                   <div className="flex flex-wrap gap-2 border-t border-border pt-4">
@@ -861,7 +892,8 @@ export function AdminApplicationDetailPage() {
                     id: record.id,
                     title: (
                       <>
-                        V{record.decision_version} · {record.status} · 核定{' '}
+                        V{record.decision_version} ·{' '}
+                        {FUNDING_STATUS_LABELS[record.status] ?? record.status} · 核定{' '}
                         <AmountDisplay value={record.approved_total} />
                       </>
                     ),
@@ -1072,7 +1104,7 @@ export function AdminApplicationDetailPage() {
                 <Timeline
                   entries={detail.supplements.map((item, index) => ({
                     id: item.id,
-                    title: item.status,
+                    title: SUPPLEMENT_STATUS_LABELS[item.status] ?? item.status,
                     meta: formatTaipeiDateTime(item.created),
                     tone: index === 0 ? 'current' : 'default',
                     body: (

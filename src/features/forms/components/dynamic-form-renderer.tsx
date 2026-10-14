@@ -118,6 +118,79 @@ export function FieldRenderer({
     )
   }
 
+  if (mode === 'readonly' && field.field_type === 'repeat_group') {
+    const rows = Array.isArray(value) ? (value as Array<Record<string, unknown>>) : []
+    const columns =
+      (field.config as { columns?: Array<{ code: string; label: string }> } | null)?.columns || []
+    return (
+      <div className="space-y-1">
+        <p className="text-sm font-medium text-foreground">
+          {field.label}
+          {required ? <span className="ml-1 text-danger">*</span> : null}
+        </p>
+        {rows.length === 0 ? (
+          <p className="text-sm text-muted-foreground">—</p>
+        ) : (
+          <div className="overflow-x-auto rounded-md border border-border">
+            <table className="w-full text-sm">
+              <thead className="bg-surface-muted text-left text-meta text-muted-foreground">
+                <tr>
+                  {columns.map((col) => (
+                    <th key={col.code} scope="col" className="px-3 py-2 font-medium">
+                      {col.label}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((row, index) => (
+                  <tr key={index} className="border-t border-border">
+                    {columns.map((col) => {
+                      const cell = row?.[col.code]
+                      return (
+                        <td key={col.code} className="px-3 py-2 text-foreground">
+                          {cell == null || cell === '' ? '—' : String(cell)}
+                        </td>
+                      )
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  if (mode === 'readonly' && field.field_type === 'monthly_plan') {
+    const plan = (value && typeof value === 'object' && !Array.isArray(value) ? value : {}) as Record<
+      string,
+      unknown
+    >
+    const months = (field.config as { months?: number[] } | null)?.months || [
+      1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12,
+    ]
+    return (
+      <div className="space-y-1">
+        <p className="text-sm font-medium text-foreground">
+          {field.label}
+          {required ? <span className="ml-1 text-danger">*</span> : null}
+        </p>
+        <dl className="grid gap-x-6 gap-y-1 text-sm sm:grid-cols-2">
+          {months.map((month) => (
+            <div key={month} className="flex gap-3">
+              <dt className="w-10 shrink-0 text-muted-foreground tabular">{month} 月</dt>
+              <dd className="whitespace-pre-wrap text-foreground">
+                {String(plan[String(month)] ?? '') || '—'}
+              </dd>
+            </div>
+          ))}
+        </dl>
+      </div>
+    )
+  }
+
   if (mode === 'readonly' || field.field_type === 'computed') {
     return (
       <div className="space-y-1">
