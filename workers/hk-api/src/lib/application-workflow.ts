@@ -110,8 +110,8 @@ const AMOUNT_TYPES = new Set(['currency', 'number'])
 
 /**
  * Derive requested funding items from the pinned form schema:
- * one item per row of each repeat_group with a currency column, otherwise
- * one item per top-level currency field. The total prefers a computed
+ * one item per row of each repeat_group with a currency column, plus
+ * one item per filled top-level currency field. The total prefers a computed
  * "requested_total" field when the form provides one.
  */
 export function extractRequestedFunding(
@@ -140,18 +140,16 @@ export function extractRequestedFunding(
     })
   }
 
-  if (items.length === 0) {
-    for (const field of fields) {
-      if (field.field_type !== 'currency') continue
-      const amount = num(answers[field.code])
-      if (amount <= 0) continue
-      items.push({
-        item_code: field.code,
-        item_label: field.label,
-        requested_amount: amount,
-        sort_order: sort++,
-      })
-    }
+  for (const field of fields) {
+    if (field.field_type !== 'currency') continue
+    const amount = num(answers[field.code])
+    if (amount <= 0) continue
+    items.push({
+      item_code: field.code,
+      item_label: field.label,
+      requested_amount: amount,
+      sort_order: sort++,
+    })
   }
 
   const computedTotal = num(answers.requested_total)
