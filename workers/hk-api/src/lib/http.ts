@@ -59,6 +59,7 @@ export function corsHeaders(env: WorkerEnv, request: Request): Headers {
       'Content-Type, Authorization, X-HK-Scheduler-Secret',
     )
     headers.set('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS')
+    headers.set('Access-Control-Expose-Headers', 'Content-Disposition')
   }
   return headers
 }

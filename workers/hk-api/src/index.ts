@@ -24,6 +24,7 @@ import { handleAdminForms } from './routes/admin-forms'
 import { handleAdminApplications } from './routes/admin-applications'
 import { handleStudentFlow } from './routes/student-flow'
 import { handleStudentInbox } from './routes/student-inbox'
+import { handleAttachments } from './routes/attachments'
 
 export default {
   async fetch(request: Request, env: WorkerEnv): Promise<Response> {
@@ -84,11 +85,21 @@ export default {
       const studentInbox = await handleStudentInbox(request, env, path)
       if (studentInbox) return withCors(env, request, studentInbox)
 
-      if (
-        path.startsWith('/api/collections/') ||
-        path.startsWith('/api/files/') ||
-        path === '/api/realtime'
-      ) {
+      const attachments = await handleAttachments(request, env, path)
+      if (attachments) return withCors(env, request, attachments)
+
+      if (path.startsWith('/api/files/')) {
+        return withCors(
+          env,
+          request,
+          json(
+            { error: 'forbidden', message: '檔案僅能透過 /api/hk/attachments 下載' },
+            { status: 403 },
+          ),
+        )
+      }
+
+      if (path.startsWith('/api/collections/') || path === '/api/realtime') {
         return withCors(env, request, await proxyToPocketBase(request, env))
       }
 

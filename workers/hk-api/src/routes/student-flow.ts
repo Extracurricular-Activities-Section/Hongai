@@ -2,6 +2,7 @@ import type PocketBase from 'pocketbase'
 
 import { extractRequestedFunding, historyEntry, latestFinalDecision } from '../lib/application-workflow'
 import { applicationToPlain, maskIdentity } from '../lib/applications'
+import { ownActiveAttachmentIds } from '../lib/attachments'
 import { requireStudent, type StudentRecord } from '../lib/auth-student'
 import { categoryFromSetting, categoryKey } from '../lib/categories'
 import { copyAnswers, validateValues, calculateComputed, type FormValues } from '../lib/form-engine'
@@ -258,14 +259,20 @@ function assertCanEdit(application: Row, open: Period | null) {
   }
 }
 
-function allowlistAnswers(fields: ReturnType<typeof flattenFields>, incoming: Row): FormValues {
+function allowlistAnswers(
+  fields: ReturnType<typeof flattenFields>,
+  incoming: Row,
+  application: Row,
+): FormValues {
   const allowed: FormValues = {}
   for (const field of fields) {
     if (field.active === false) continue
     if (field.field_type === 'computed' || field.field_type === 'display') continue
-    if (Object.prototype.hasOwnProperty.call(incoming, field.code)) {
-      allowed[field.code] = incoming[field.code]
-    }
+    if (!Object.prototype.hasOwnProperty.call(incoming, field.code)) continue
+    allowed[field.code] =
+      field.field_type === 'file'
+        ? ownActiveAttachmentIds(application, incoming[field.code], 'application')
+        : incoming[field.code]
   }
   return allowed
 }
@@ -486,7 +493,7 @@ async function saveSubmission({ pb, student, body }: Ctx, mode: 'draft' | 'compl
 
   const form = await loadFormVersion(pb, str(application.form))
   const fields = flattenFields(form)
-  const merged = { ...obj(application.answers_json), ...allowlistAnswers(fields, obj(body.answers)) }
+  const merged = { ...obj(application.answers_json), ...allowlistAnswers(fields, obj(body.answers), application) }
   const validated = validateValues(fields, toSchema(form).rules, merged, mode)
   const blocking = validated.issues.filter(
     (issue) => issue.severity === 'error' && (mode === 'complete' || issue.code !== 'required'),
@@ -729,10 +736,10 @@ async function supplementReply({ pb, student, body }: Ctx, id: string) {
   const application = await getOwnApplication(pb, student.id, id)
   if (application.status !== 'supplement_required') throw new HttpError(400, '目前狀態不可補件回覆')
   const reply = str(body.reply ?? body.message).trim()
-  if (Array.isArray(body.attachment_ids) && body.attachment_ids.length) {
-    throw new HttpError(400, '附件上傳尚未開放，請以文字回覆補件內容')
-  }
-  if (!reply) throw new HttpError(400, '請填寫補件回覆內容')
+  const requestedIds = Array.isArray(body.attachment_ids) ? body.attachment_ids.map(String) : []
+  const attachmentIds = ownActiveAttachmentIds(application, requestedIds, 'supplement')
+  if (attachmentIds.length !== new Set(requestedIds).size) throw new HttpError(400, '附件不存在或類型不符')
+  if (!reply && !attachmentIds.length) throw new HttpError(400, '請填寫補件回覆或上傳補件檔案')
 
   const workflow = { ...obj(application.workflow_json) }
   const supplements = Array.isArray(workflow.supplements) ? (workflow.supplements as Row[]) : []
@@ -743,7 +750,8 @@ async function supplementReply({ pb, student, body }: Ctx, id: string) {
   for (const item of pending) {
     item.status = 'submitted'
     item.submitted_at = now
-    item.student_reply = reply
+    item.student_reply = reply || null
+    item.attachment_ids = attachmentIds
   }
   workflow.supplements = supplements
   workflow.supplement_message = ''
@@ -766,7 +774,7 @@ async function supplementReply({ pb, student, body }: Ctx, id: string) {
     message: '補件回覆已送出',
     application: applicationToPlain(saved, student),
     supplements: pending,
-    attachment_ids: [],
+    attachment_ids: attachmentIds,
   })
 }
 

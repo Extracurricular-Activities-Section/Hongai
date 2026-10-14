@@ -134,6 +134,7 @@ export interface SupplementRequest {
   submitted_at: string | null
   resolved_at: string | null
   student_reply: string | null
+  attachment_ids?: string[]
   created: string
 }
 

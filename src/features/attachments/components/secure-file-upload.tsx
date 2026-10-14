@@ -7,6 +7,7 @@ import {
   canPreviewExtension,
   downloadAttachmentBlob,
   formatFileSize,
+  getAttachmentMeta,
   softDeleteAttachment,
   uploadAttachment,
 } from '../api'
@@ -103,24 +104,18 @@ export function SecureFileUpload({
     void (async () => {
       for (const id of missing) {
         try {
-          const result = await downloadAttachmentBlob(id, 'inline')
-          if (cancelled) {
-            URL.revokeObjectURL(URL.createObjectURL(result.blob))
-            continue
-          }
-          const filename = result.filename || `附件-${id.slice(0, 6)}`
-          const ext = normalizeExt(filename)
+          const att = await getAttachmentMeta(id)
+          if (cancelled) continue
           setMetaById((prev) => ({
             ...prev,
             [id]: {
               id,
-              original_filename: filename,
-              size_bytes: result.blob.size,
-              extension: ext,
-              mime_type: result.mimeType || undefined,
+              original_filename: att.original_filename,
+              size_bytes: att.size_bytes,
+              extension: att.extension || normalizeExt(att.original_filename),
+              mime_type: att.mime_type,
             },
           }))
-          // discard blob bytes; only metadata needed
         } catch {
           if (!cancelled) {
             setMetaById((prev) => ({

@@ -38,6 +38,7 @@ export function StudentSubmitPanel({
   const [error, setError] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
   const [reply, setReply] = useState('')
+  const [supplementIds, setSupplementIds] = useState<string[]>([])
   const [detailNote, setDetailNote] = useState<string | null>(null)
   const [pendingSupplement, setPendingSupplement] = useState<SupplementRequest | null>(null)
   const [signedIds, setSignedIds] = useState<string[]>([])
@@ -149,9 +150,10 @@ export function StudentSubmitPanel({
     setError(null)
     setMessage(null)
     try {
-      const result = await replySupplement(application.id, reply.trim(), [])
+      const result = await replySupplement(application.id, reply.trim(), supplementIds)
       setMessage(result.message)
       setReply('')
+      setSupplementIds([])
       await load()
     } catch (err) {
       setError(err instanceof Error ? err.message : '補件回覆失敗')
@@ -299,20 +301,28 @@ export function StudentSubmitPanel({
                 </p>
               ) : null}
               <label className="block space-y-1">
-                <span className="text-muted-foreground">
-                  回覆說明<span className="ml-1 text-danger">*</span>
-                </span>
+                <span className="text-muted-foreground">回覆說明</span>
                 <textarea
                   className="min-h-24 w-full rounded-md border border-input bg-surface text-foreground transition-colors placeholder:text-muted-foreground hover:border-border-strong focus-visible:border-accent-strong disabled:cursor-not-allowed disabled:bg-surface-muted disabled:opacity-70 px-3 py-2 text-sm"
                   value={reply}
                   onChange={(e) => setReply(e.target.value)}
-                  placeholder="請說明補件內容；若需補交紙本或檔案，請依承辦說明送至課指組"
-                  required
+                  placeholder="請說明補件內容"
                 />
               </label>
+              <SecureFileUpload
+                label="補件檔案"
+                allowedExtensions={['pdf', 'jpg', 'jpeg', 'png']}
+                maxFiles={5}
+                maxSizeMb={10}
+                context="supplement"
+                applicationId={application.id}
+                value={supplementIds}
+                onChange={setSupplementIds}
+                helpText="回覆說明與補件檔案至少需提供一項。"
+              />
               <Button
                 type="button"
-                disabled={busy || !reply.trim()}
+                disabled={busy || (!reply.trim() && supplementIds.length === 0)}
                 onClick={() => void handleSupplementReply()}
               >
                 {busy ? '送出中…' : '送出補件回覆'}

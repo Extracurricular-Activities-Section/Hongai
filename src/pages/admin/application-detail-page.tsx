@@ -1111,6 +1111,21 @@ export function AdminApplicationDetailPage() {
                       <>
                         <p>{item.message}</p>
                         {item.student_reply ? <p className="mt-1">學生回覆：{item.student_reply}</p> : null}
+                        {item.attachment_ids?.length ? (
+                          <div className="mt-2">
+                            <SecureFileUpload
+                              allowedExtensions={[]}
+                              maxFiles={item.attachment_ids.length}
+                              maxSizeMb={10}
+                              context="supplement"
+                              applicationId={applicationId}
+                              value={item.attachment_ids}
+                              onChange={() => undefined}
+                              disabled
+                              asStaff
+                            />
+                          </div>
+                        ) : null}
                       </>
                     ),
                   }))}

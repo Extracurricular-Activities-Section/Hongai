@@ -19,12 +19,24 @@ function clientFor(asStaff?: boolean) {
   return asStaff ? staffPb : studentPb
 }
 
-function authToken(): string {
-  return studentPb.authStore.token || staffPb.authStore.token || ''
+/** Both sessions can coexist in one browser; the admin area must read as staff. */
+function readerClient() {
+  const inAdmin = window.location.pathname.startsWith('/admin')
+  if (inAdmin && staffPb.authStore.token) return staffPb
+  if (studentPb.authStore.token) return studentPb
+  return staffPb
 }
 
-function baseUrl(): string {
-  return import.meta.env.VITE_POCKETBASE_URL?.replace(/\/$/, '') || ''
+export async function getAttachmentMeta(id: string): Promise<Attachment> {
+  try {
+    const data = await readerClient().send<{ attachment: Attachment }>(
+      `/api/hk/attachments/${encodeURIComponent(id)}`,
+      { method: 'GET' },
+    )
+    return data.attachment
+  } catch (error) {
+    throw mapError(error, '無法載入附件資訊')
+  }
 }
 
 export async function uploadAttachment(
@@ -56,9 +68,10 @@ export async function downloadAttachmentBlob(
   disposition: 'inline' | 'attachment' = 'attachment',
 ): Promise<{ blob: Blob; filename: string | null; mimeType: string | null }> {
   try {
-    const token = authToken()
+    const client = readerClient()
+    const token = client.authStore.token
     const response = await fetch(
-      `${baseUrl()}/api/hk/attachments/${encodeURIComponent(id)}/download?disposition=${disposition}`,
+      client.buildURL(`/api/hk/attachments/${encodeURIComponent(id)}/download?disposition=${disposition}`),
       { headers: token ? { Authorization: token } : {} },
     )
     if (!response.ok) {
