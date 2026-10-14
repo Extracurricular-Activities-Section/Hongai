@@ -43,6 +43,8 @@ export interface FollowUpTask {
   max_file_size_mb: number | null
   allowed_extensions: string[] | null
   is_overdue: boolean
+  application_number?: string
+  category_name?: string
   created: string
   updated: string
 }
@@ -53,6 +55,7 @@ export interface FollowUpSubmission {
   student: string
   submission_version: number
   text_content: string | null
+  attachment_ids?: string[]
   status: string
   submitted_at: string | null
   is_overdue_at_submit: boolean

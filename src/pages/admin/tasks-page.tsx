@@ -50,6 +50,7 @@ export function AdminTasksPage() {
       (task) =>
         task.name.toLowerCase().includes(keyword) ||
         task.application.toLowerCase().includes(keyword) ||
+        (task.application_number || '').toLowerCase().includes(keyword) ||
         task.status.toLowerCase().includes(keyword),
     )
   }, [items, q])
@@ -110,7 +111,7 @@ export function AdminTasksPage() {
                 typeLabel={followUpTypeLabel(task.task_type)}
                 dueLabel={task.due_at ? formatTaipeiDateTime(task.due_at) : null}
                 overdue={Boolean(task.is_overdue)}
-                owner={`案件 ${task.application}`}
+                owner={`案件 ${task.application_number || task.application}`}
               />
             </li>
           ))}

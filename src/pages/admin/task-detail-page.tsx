@@ -14,7 +14,12 @@ import {
   adminWaiveFollowUpTask,
 } from '@/features/follow-up/api'
 import type { FollowUpReviewDecision, FollowUpTaskDetail } from '@/features/follow-up/types'
-import { followUpStatusLabel, followUpTypeLabel } from '@/features/follow-up/utils/status-labels'
+import {
+  followUpStatusLabel,
+  followUpTypeLabel,
+  submissionStatusLabel,
+  toLocalInputValue,
+} from '@/features/follow-up/utils/status-labels'
 import { formatTaipeiDateTime } from '@/lib/utils'
 
 export function AdminTaskDetailPage() {
@@ -35,7 +40,7 @@ export function AdminTaskDetailPage() {
     setError(null)
     const data = await adminGetFollowUpTask(taskId)
     setDetail(data)
-    setDueAt(data.task.due_at ? data.task.due_at.slice(0, 16) : '')
+    setDueAt(data.task.due_at ? toLocalInputValue(data.task.due_at) : '')
   }, [taskId])
 
   useEffect(() => {
@@ -57,6 +62,7 @@ export function AdminTaskDetailPage() {
 
   const { task } = detail
   const canReview = task.status === 'under_review' || task.status === 'submitted'
+  const isClosed = task.status === 'approved' || task.status === 'waived'
 
   async function runReview(decision: FollowUpReviewDecision) {
     setBusy(true)
@@ -95,8 +101,9 @@ export function AdminTaskDetailPage() {
         <p className="mt-1 text-sm">
           案件：
           <Link className="underline" to={`/admin/applications/${task.application}`}>
-            {task.application}
+            {task.application_number || task.application}
           </Link>
+          {task.category_name ? `（${task.category_name}）` : null}
         </p>
       </div>
 
@@ -111,40 +118,44 @@ export function AdminTaskDetailPage() {
           {task.description ? <p>{task.description}</p> : null}
           {task.student_instructions ? <p>學生說明：{task.student_instructions}</p> : null}
           {task.waive_reason ? <p>豁免原因：{task.waive_reason}</p> : null}
-          <div className="flex flex-wrap items-end gap-2 pt-2">
-            <label className="space-y-1">
-              <span className="text-muted-foreground">截止日期</span>
-              <Input
-                type="datetime-local"
-                value={dueAt}
-                onChange={(e) => setDueAt(e.target.value)}
-              />
-            </label>
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              disabled={busy || !dueAt}
-              onClick={() => {
-                void (async () => {
-                  setBusy(true)
-                  setError(null)
-                  try {
-                    const iso = new Date(dueAt).toISOString()
-                    const result = await adminUpdateFollowUpDueAt(taskId, iso)
-                    setMessage(result.message)
-                    await load()
-                  } catch (err) {
-                    setError(err instanceof Error ? err.message : '更新失敗')
-                  } finally {
-                    setBusy(false)
-                  }
-                })()
-              }}
-            >
-              更新截止日
-            </Button>
-          </div>
+          {isClosed ? (
+            <p>截止日期：{task.due_at ? formatTaipeiDateTime(task.due_at) : '未設定'}</p>
+          ) : (
+            <div className="flex flex-wrap items-end gap-2 pt-2">
+              <label className="space-y-1">
+                <span className="text-muted-foreground">截止日期</span>
+                <Input
+                  type="datetime-local"
+                  value={dueAt}
+                  onChange={(e) => setDueAt(e.target.value)}
+                />
+              </label>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                disabled={busy || !dueAt}
+                onClick={() => {
+                  void (async () => {
+                    setBusy(true)
+                    setError(null)
+                    try {
+                      const iso = new Date(dueAt).toISOString()
+                      const result = await adminUpdateFollowUpDueAt(taskId, iso)
+                      setMessage(result.message)
+                      await load()
+                    } catch (err) {
+                      setError(err instanceof Error ? err.message : '更新失敗')
+                    } finally {
+                      setBusy(false)
+                    }
+                  })()
+                }}
+              >
+                更新截止日
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -184,8 +195,9 @@ export function AdminTaskDetailPage() {
             detail.submissions.map((sub) => (
               <div key={sub.id} className="rounded-md border border-border p-3">
                 <p>
-                  第 {sub.submission_version} 版 · {sub.status}
+                  第 {sub.submission_version} 版 · {submissionStatusLabel(sub.status)}
                   {sub.is_overdue_at_submit ? ' · 逾期繳交' : ''}
+                  {sub.attachment_ids?.length ? ` · 附件 ${sub.attachment_ids.length} 個` : ''}
                 </p>
                 {sub.text_content ? <p className="mt-1 whitespace-pre-wrap">{sub.text_content}</p> : null}
                 <p className="text-xs text-muted-foreground">

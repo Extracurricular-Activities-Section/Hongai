@@ -11,6 +11,7 @@ import {
   followUpStatusLabel,
   followUpTypeLabel,
   isStudentActionableStatus,
+  submissionStatusLabel,
 } from '@/features/follow-up/utils/status-labels'
 import { formatTaipeiDateTime } from '@/lib/utils'
 
@@ -180,7 +181,7 @@ export function StudentTaskDetailPage() {
             {detail.submissions.map((sub) => (
               <div key={sub.id} className="rounded-md border border-border p-3">
                 <p>
-                  第 {sub.submission_version} 版 · {sub.status}
+                  第 {sub.submission_version} 版 · {submissionStatusLabel(sub.status)}
                   {sub.is_overdue_at_submit ? ' · 逾期繳交' : ''}
                 </p>
                 {sub.text_content ? <p className="mt-1 whitespace-pre-wrap">{sub.text_content}</p> : null}

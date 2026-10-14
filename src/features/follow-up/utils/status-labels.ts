@@ -32,10 +32,29 @@ export function isStudentActionableStatus(status: string, allowResubmit: boolean
   return (
     status === 'pending' ||
     status === 'supplement_required' ||
-    status === 'rejected' ||
-    (status === 'submitted' && allowResubmit) ||
-    (status === 'under_review' && allowResubmit)
+    status === 'overdue' ||
+    (status === 'rejected' && allowResubmit)
   )
+}
+
+const SUBMISSION_STATUS_LABELS: Record<string, string> = {
+  submitted: '待審核',
+  superseded: '已被新版取代',
+  approved: '已核准',
+  supplement_required: '需補件',
+  rejected: '未通過',
+}
+
+export function submissionStatusLabel(status: string): string {
+  return SUBMISSION_STATUS_LABELS[status] || status
+}
+
+/** ISO timestamp → value for <input type="datetime-local"> in the browser's local time. */
+export function toLocalInputValue(iso: string): string {
+  const date = new Date(iso)
+  if (Number.isNaN(date.getTime())) return ''
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`
 }
 
 export function countPendingStudentTasks(
