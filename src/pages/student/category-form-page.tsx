@@ -204,7 +204,10 @@ export function StudentCategoryFormPage() {
         <StudentPaperPanel
           submissionId={workspace.submission.id}
           categoryCode={workspace.category.code}
-          submitted={Boolean(workspace.application.application_number)}
+          submitted={
+            Boolean(workspace.application.application_number) &&
+            workspace.application.status !== 'returned_for_edit'
+          }
           onSubmitted={() => {
             void load().catch((err) => setError(err instanceof Error ? err.message : '載入失敗'))
           }}

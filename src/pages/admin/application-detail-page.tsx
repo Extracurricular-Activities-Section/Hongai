@@ -39,6 +39,9 @@ import {
   adminListFollowUpTasks,
 } from '@/features/follow-up/api'
 import type { FollowUpTask } from '@/features/follow-up/types'
+import { DynamicFormRenderer } from '@/features/forms/components/dynamic-form-renderer'
+import { evaluateRules } from '@/features/forms/engine'
+import { identityTypeLabel } from '@/features/periods/constants/eligibility'
 import { followUpStatusLabel, followUpTypeLabel } from '@/features/follow-up/utils/status-labels'
 import { downloadPdfBlob } from '@/features/pdf/api'
 import {
@@ -483,7 +486,9 @@ export function AdminApplicationDetailPage() {
                     <ContextRow
                       label="身分類型"
                       value={
-                        (detail.period_profile.application_identity_types || []).join('、') || '—'
+                        (detail.period_profile.application_identity_types || [])
+                          .map(identityTypeLabel)
+                          .join('、') || '—'
                       }
                     />
                     <ContextRow
@@ -526,7 +531,17 @@ export function AdminApplicationDetailPage() {
           <TabPanel value="form" activeValue={section}>
             <div className="rounded-lg border border-border bg-card p-5">
               <h2 className="mb-4 text-card font-semibold text-foreground">送件快照（唯讀）</h2>
-              <SnapshotView snapshot={snapshot} />
+              {detail.form_schema && detail.answers ? (
+                <DynamicFormRenderer
+                  schema={detail.form_schema}
+                  values={detail.answers}
+                  fieldState={evaluateRules(detail.form_schema, detail.answers)}
+                  mode="readonly"
+                  submissionId={application.id}
+                />
+              ) : (
+                <SnapshotView snapshot={snapshot} />
+              )}
             </div>
           </TabPanel>
 

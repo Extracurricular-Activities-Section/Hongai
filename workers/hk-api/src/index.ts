@@ -21,6 +21,7 @@ import { handleStudentPeriods } from './routes/student-periods'
 import { handleAdminRead } from './routes/admin-read'
 import { handleAdminPeriods } from './routes/admin-periods'
 import { handleAdminForms } from './routes/admin-forms'
+import { handleAdminApplications } from './routes/admin-applications'
 import { handleStudentFlow } from './routes/student-flow'
 import { handleStudentInbox } from './routes/student-inbox'
 
@@ -73,6 +74,9 @@ export default {
 
       const adminForms = await handleAdminForms(request, env, path)
       if (adminForms) return withCors(env, request, adminForms)
+
+      const adminApplications = await handleAdminApplications(request, env, path)
+      if (adminApplications) return withCors(env, request, adminApplications)
 
       const studentFlow = await handleStudentFlow(request, env, path)
       if (studentFlow) return withCors(env, request, studentFlow)

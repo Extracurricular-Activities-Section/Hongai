@@ -1,4 +1,5 @@
 import type { BaseRecord, PeriodStudentProfile } from '@/types'
+import type { FormSchema, FormValues } from '@/features/forms/types'
 import type { PdfDocument, SignatureUploadMode } from '@/features/pdf/types'
 import type {
   FundingDecision,
@@ -190,6 +191,8 @@ export interface AdminApplicationDetail {
   }
   period_profile: PeriodStudentProfile | null
   submission_snapshot: Record<string, unknown> | null
+  form_schema?: FormSchema | null
+  answers?: FormValues
   pdf: Pick<
     PdfDocument,
     | 'id'

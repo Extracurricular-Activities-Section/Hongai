@@ -1,5 +1,6 @@
 import type PocketBase from 'pocketbase'
 
+import { extractRequestedFunding, historyEntry, latestFinalDecision } from '../lib/application-workflow'
 import { applicationToPlain, maskIdentity } from '../lib/applications'
 import { requireStudent, type StudentRecord } from '../lib/auth-student'
 import { categoryFromSetting, categoryKey } from '../lib/categories'
@@ -627,16 +628,21 @@ async function submitApplication({ pb, student, body }: Ctx) {
     supplement_due_at: null,
     status_history: [
       ...history,
-      {
+      historyEntry({
         from_status: isResubmit ? fromStatus : null,
         to_status: 'submitted',
         changed_by_type: 'student',
         changed_by_student: student.id,
         reason: isResubmit ? '學生重新送件' : '學生送件',
-        created: now,
-      },
+      }),
     ],
   }
+  const form = await loadFormVersion(pb, str(application.form))
+  const requested = extractRequestedFunding(
+    form,
+    obj(obj(application.submission_snapshot_json).answers ?? application.answers_json),
+    str(application.category_code),
+  )
 
   let saved: Row | null = null
   for (let attempt = 0; attempt < 5 && !saved; attempt += 1) {
@@ -650,6 +656,7 @@ async function submitApplication({ pb, student, body }: Ctx) {
         submitted_at: now,
         eligibility_status: 'pending',
         edit_override_until: null,
+        requested_amount: requested.requested_total,
         workflow_json: nextWorkflow,
       })) as Row
     } catch (err) {
@@ -681,12 +688,76 @@ async function myApplications({ pb, student }: Ctx) {
 async function myApplicationDetail({ pb, student }: Ctx, id: string) {
   const application = await getOwnApplication(pb, student.id, id)
   const workflow = obj(application.workflow_json)
+  const reviews = (Array.isArray(workflow.reviews) ? (workflow.reviews as Row[]) : [])
+    .filter((review) => str(review.student_message).trim())
+    .map((review) => ({
+      decision: str(review.decision),
+      student_message: str(review.student_message),
+      created: str(review.created),
+    }))
+    .reverse()
+  const final = latestFinalDecision(application)
+  const funding = final
+    ? {
+        ...final,
+        internal_note: undefined,
+        items: (Array.isArray(final.items) ? (final.items as Row[]) : []).map((item) => ({ ...item })),
+      }
+    : null
+  const pendingSupplements = (Array.isArray(workflow.supplements) ? (workflow.supplements as Row[]) : [])
+    .filter((item) => item.status === 'pending')
+    .reverse()
   return json({
     application: applicationToPlain(application, student),
-    reviews: [],
-    funding: null,
-    pending_supplements: [],
-    status_history: Array.isArray(workflow.status_history) ? workflow.status_history : [],
+    reviews,
+    funding,
+    pending_supplements: pendingSupplements,
+    status_history: (Array.isArray(workflow.status_history) ? (workflow.status_history as Row[]) : [])
+      .slice()
+      .reverse(),
+  })
+}
+
+async function supplementReply({ pb, student, body }: Ctx, id: string) {
+  const application = await getOwnApplication(pb, student.id, id)
+  if (application.status !== 'supplement_required') throw new HttpError(400, '目前狀態不可補件回覆')
+  const reply = str(body.reply ?? body.message).trim()
+  if (Array.isArray(body.attachment_ids) && body.attachment_ids.length) {
+    throw new HttpError(400, '附件上傳尚未開放，請以文字回覆補件內容')
+  }
+  if (!reply) throw new HttpError(400, '請填寫補件回覆內容')
+
+  const workflow = { ...obj(application.workflow_json) }
+  const supplements = Array.isArray(workflow.supplements) ? (workflow.supplements as Row[]) : []
+  const pending = supplements.filter((item) => item.status === 'pending')
+  if (!pending.length) throw new HttpError(400, '沒有待處理的補件要求')
+
+  const now = nowIso()
+  for (const item of pending) {
+    item.status = 'submitted'
+    item.submitted_at = now
+    item.student_reply = reply
+  }
+  workflow.supplements = supplements
+  workflow.status_history = [
+    ...(Array.isArray(workflow.status_history) ? workflow.status_history : []),
+    historyEntry({
+      from_status: 'supplement_required',
+      to_status: 'under_review',
+      changed_by_type: 'student',
+      changed_by_student: student.id,
+      reason: '學生補件回覆',
+    }),
+  ]
+  const update: Row = { status: 'under_review', workflow_json: workflow }
+  if (application.eligibility_status === 'supplement_required') update.eligibility_status = 'pending'
+  const saved = (await pb.collection('hk_applications').update(id, update)) as Row
+  await writeAudit(pb, student.id, 'SUPPLEMENT_REPLIED', id)
+  return json({
+    message: '補件回覆已送出',
+    application: applicationToPlain(saved, student),
+    supplements: pending,
+    attachment_ids: [],
   })
 }
 
@@ -829,6 +900,11 @@ const routes: Route[] = [
   },
   { method: 'POST', pattern: /^\/api\/hk\/applications\/submit$/, handler: submitApplication },
   { method: 'GET', pattern: /^\/api\/hk\/applications\/mine$/, handler: myApplications },
+  {
+    method: 'POST',
+    pattern: /^\/api\/hk\/applications\/([^/]+)\/supplement-reply$/,
+    handler: (ctx, [id]) => supplementReply(ctx, id),
+  },
   {
     method: 'GET',
     pattern: /^\/api\/hk\/applications\/mine\/([^/]+)$/,
