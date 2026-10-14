@@ -177,6 +177,12 @@ function OptionsEditor({
   )
 }
 
+function parseLimit(raw: string): number | null {
+  if (raw.trim() === '') return null
+  const value = Number(raw)
+  return Number.isFinite(value) ? value : null
+}
+
 function FieldSettings({
   field,
   document,
@@ -194,6 +200,10 @@ function FieldSettings({
   const allFields = document.sections.flatMap((section) => section.fields)
   const needsOptions =
     field.field_type === 'select' || field.field_type === 'radio' || field.field_type === 'multiselect'
+  const isNumericField =
+    field.field_type === 'number' || field.field_type === 'currency' || field.field_type === 'computed'
+  const onValidationChange = (patch: NonNullable<FormFieldSchema['validation']>) =>
+    onChange({ validation: { ...field.validation, ...patch } })
 
   return (
     <div className="space-y-3">
@@ -258,18 +268,19 @@ function FieldSettings({
           onChange={(e) => {
             const value = e.target.value === '' ? undefined : Number(e.target.value)
             onChange({
-              validation:
-                value == null
-                  ? null
-                  : {
-                      warnings: [
+              validation: {
+                ...field.validation,
+                warnings:
+                  value == null
+                    ? []
+                    : [
                         {
                           type: 'min_number',
                           value,
                           message: field.validation?.warnings?.[0]?.message || `建議不低於 ${value}`,
                         },
                       ],
-                    },
+              },
             })
           }}
         />
@@ -281,12 +292,43 @@ function FieldSettings({
             if (!current) return
             onChange({
               validation: {
+                ...field.validation,
                 warnings: [{ ...current, message: e.target.value }],
               },
             })
           }}
         />
       </div>
+
+      {isNumericField ? (
+        <div className="space-y-1">
+          <Label>數值範圍（送出時檢查）</Label>
+          <div className="grid grid-cols-2 gap-2">
+            <Input
+              type="number"
+              aria-label="最小值"
+              placeholder="最小值"
+              value={field.validation?.min ?? ''}
+              onChange={(e) => onValidationChange({ min: parseLimit(e.target.value) })}
+            />
+            <Input
+              type="number"
+              aria-label="最大值"
+              placeholder="最大值"
+              value={field.validation?.max ?? ''}
+              onChange={(e) => onValidationChange({ max: parseLimit(e.target.value) })}
+            />
+          </div>
+        </div>
+      ) : null}
+
+      {field.field_type === 'multiselect' ? (
+        <CheckboxRow
+          checked={field.validation?.select_all === true}
+          label="必須全部勾選"
+          onChange={(select_all) => onValidationChange({ select_all })}
+        />
+      ) : null}
 
       {needsOptions ? <OptionsEditor options={field.options} onChange={(options) => onChange({ options })} /> : null}
 

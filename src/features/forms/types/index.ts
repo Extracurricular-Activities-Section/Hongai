@@ -109,6 +109,9 @@ export interface FormFieldSchema {
   default_value?: unknown
   validation?: {
     warnings?: Array<{ type: string; value?: number; message: string }>
+    min?: number | null
+    max?: number | null
+    select_all?: boolean | null
   } | null
   config?: ComputedFieldConfig | RepeatGroupConfig | MonthlyPlanConfig | Record<string, unknown> | null
   pdf_visible: boolean

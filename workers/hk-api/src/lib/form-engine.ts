@@ -13,6 +13,14 @@ export type EngineField = {
   active?: boolean
   copy_previous?: boolean
   config?: Record<string, unknown> | null
+  validation?: FieldValidation | null
+  options?: Array<Record<string, unknown>>
+}
+
+export type FieldValidation = {
+  min?: number | null
+  max?: number | null
+  select_all?: boolean | null
 }
 
 export type EngineRule = {
@@ -158,6 +166,52 @@ function evaluateRules(fields: EngineField[], rules: EngineRule[], values: FormV
   return state
 }
 
+const NUMERIC_TYPES = new Set(['number', 'currency', 'computed'])
+const isLimit = (value: unknown): value is number =>
+  typeof value === 'number' && Number.isFinite(value)
+
+function limitIssues(field: EngineField, value: unknown): FormIssue[] {
+  const rule = field.validation
+  if (!rule) return []
+  const issues: FormIssue[] = []
+  if (NUMERIC_TYPES.has(field.field_type)) {
+    const num = Number(value)
+    if (Number.isFinite(num)) {
+      if (isLimit(rule.min) && num < rule.min) {
+        issues.push({
+          code: 'min_value',
+          field_code: field.code,
+          severity: 'error',
+          message: `「${field.label}」不可低於 ${rule.min.toLocaleString('zh-TW')}`,
+        })
+      }
+      if (isLimit(rule.max) && num > rule.max) {
+        issues.push({
+          code: 'max_value',
+          field_code: field.code,
+          severity: 'error',
+          message: `「${field.label}」不可超過 ${rule.max.toLocaleString('zh-TW')}`,
+        })
+      }
+    }
+  }
+  if (field.field_type === 'multiselect' && rule.select_all === true) {
+    const selected = new Set(Array.isArray(value) ? value.map(String) : [])
+    const required = (field.options || [])
+      .filter((option) => option.active !== false)
+      .map((option) => String(option.value))
+    if (required.some((option) => !selected.has(option))) {
+      issues.push({
+        code: 'select_all',
+        field_code: field.code,
+        severity: 'error',
+        message: `「${field.label}」需全部勾選`,
+      })
+    }
+  }
+  return issues
+}
+
 const DATE_RANGE_PAIRS: Array<[string, string]> = [
   ['training_start', 'training_end'],
   ['execution_start', 'execution_end'],
@@ -211,6 +265,7 @@ export function validateValues(
           field.field_type === 'file' ? `請上傳「${field.label}」` : `請填寫「${field.label}」`,
       })
     }
+    if (mode === 'complete' && !isEmpty(value)) issues.push(...limitIssues(field, value))
     if (
       mode === 'complete' &&
       field.field_type === 'file' &&

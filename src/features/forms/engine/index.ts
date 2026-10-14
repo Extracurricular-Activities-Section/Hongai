@@ -252,6 +252,50 @@ function validateFieldType(
   return issues
 }
 
+const NUMERIC_TYPES = new Set(['number', 'currency', 'computed'])
+const isLimit = (value: unknown): value is number =>
+  typeof value === 'number' && Number.isFinite(value)
+
+function limitIssues(field: FormFieldSchema, value: unknown): FormIssue[] {
+  const rule = field.validation
+  if (!rule) return []
+  const issues: FormIssue[] = []
+  if (NUMERIC_TYPES.has(field.field_type)) {
+    const num = Number(value)
+    if (Number.isFinite(num)) {
+      if (isLimit(rule.min) && num < rule.min) {
+        issues.push({
+          code: 'min_value',
+          field_code: field.code,
+          severity: 'error',
+          message: `「${field.label}」不可低於 ${rule.min.toLocaleString('zh-TW')}`,
+        })
+      }
+      if (isLimit(rule.max) && num > rule.max) {
+        issues.push({
+          code: 'max_value',
+          field_code: field.code,
+          severity: 'error',
+          message: `「${field.label}」不可超過 ${rule.max.toLocaleString('zh-TW')}`,
+        })
+      }
+    }
+  }
+  if (field.field_type === 'multiselect' && rule.select_all === true) {
+    const selected = new Set(Array.isArray(value) ? value.map(String) : [])
+    const required = field.options.filter((option) => option.active).map((option) => option.value)
+    if (required.some((option) => !selected.has(option))) {
+      issues.push({
+        code: 'select_all',
+        field_code: field.code,
+        severity: 'error',
+        message: `「${field.label}」需全部勾選`,
+      })
+    }
+  }
+  return issues
+}
+
 export function validateFormValues(
   schema: FormSchema,
   values: FormValues,
@@ -296,6 +340,7 @@ export function validateFormValues(
         message: `請填寫「${field.label}」`,
       })
     }
+    if (mode === 'complete' && !isEmpty(value)) issues.push(...limitIssues(field, value))
 
     const warnings = field.validation?.warnings || []
     for (const warning of warnings) {
