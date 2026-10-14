@@ -239,12 +239,14 @@ export interface FundingCreatePayload {
   internal_note?: string
   student_message?: string
   change_reason?: string
+  limit_override_reason?: string
   notify_student?: boolean
 }
 
 export interface FundingPreviewResponse {
   extracted: FundingExtracted
   annual_funding_summary: AnnualFundingSummary
+  annual_headroom?: { annual_limit: number; approved_others: number; remaining: number }
   warnings: FundingRuleWarning[]
 }
 

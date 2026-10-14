@@ -33,6 +33,7 @@ import type {
 } from '@/features/applications/types'
 import { APPLICATION_ACTION_LABELS } from '@/features/applications/utils/status-labels'
 import { SecureFileUpload } from '@/features/attachments/components/secure-file-upload'
+import { useBackofficeAuth } from '@/features/auth/backoffice/context'
 import {
   adminCreateFollowUpTask,
   adminEnsureFollowUpTasks,
@@ -188,6 +189,8 @@ export function AdminApplicationDetailPage() {
   const [approvedMap, setApprovedMap] = useState<Record<string, string>>({})
   const [decisionNote, setDecisionNote] = useState('')
   const [changeReason, setChangeReason] = useState('')
+  const [limitOverrideReason, setLimitOverrideReason] = useState('')
+  const { isAdmin } = useBackofficeAuth()
   const [notifyStudent, setNotifyStudent] = useState(true)
   const [fundingConfirm, setFundingConfirm] = useState<'complete' | 'revise' | null>(null)
 
@@ -230,6 +233,16 @@ export function AdminApplicationDetailPage() {
     () => (application ? ACTIONS_BY_STATUS[application.status] || [] : []),
     [application],
   )
+  const headroom = fundingPreview?.annual_headroom ?? null
+  const approvedDraftTotal = fundingPreview
+    ? fundingPreview.extracted.items.reduce(
+        (sum, item) => sum + (Number(approvedMap[item.item_code]) || 0),
+        0,
+      )
+    : 0
+  const draftExceedsLimit = headroom
+    ? headroom.approved_others + approvedDraftTotal > headroom.annual_limit
+    : false
 
   async function runAction(action: ApplicationAction) {
     setBusy(true)
@@ -309,6 +322,7 @@ export function AdminApplicationDetailPage() {
         })),
         decision_note: decisionNote || undefined,
         change_reason: changeReason || undefined,
+        limit_override_reason: limitOverrideReason.trim() || undefined,
         student_message: studentMessage || undefined,
         internal_note: internalNote || undefined,
         notify_student: notifyStudent,
@@ -803,11 +817,25 @@ export function AdminApplicationDetailPage() {
                       <AmountDisplay value={fundingPreview.extracted.requested_total} />
                     </div>
                     <div>
-                      <p className="text-meta text-muted-foreground">年度已核定</p>
-                      <AmountDisplay
-                        value={fundingPreview.annual_funding_summary.total_approved}
-                      />
+                      <p className="text-meta text-muted-foreground">本次核定</p>
+                      <AmountDisplay value={approvedDraftTotal} />
                     </div>
+                    {headroom ? (
+                      <>
+                        <div>
+                          <p className="text-meta text-muted-foreground">其他案件已核定（本學年）</p>
+                          <AmountDisplay value={headroom.approved_others} muted />
+                        </div>
+                        <div>
+                          <p className="text-meta text-muted-foreground">年度上限</p>
+                          <AmountDisplay value={headroom.annual_limit} muted />
+                        </div>
+                        <div>
+                          <p className="text-meta text-muted-foreground">本案最多可核定</p>
+                          <AmountDisplay value={headroom.remaining} />
+                        </div>
+                      </>
+                    ) : null}
                   </div>
 
                   {fundingPreview.warnings.length > 0 ? (
@@ -818,6 +846,27 @@ export function AdminApplicationDetailPage() {
                         </InlineNotice>
                       ))}
                     </div>
+                  ) : null}
+
+                  {draftExceedsLimit ? (
+                    isAdmin ? (
+                      <Field
+                        id="funding-limit-override"
+                        label="超額核定原因"
+                        required
+                        description="本次核定會超過年度上限，需由管理員說明原因。"
+                      >
+                        <Textarea
+                          id="funding-limit-override"
+                          value={limitOverrideReason}
+                          onChange={(event) => setLimitOverrideReason(event.target.value)}
+                        />
+                      </Field>
+                    ) : (
+                      <InlineNotice tone="attention">
+                        本次核定會超過年度上限，請調降金額，或請管理員核定。
+                      </InlineNotice>
+                    )
                   ) : null}
 
                   <div className="grid gap-4 sm:grid-cols-2">
@@ -858,7 +907,9 @@ export function AdminApplicationDetailPage() {
                     <Button
                       type="button"
                       variant="brand"
-                      disabled={busy}
+                      disabled={
+                        busy || (draftExceedsLimit && (!isAdmin || !limitOverrideReason.trim()))
+                      }
                       onClick={() =>
                         setFundingConfirm(
                           application.status === 'funding_decided' ? 'revise' : 'complete',
@@ -902,6 +953,9 @@ export function AdminApplicationDetailPage() {
                     body: (
                       <>
                         <p>{record.decision_note || record.change_reason || '—'}</p>
+                        {record.limit_override_reason ? (
+                          <p className="mt-1">超額核定原因：{record.limit_override_reason}</p>
+                        ) : null}
                         {record.items?.length ? (
                           <ul className="mt-2 space-y-0.5 text-meta text-muted-foreground">
                             {record.items.map((item) => (

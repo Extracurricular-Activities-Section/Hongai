@@ -4,6 +4,7 @@ import {
   REASON_REQUIRED,
   WorkflowError,
   annualFundingSummary,
+  annualHeadroom,
   extractRequestedFunding,
   fundingDecisions,
   historyEntry,
@@ -40,6 +41,7 @@ const num = (value: unknown): number => {
 }
 
 const actorType = (staff: StaffAuthContext) => (staff.is_admin ? 'admin' : 'staff')
+const money = (value: number) => value.toLocaleString('zh-TW')
 
 async function loadApplication(pb: PocketBase, id: string): Promise<Row> {
   try {
@@ -370,7 +372,20 @@ async function fundingPreview({ pb }: Ctx, id: string) {
     extractedFor(pb, application),
     annualFundingSummary(pb, str(application.student), academicYear),
   ])
-  return json({ extracted, annual_funding_summary: summary, warnings: [] })
+  const headroom = annualHeadroom(summary, id)
+  const projected = headroom.approved_others + extracted.requested_total
+  const warnings =
+    projected > headroom.annual_limit
+      ? [
+          {
+            rule_type: 'annual_total_limit',
+            message: `全額核定後本學年度累計 ${money(projected)} 元，超過年度上限 ${money(headroom.annual_limit)} 元；本案最多可核定 ${money(headroom.remaining)} 元。`,
+            limit_amount: headroom.annual_limit,
+            projected,
+          },
+        ]
+      : []
+  return json({ extracted, annual_funding_summary: summary, annual_headroom: headroom, warnings })
 }
 
 async function createFunding({ pb, staff, body }: Ctx, id: string) {
@@ -412,6 +427,20 @@ async function createFunding({ pb, staff, body }: Ctx, id: string) {
     }
   })
 
+  const academicYear = num(obj(application.period_json).academic_year)
+  const headroom = annualHeadroom(
+    await annualFundingSummary(pb, str(application.student), academicYear),
+    id,
+  )
+  const overrideReason = str(body.limit_override_reason).trim()
+  const exceedsLimit = headroom.approved_others + approvedTotal > headroom.annual_limit
+  if (exceedsLimit && !(staff.is_admin && overrideReason)) {
+    throw new WorkflowError(
+      400,
+      `核定後本學年度累計 ${money(headroom.approved_others + approvedTotal)} 元，超過年度上限 ${money(headroom.annual_limit)} 元（本案最多可核定 ${money(headroom.remaining)} 元）。如需超額核定，須由管理員填寫超額原因。`,
+    )
+  }
+
   const now = nowIso()
   const previous = fundingDecisions(application)
   const nextVersion = previous.reduce((max, d) => Math.max(max, num(d.decision_version)), 0) + 1
@@ -425,6 +454,7 @@ async function createFunding({ pb, staff, body }: Ctx, id: string) {
     internal_note: str(body.internal_note).trim() || null,
     student_message: str(body.student_message).trim() || null,
     change_reason: changeReason || null,
+    limit_override_reason: exceedsLimit ? overrideReason : null,
     decided_by: staff.id,
     decided_at: now,
     status: 'final',
@@ -465,7 +495,11 @@ async function createFunding({ pb, staff, body }: Ctx, id: string) {
     actorStaff: staff.id,
     action: isRevise ? 'FUNDING_DECISION_REVISED' : 'FUNDING_DECISION_CREATED',
     targetId: id,
-    payload: { approved_total: approvedTotal, decision_version: nextVersion },
+    payload: {
+      approved_total: approvedTotal,
+      decision_version: nextVersion,
+      limit_override: exceedsLimit,
+    },
   })
 
   if (body.notify_student === true) {

@@ -18,6 +18,7 @@ export interface FundingDecision {
   decision_note: string | null
   student_message: string | null
   change_reason: string | null
+  limit_override_reason?: string | null
   decided_by: string
   decided_at: string | null
   status: 'final' | 'superseded' | string
@@ -48,6 +49,7 @@ export interface FundingRuleWarning {
 
 export interface AnnualFundingSummary {
   academic_year: number
+  annual_limit?: number
   total_requested: number
   total_approved: number
   applications: Array<{

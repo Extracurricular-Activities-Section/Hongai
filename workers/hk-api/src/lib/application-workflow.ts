@@ -184,11 +184,39 @@ export function latestFinalDecision(application: Row): Row | null {
   )
 }
 
+export const DEFAULT_ANNUAL_LIMIT = 150_000
+
+/** Per-student annual cap from the academic-year policy (hk_settings), else the default. */
+export async function annualLimitFor(pb: PocketBase, academicYear: number): Promise<number> {
+  try {
+    const settings = (await pb.collection('hk_settings').getFullList({
+      filter: 'setting_type = "policy" && key = "academic_year"',
+      sort: '-version,-updated',
+    })) as Row[]
+    for (const setting of settings) {
+      const values = Array.isArray(setting.value_json) ? (setting.value_json as Row[]) : [obj(setting.value_json)]
+      const match = values.find(
+        (value) =>
+          value.active !== false &&
+          num(value.academic_year) === academicYear &&
+          num(value.annual_total_limit) > 0,
+      )
+      if (match) return num(match.annual_total_limit)
+    }
+  } catch {
+    // fall back to the default cap
+  }
+  return DEFAULT_ANNUAL_LIMIT
+}
+
 export async function annualFundingSummary(pb: PocketBase, studentId: string, academicYear: number) {
-  const rows = (await pb.collection('hk_applications').getFullList({
-    filter: pb.filter('student = {:sid} && status != "draft"', { sid: studentId }),
-    fields: 'id,application_number,category_code,status,requested_amount,approved_amount,period_json,funding_json',
-  })) as Row[]
+  const [rows, annualLimit] = await Promise.all([
+    pb.collection('hk_applications').getFullList({
+      filter: pb.filter('student = {:sid} && status != "draft"', { sid: studentId }),
+      fields: 'id,application_number,category_code,status,requested_amount,approved_amount,period_json,funding_json',
+    }) as Promise<Row[]>,
+    annualLimitFor(pb, academicYear),
+  ])
   let totalRequested = 0
   let totalApproved = 0
   const applications: Row[] = []
@@ -209,9 +237,24 @@ export async function annualFundingSummary(pb: PocketBase, studentId: string, ac
   }
   return {
     academic_year: academicYear,
+    annual_limit: annualLimit,
     total_requested: totalRequested,
     total_approved: totalApproved,
     applications,
+  }
+}
+
+/** Approved on the student's other applications this year, and what is left under the cap. */
+export function annualHeadroom(
+  summary: Awaited<ReturnType<typeof annualFundingSummary>>,
+  applicationId: string,
+) {
+  const own = summary.applications.find((item) => item.application_id === applicationId)
+  const approvedOthers = summary.total_approved - num(own?.approved_amount)
+  return {
+    annual_limit: summary.annual_limit,
+    approved_others: approvedOthers,
+    remaining: Math.max(0, summary.annual_limit - approvedOthers),
   }
 }
 
