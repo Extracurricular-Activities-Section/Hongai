@@ -23,8 +23,7 @@ import {
   validateFormValues,
 } from '@/features/forms/engine'
 import type { FormFieldValue, FormIssue, FormValues } from '@/features/forms/types'
-import { StudentPdfPanel } from '@/features/pdf/components/student-pdf-panel'
-import { getSignatureUploadMode } from '@/features/pdf/utils/signature-upload-mode'
+import { StudentPaperPanel } from '@/features/application-print/components/student-paper-panel'
 import { formatTaipeiDateTime } from '@/lib/utils'
 
 type SaveState = 'idle' | 'pending' | 'saved' | 'error'
@@ -198,15 +197,17 @@ export function StudentCategoryFormPage() {
           </span>
           <h1 className="mt-4 text-section font-semibold text-foreground">申請內容已完成</h1>
           <p className="mt-2 max-w-xl text-sm leading-relaxed text-subtle">
-            下一步請產生並列印正式 PDF 申請表，完成紙本簽核後再依承辦說明辦理送件。
+            下一步請送交承辦取得申請編號，再列印申請表交由系輔導老師簽名，送至課指組完成申請。
           </p>
         </div>
 
-        <StudentPdfPanel
+        <StudentPaperPanel
           submissionId={workspace.submission.id}
-          completed={completed}
           categoryCode={workspace.category.code}
-          signatureUploadMode={getSignatureUploadMode(workspace.category.code)}
+          submitted={Boolean(workspace.application.application_number)}
+          onSubmitted={() => {
+            void load().catch((err) => setError(err instanceof Error ? err.message : '載入失敗'))
+          }}
           onReedit={() => {
             setCompleted(false)
             setStep(0)

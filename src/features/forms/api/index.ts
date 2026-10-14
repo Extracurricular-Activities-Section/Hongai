@@ -28,6 +28,12 @@ export interface FormWorkspaceResponse {
     completed_at: string | null
     form_version: string
   }
+  application: {
+    id: string
+    application_number: string | null
+    status: string
+    submitted_at: string | null
+  }
   schema: FormSchema
   answers: FormValues
   applicant: Record<string, unknown>

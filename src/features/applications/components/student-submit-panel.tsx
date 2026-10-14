@@ -23,15 +23,15 @@ import { formatTaipeiDateTime } from '@/lib/utils'
 export function StudentSubmitPanel({
   submissionId,
   completed,
-  hasValidPdf,
   signatureUploadMode = 'disabled',
   categoryCode,
+  onSubmitted,
 }: {
   submissionId: string
   completed: boolean
-  hasValidPdf: boolean
   signatureUploadMode?: SignatureUploadModeProp
   categoryCode?: string
+  onSubmitted?: () => void
 }) {
   const [application, setApplication] = useState<Application | null | undefined>(undefined)
   const [busy, setBusy] = useState(false)
@@ -103,7 +103,6 @@ export function StudentSubmitPanel({
   const hasSigned = signedIds.length > 0 || Boolean(application?.signed_document)
   const canSubmit =
     completed &&
-    hasValidPdf &&
     (!requiresSignedUpload || hasSigned) &&
     (!application || application.status === 'returned_for_edit')
 
@@ -137,6 +136,7 @@ export function StudentSubmitPanel({
       setApplication(result.application)
       setMessage(result.message)
       await load()
+      onSubmitted?.()
     } catch (err) {
       setError(err instanceof Error ? err.message : '送件失敗')
     } finally {
@@ -169,7 +169,7 @@ export function StudentSubmitPanel({
 
   return (
     <div className="space-y-4">
-      {showSignedUpload && completed && hasValidPdf ? (
+      {showSignedUpload && completed ? (
         <Card>
           <CardHeader>
             <CardTitle className="text-base">已簽文件上傳</CardTitle>
@@ -238,12 +238,14 @@ export function StudentSubmitPanel({
         <CardContent className="space-y-4 text-sm">
           {!application ? (
             <div className="space-y-3">
-              <p className="text-muted-foreground">尚未送件。完成有效 PDF 後即可送交承辦單位審核。</p>
+              <p className="text-muted-foreground">
+                尚未送件。確認內容無誤後送交承辦，系統會產生申請編號。
+              </p>
               {requiresSignedUpload && !hasSigned ? (
                 <p className="text-warning">請先上傳已簽 PDF 文件後再送件。</p>
               ) : null}
-              {!completed || !hasValidPdf ? (
-                <p className="text-muted-foreground">請先完成填寫並產生有效 PDF。</p>
+              {!completed ? (
+                <p className="text-muted-foreground">請先完成填寫。</p>
               ) : null}
               <Button type="button" disabled={busy || !canSubmit} onClick={() => void handleSubmit()}>
                 {busy ? '送件中…' : '送交承辦'}
@@ -264,7 +266,7 @@ export function StudentSubmitPanel({
                 </p>
               ) : null}
               <p className="text-muted-foreground">
-                請修改申請內容並重新產生 PDF 後再送交。
+                請修改申請內容並重新列印申請表後再送交。
                 {categoryCode ? (
                   <>
                     {' '}

@@ -462,6 +462,14 @@ async function workspace({ pb, student }: Ctx, code: string) {
     period: open,
     category: { id: category.id, code: category.code, name: category.name },
     submission: submissionToPlain(application),
+    application: {
+      id: str(application.id),
+      application_number: str(application.application_number).startsWith('DRAFT-')
+        ? null
+        : str(application.application_number),
+      status: str(application.status),
+      submitted_at: application.submitted_at || null,
+    },
     schema: toSchema(form),
     answers,
     applicant: applicantView(student),

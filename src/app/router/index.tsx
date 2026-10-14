@@ -32,6 +32,7 @@ import { NotFoundPage } from '@/pages/public/not-found-page'
 import { RegisterPage } from '@/pages/public/register-page'
 import { StudentLoginPage } from '@/pages/public/student-login-page'
 import { PublicVerifyPage } from '@/pages/public/verify-page'
+import { StudentApplicationPrintPage } from '@/pages/student/application-print-page'
 import { StudentCategoryFormPage } from '@/pages/student/category-form-page'
 import { StudentCurrentConfirmPage } from '@/pages/student/current-confirm-page'
 import { StudentCurrentPage } from '@/pages/student/current-page'
@@ -92,6 +93,10 @@ const studentRoutes: RouteObject = {
           element: <StudentHistoryFormPage />,
         },
       ],
+    },
+    {
+      path: 'current/category/:categoryCode/print',
+      element: <StudentApplicationPrintPage />,
     },
   ],
 }

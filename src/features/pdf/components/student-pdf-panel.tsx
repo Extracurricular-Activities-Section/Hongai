@@ -280,7 +280,6 @@ export function StudentPdfPanel({
         <StudentSubmitPanel
           submissionId={submissionId}
           completed={completed}
-          hasValidPdf={!!latestValid}
           signatureUploadMode={signatureUploadMode}
           categoryCode={categoryCode}
         />
