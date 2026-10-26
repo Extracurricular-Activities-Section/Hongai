@@ -12,7 +12,17 @@ import {
 import { useBackofficeAuth } from '@/features/auth/backoffice/context'
 import type { IdentityResetRequest } from '@/types'
 
-const STATUSES = ['pending', 'processing', 'approved', 'rejected', 'closed'] as const
+const STATUSES = [
+  { value: 'pending', label: '待處理' },
+  { value: 'processing', label: '處理中' },
+  { value: 'approved', label: '已核准' },
+  { value: 'rejected', label: '未核准' },
+  { value: 'closed', label: '已結案' },
+] as const
+
+const STATUS_LABEL: Record<string, string> = Object.fromEntries(
+  STATUSES.map((item) => [item.value, item.label]),
+)
 
 export function AdminIdentityResetPage() {
   const { isAdmin } = useBackofficeAuth()
@@ -69,7 +79,7 @@ export function AdminIdentityResetPage() {
       <div>
         <h1 className="text-page font-semibold text-foreground">身分重設申請</h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Collection：hk_identity_reset_requests。Staff/Admin 可處理狀態與備註。
+          學生於「登入協助」送出的身分重設申請。職員可更新狀態與備註；管理員可解除登入鎖定。
         </p>
       </div>
 
@@ -88,17 +98,17 @@ export function AdminIdentityResetPage() {
         </Button>
         {STATUSES.map((status) => (
           <Button
-            key={status}
+            key={status.value}
             type="button"
-            variant={filter === status ? 'default' : 'outline'}
+            variant={filter === status.value ? 'default' : 'outline'}
             size="sm"
             disabled={busy}
             onClick={() => {
-              setFilter(status)
-              void load(status)
+              setFilter(status.value)
+              void load(status.value)
             }}
           >
-            {status}
+            {status.label}
           </Button>
         ))}
       </div>
@@ -115,7 +125,7 @@ export function AdminIdentityResetPage() {
             <Card key={item.id}>
               <CardHeader>
                 <CardTitle className="text-base">
-                  {item.name}（{item.student_no}）· {item.status}
+                  {item.name}（{item.student_no}）· {STATUS_LABEL[item.status] ?? item.status}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3 text-sm">
@@ -135,14 +145,14 @@ export function AdminIdentityResetPage() {
                 <div className="flex flex-wrap gap-2">
                   {STATUSES.map((status) => (
                     <Button
-                      key={status}
+                      key={status.value}
                       type="button"
                       size="sm"
                       variant="outline"
-                      disabled={busy}
-                      onClick={() => void handleStatus(item.id, status)}
+                      disabled={busy || item.status === status.value}
+                      onClick={() => void handleStatus(item.id, status.value)}
                     >
-                      設為 {status}
+                      設為{status.label}
                     </Button>
                   ))}
                 </div>

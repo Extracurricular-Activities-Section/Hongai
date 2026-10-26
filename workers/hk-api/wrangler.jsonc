@@ -1,5 +1,5 @@
 {
-  "name": "hk-api",
+  "name": "hongai",
   "$schema": "node_modules/wrangler/config-schema.json",
   "main": "src/index.ts",
   "compatibility_date": "2026-09-01",

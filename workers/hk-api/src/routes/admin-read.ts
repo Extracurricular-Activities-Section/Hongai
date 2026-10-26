@@ -14,7 +14,7 @@ import { compareLatestFirst, periodFromSetting, studentPeriodProfiles } from '..
  * hk_settings setting_type="system" with these key prefixes:
  *   department:, category_department:, follow_up_template:, category_follow_up_template:
  * (follow-up template routes live in routes/admin-follow-up).
- * Identity reset requests are hk_events (event_type="auth", event_key="identity_reset").
+ * Identity-reset routes live in routes/identity-reset.
  */
 
 type Row = Record<string, unknown>
@@ -339,20 +339,6 @@ const routes: Array<{ pattern: RegExp; adminOnly?: boolean; handler: Handler }> 
           period: periodById.get(periodId) ?? null,
         })),
       })
-    },
-  },
-  {
-    pattern: /^\/api\/hk\/admin\/identity-resets$/,
-    handler: async ({ pb, url }) => {
-      const status = url.searchParams.get('status')
-      const extra = [
-        'event_key = "identity_reset"',
-        status ? pb.filter('status = {:status}', { status }) : '',
-      ]
-        .filter(Boolean)
-        .join(' && ')
-      const rows = await eventsByType(pb, 'auth', extra)
-      return json({ items: rows.map(eventToPlain) })
     },
   },
 ]

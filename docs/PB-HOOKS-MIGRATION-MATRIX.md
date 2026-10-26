@@ -65,7 +65,7 @@ Browser → Cloudflare Worker /api/hk/* → PocketBase Data API (/api/collection
 | `hk_notification_render.js` | 安全模板渲染 | `none` | n/a | no | **No** |
 | `hk_mail_provider.js` | Mail provider | `none` | n/a | no | **No** |
 | `hk_notification_templates_seed.js` | 範本／reminder seed（hook 側） | `none`（migrations seed ≠ runtime emit） | n/a | no | **No** |
-| `hk_identity_reset.pb.js` | public identity-reset、admin list／status、unlock | `none` | no | no | **No** |
+| `hk_identity_reset.pb.js` | public identity-reset、admin list／status、unlock | `complete` — `routes/identity-reset.ts`（存 `hk_events` auth／identity_reset；含站內通知、不含寄信） | yes | partial | **No** |
 | `hk_helpers.js` | 共用 helpers | `none`（部分概念散落 CF lib） | n/a | no | **No** |
 
 ### Cloudflare-native（非 hook 替代完成項；列此避免混淆）
