@@ -56,8 +56,8 @@ Browser → Cloudflare Worker /api/hk/* → PocketBase Data API (/api/collection
 | `hk_attachments.pb.js` | 安全上傳／下載／刪除 | `none`（files proxy ≠ 業務規則） | no | no | **No** |
 | `hk_attachment_security.js` | MIME／size／掃描相關 | `none` | n/a | no | **No** |
 | `hk_signed_documents.pb.js` | 簽署文件上傳／依申請查詢 | `none` | no | no | **No** |
-| `hk_pdf.pb.js` | generate／download／verify／admin documents／revoke | `none`（sidecar 評估文件有；orchestration 未進 CF） | no | no | **No** |
-| `hk_pdf_config.js` | PDF config | `none` | n/a | no | **No** |
+| `hk_pdf.pb.js` | generate／download／verify／admin documents／revoke | `complete` — `routes/pdf.ts` + `lib/pdf.ts`（存 `hk_applications` files／workflow；核驗索引 `hk_events`）；需 `HK_PDF_SERVICE_URL` 指向 `hk-pdf` | yes | partial | **No** |
+| `hk_pdf_config.js` | PDF config | `partial` — short codes／serial 在 `lib/pdf.ts`；版型仍在 `pdf-engine/config.js` | n/a | n/a | **No** |
 | `hk_follow_up.pb.js` | 學生／管理追蹤任務、templates、category templates、ensure tasks | `none` | no | no | **No** |
 | `hk_follow_up_lib.js` | Follow-up lib | `none` | n/a | no | **No** |
 | `hk_notifications.pb.js` | 學生／管理通知、templates、mail status、dashboard、internal schedule／process | `stub` — `internal-jobs.ts` cron／queue **ack only** | no | no | **No** |

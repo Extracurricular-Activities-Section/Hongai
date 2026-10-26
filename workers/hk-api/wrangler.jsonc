@@ -15,6 +15,8 @@
     "HK_STUDENT_APP_URL": "https://hong-ai-dream-frontend.pages.dev",
     "HK_MANAGE_APP_URL": "https://hong-ai-dream-frontend.pages.dev",
     "HK_EXTRA_ORIGINS": "http://localhost:5173"
+    // Secrets (not in vars): HK_PB_SERVICE_*, HK_SCHEDULER_SECRET,
+    // HK_PDF_SERVICE_URL, HK_PDF_SERVICE_SECRET, HK_VERIFY_BASE_URL
   },
   // Enable after secrets + PB host ready. Local `wrangler dev` accepts triggers without prod deploy.
   "triggers": {

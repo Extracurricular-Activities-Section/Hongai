@@ -36,9 +36,14 @@ export async function listPdfsBySubmission(submissionId: string): Promise<PdfDoc
   }
 }
 
+function apiBaseUrl(): string {
+  const hk = import.meta.env.VITE_HK_API_BASE_URL?.trim()
+  if (hk) return hk.replace(/\/$/, '')
+  return (import.meta.env.VITE_POCKETBASE_URL || '').replace(/\/$/, '')
+}
+
 export function pdfDownloadUrl(id: string): string {
-  const base = import.meta.env.VITE_POCKETBASE_URL?.replace(/\/$/, '') || ''
-  return `${base}/api/hk/pdf/${id}/download`
+  return `${apiBaseUrl()}/api/hk/pdf/${id}/download`
 }
 
 export async function downloadPdfBlob(id: string): Promise<Blob> {
@@ -55,8 +60,7 @@ export async function downloadPdfBlob(id: string): Promise<Blob> {
 }
 
 export async function verifyPdfToken(token: string): Promise<PdfVerificationResult> {
-  const base = import.meta.env.VITE_POCKETBASE_URL?.replace(/\/$/, '') || ''
-  const response = await fetch(`${base}/api/hk/pdf/verify/${encodeURIComponent(token)}`)
+  const response = await fetch(`${apiBaseUrl()}/api/hk/pdf/verify/${encodeURIComponent(token)}`)
   if (!response.ok) {
     return { status: 'unknown', message: '查無此文件或驗證碼無效。' }
   }

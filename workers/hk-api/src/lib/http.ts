@@ -22,6 +22,12 @@ export type WorkerEnv = {
   HK_PB_SERVICE_EMAIL?: string
   HK_PB_SERVICE_PASSWORD?: string
   HK_SCHEDULER_SECRET?: string
+  /** PDF render Worker / Container base URL (e.g. https://hk-pdf….workers.dev). */
+  HK_PDF_SERVICE_URL?: string
+  /** Shared secret for X-HK-PDF-SECRET when calling /render. */
+  HK_PDF_SERVICE_SECRET?: string
+  /** Public site origin for QR verify links; defaults to HK_STUDENT_APP_URL. */
+  HK_VERIFY_BASE_URL?: string
 }
 
 /** Refuse any collection that is not under the hk_ namespace. */

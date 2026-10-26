@@ -69,11 +69,28 @@ npm run pdf:container:deploy
 
 ---
 
-## 與 hk-api 接線（再下一步）
+## 與 hk-api 接線
 
-- `HK_PDF_SERVICE_URL` = `https://hk-pdf.<subdomain>.workers.dev`
-- `HK_PDF_SERVICE_SECRET` = 與上面相同  
-然後實作產檔 API（讀申請 → `/render` → 寫回 `hk_applications.files`）。
+`hk-api` 已實作：
+
+- `POST /api/hk/pdf/generate`
+- `GET /api/hk/pdf/by-submission/:id`
+- `GET /api/hk/pdf/:id/download`
+- `GET /api/hk/pdf/verify/:token`
+- `GET /api/hk/admin/documents`
+- `POST /api/hk/admin/pdf/:id/revoke`
+
+Secrets（`hongai` Worker）：
+
+```bash
+npx wrangler secret put HK_PDF_SERVICE_URL -c workers/hk-api/wrangler.jsonc
+# 值例：https://hk-pdf.i0905560547.workers.dev
+
+npx wrangler secret put HK_PDF_SERVICE_SECRET -c workers/hk-api/wrangler.jsonc
+# 與 hk-pdf 的 HK_PDF_SERVICE_SECRET 相同
+```
+
+本機若無 Docker，請改用上方「Workers Builds」雲端建映像，或安裝 Docker Desktop 後再 `npm run pdf:container:deploy`。
 
 ## 字型／版型
 
