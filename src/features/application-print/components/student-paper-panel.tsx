@@ -29,9 +29,9 @@ export function StudentPaperPanel({
     <div className="space-y-4">
       <section className="rounded-lg border border-border bg-card">
         <header className="border-b border-border px-5 py-4">
-          <h2 className="text-card font-semibold text-foreground">紙本申請表</h2>
+          <h2 className="text-card font-semibold text-foreground">正式申請表</h2>
           <p className="mt-1 text-sm text-subtle">
-            線上送交後，請開啟申請表畫面列印或截圖，交由系輔導老師確認簽名，再送至課指組（H101）才算完成申請。系統不另外產生 PDF 檔。
+            正式文件為本系統的申請表畫面：請列印或截圖後簽名。線上送交後，交由系輔導老師確認簽名，再送至課指組（H101）才算完成申請。
           </p>
         </header>
 

@@ -305,7 +305,7 @@ export function ApplicationPrintDocument({ workspace }: { workspace: FormWorkspa
       </section>
 
       <footer className="mt-4 border-t border-black pt-2 text-xs leading-relaxed">
-        <p>※ 本申請表經系輔導老師確認簽名後，請送至課指組（毓麟館 H101）才算完成申請。</p>
+        <p>※ 本頁為正式申請表（列印或截圖皆可）。經系輔導老師確認簽名後，請送至課指組（毓麟館 H101）才算完成申請。</p>
       </footer>
     </article>
   )

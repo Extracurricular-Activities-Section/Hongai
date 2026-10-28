@@ -39,8 +39,10 @@ export function StudentApplicationPrintPage() {
             返回申請項目
           </Link>
         </Button>
-        <div className="flex flex-wrap items-center gap-2">
-          <p className="text-sm text-subtle">可用瀏覽器列印，或直接截圖此頁。</p>
+        <div className="flex flex-col items-end gap-1 sm:flex-row sm:items-center sm:gap-3">
+          <p className="max-w-xs text-right text-sm text-subtle sm:max-w-none sm:text-left">
+            此頁即為正式申請表。請用瀏覽器列印，或直接截圖整頁後簽名。
+          </p>
           <Button
             type="button"
             variant="brand"
@@ -48,7 +50,7 @@ export function StudentApplicationPrintPage() {
             onClick={() => window.print()}
           >
             <Printer />
-            列印
+            列印正式申請表
           </Button>
         </div>
       </div>
