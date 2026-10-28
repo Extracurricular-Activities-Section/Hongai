@@ -21,7 +21,7 @@ export function StudentPaperPanel({
   const steps: ProcessStep[] = [
     { id: 'complete', label: '完成填寫', state: 'complete' },
     { id: 'submit', label: '送交承辦', state: submitted ? 'complete' : 'current' },
-    { id: 'print', label: '列印申請表', state: submitted ? 'current' : 'upcoming' },
+    { id: 'print', label: '列印或截圖', state: submitted ? 'current' : 'upcoming' },
     { id: 'sign', label: '老師簽名後送課指組', state: 'upcoming' },
   ]
 
@@ -31,7 +31,7 @@ export function StudentPaperPanel({
         <header className="border-b border-border px-5 py-4">
           <h2 className="text-card font-semibold text-foreground">紙本申請表</h2>
           <p className="mt-1 text-sm text-subtle">
-            線上送交後，請列印申請表交由系輔導老師確認簽名，再送至課指組（H101）才算完成申請。
+            線上送交後，請開啟申請表畫面列印或截圖，交由系輔導老師確認簽名，再送至課指組（H101）才算完成申請。系統不另外產生 PDF 檔。
           </p>
         </header>
 
@@ -43,7 +43,7 @@ export function StudentPaperPanel({
           <Button asChild variant={submitted ? 'brand' : 'outline'}>
             <Link to={`/student/current/category/${categoryCode}/print`}>
               <Printer />
-              {submitted ? '列印申請表' : '預覽申請表'}
+              {submitted ? '列印／截圖申請表' : '預覽申請表'}
             </Link>
           </Button>
           {!submitted ? (

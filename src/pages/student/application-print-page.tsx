@@ -39,15 +39,18 @@ export function StudentApplicationPrintPage() {
             返回申請項目
           </Link>
         </Button>
-        <Button
-          type="button"
-          variant="brand"
-          disabled={!workspace || notCompleted}
-          onClick={() => window.print()}
-        >
-          <Printer />
-          列印申請表
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <p className="text-sm text-subtle">可用瀏覽器列印，或直接截圖此頁。</p>
+          <Button
+            type="button"
+            variant="brand"
+            disabled={!workspace || notCompleted}
+            onClick={() => window.print()}
+          >
+            <Printer />
+            列印
+          </Button>
+        </div>
       </div>
 
       {error ? (
