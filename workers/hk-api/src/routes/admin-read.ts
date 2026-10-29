@@ -4,6 +4,7 @@ import { applicationToPlain, maskIdentity } from '../lib/applications'
 import { requireStaff, type StaffAuthContext } from '../lib/auth-staff'
 import { categoryFromSetting, ensureCategorySeed } from '../lib/categories'
 import { json, type WorkerEnv } from '../lib/http'
+import { templateFromSetting } from '../lib/notification-templates'
 import { createServicePb } from '../lib/pb'
 import { compareLatestFirst, periodFromSetting, studentPeriodProfiles } from '../lib/periods'
 
@@ -70,8 +71,52 @@ function applicationFilter(pb: PocketBase, url: URL): string {
   return parts.join(' && ')
 }
 
-function eventToPlain(record: Row): Row {
-  return { ...obj(record.payload_json), ...baseFields(record), status: str(record.status) }
+function notificationToPlain(record: Row): Row {
+  const payload = obj(record.payload_json)
+  const recipient = obj(record.recipient_json)
+  return {
+    id: str(record.id),
+    recipient_student: nullable(recipient.student) || nullable(recipient.student_id),
+    recipient_staff: nullable(recipient.staff),
+    notification_type: str(payload.notification_type) || str(record.event_key) || 'system',
+    title: str(payload.title) || '系統通知',
+    message: str(payload.message),
+    application: nullable(payload.application) || nullable(record.target_id),
+    follow_up_task: nullable(payload.follow_up_task),
+    supplement_request: nullable(payload.supplement_request),
+    action_url: nullable(payload.action_url),
+    read_at: nullable(payload.read_at),
+    status: str(record.status) || 'unread',
+    ui_category: nullable(payload.ui_category),
+    created: str(record.created),
+    updated: str(record.updated),
+  }
+}
+
+function deliveryToPlain(record: Row): Row {
+  const payload = obj(record.payload_json)
+  const recipient = obj(record.recipient_json)
+  return {
+    id: str(record.id),
+    notification: nullable(payload.notification),
+    template: nullable(payload.template),
+    channel: str(payload.channel) || 'email',
+    recipient: str(payload.recipient) || str(recipient.email),
+    subject: str(payload.subject),
+    provider: nullable(payload.provider),
+    provider_message_id: nullable(payload.provider_message_id),
+    status: str(record.status) || 'queued',
+    attempt_count: Number(payload.attempt_count) || 0,
+    last_attempt_at: nullable(payload.last_attempt_at),
+    sent_at: nullable(payload.sent_at),
+    next_retry_at: nullable(payload.next_retry_at),
+    error_code: nullable(payload.error_code),
+    error_message: nullable(payload.error_message),
+    application: nullable(payload.application) || nullable(record.target_id),
+    recipient_student: nullable(recipient.student),
+    created: str(record.created),
+    updated: str(record.updated),
+  }
 }
 
 async function eventsByType(pb: PocketBase, type: string, extra = ''): Promise<Row[]> {
@@ -121,9 +166,17 @@ const routes: Array<{ pattern: RegExp; adminOnly?: boolean; handler: Handler }> 
     pattern: /^\/api\/hk\/admin\/notifications$/,
     handler: async ({ pb, url }) => {
       const studentId = url.searchParams.get('student_id')
-      const extra = studentId ? pb.filter('recipient_json ~ {:sid}', { sid: studentId }) : ''
-      const rows = await eventsByType(pb, 'notification', extra)
-      return json({ items: rows.map(eventToPlain) })
+      const applicationId = url.searchParams.get('application_id')
+      const category = url.searchParams.get('category')
+      const parts = [
+        studentId ? pb.filter('recipient_json ~ {:sid}', { sid: studentId }) : '',
+        applicationId ? pb.filter('target_id = {:aid} || payload_json ~ {:aid}', { aid: applicationId }) : '',
+      ].filter(Boolean)
+      const rows = await eventsByType(pb, 'notification', parts.join(' && '))
+      const items = rows
+        .map(notificationToPlain)
+        .filter((item) => !category || item.ui_category === category)
+      return json({ items })
     },
   },
   {
@@ -143,9 +196,13 @@ const routes: Array<{ pattern: RegExp; adminOnly?: boolean; handler: Handler }> 
     pattern: /^\/api\/hk\/admin\/notifications\/deliveries$/,
     handler: async ({ pb, url }) => {
       const status = url.searchParams.get('status')
-      const extra = status ? pb.filter('status = {:status}', { status }) : ''
-      const rows = await eventsByType(pb, 'email_log', extra)
-      return json({ items: rows.map(eventToPlain) })
+      const applicationId = url.searchParams.get('application_id')
+      const parts = [
+        status ? pb.filter('status = {:status}', { status }) : '',
+        applicationId ? pb.filter('target_id = {:aid} || payload_json ~ {:aid}', { aid: applicationId }) : '',
+      ].filter(Boolean)
+      const rows = await eventsByType(pb, 'email_log', parts.join(' && '))
+      return json({ items: rows.map(deliveryToPlain) })
     },
   },
   {
@@ -193,7 +250,12 @@ const routes: Array<{ pattern: RegExp; adminOnly?: boolean; handler: Handler }> 
     pattern: /^\/api\/hk\/admin\/notifications\/templates$/,
     handler: async ({ pb }) => {
       const rows = await settingsByType(pb, 'notification_template')
-      return json({ items: rows.map(settingItem) })
+      return json({
+        items: rows
+          .map((row) => templateFromSetting(row))
+          .filter((item) => item.code)
+          .sort((a, b) => a.code.localeCompare(b.code)),
+      })
     },
   },
   {

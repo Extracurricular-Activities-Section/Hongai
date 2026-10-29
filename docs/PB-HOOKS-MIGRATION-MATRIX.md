@@ -60,11 +60,11 @@ Browser → Cloudflare Worker /api/hk/* → PocketBase Data API (/api/collection
 | `hk_pdf_config.js` | PDF config | `partial` — short codes／serial 在 `lib/pdf.ts`；版型仍在 `pdf-engine/config.js` | n/a | n/a | **No** |
 | `hk_follow_up.pb.js` | 學生／管理追蹤任務、templates、category templates、ensure tasks | `none` | no | no | **No** |
 | `hk_follow_up_lib.js` | Follow-up lib | `none` | n/a | no | **No** |
-| `hk_notifications.pb.js` | 學生／管理通知、templates、mail status、dashboard、internal schedule／process | `stub` — `internal-jobs.ts` cron／queue **ack only** | no | no | **No** |
-| `hk_notification_service.js` | emit／queue／reminders | `stub` | n/a | no | **No** |
-| `hk_notification_render.js` | 安全模板渲染 | `none` | n/a | no | **No** |
-| `hk_mail_provider.js` | Mail provider | `none` | n/a | no | **No** |
-| `hk_notification_templates_seed.js` | 範本／reminder seed（hook 側） | `none`（migrations seed ≠ runtime emit） | n/a | no | **No** |
+| `hk_notifications.pb.js` | 學生／管理通知、templates、mail status、dashboard、internal schedule／process | `partial` — 學生 inbox 已讀／偏好；管理列表／儀表板／範本 CRUD／preview／seed（`admin-notifications.ts`）；寄信／cron 仍 stub | partial | partial | **No** |
+| `hk_notification_service.js` | emit／queue／reminders | `partial` — 站內 emit 散落 workflow／follow-up；queue／mail 未接 | n/a | no | **No** |
+| `hk_notification_render.js` | 安全模板渲染 | `complete` — `lib/notification-templates.ts` renderTemplate | n/a | n/a | **No** |
+| `hk_mail_provider.js` | Mail provider | `none`（刻意延後；resend 回 503） | n/a | no | **No** |
+| `hk_notification_templates_seed.js` | 範本／reminder seed（hook 側） | `partial` — POST seed 寫入 hk_settings；reminder rules 未 seed | n/a | no | **No** |
 | `hk_identity_reset.pb.js` | public identity-reset、admin list／status、unlock | `complete` — `routes/identity-reset.ts`（存 `hk_events` auth／identity_reset；含站內通知、不含寄信） | yes | partial | **No** |
 | `hk_helpers.js` | 共用 helpers | `none`（部分概念散落 CF lib） | n/a | no | **No** |
 

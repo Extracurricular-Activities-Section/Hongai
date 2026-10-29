@@ -29,6 +29,7 @@ import { handleAttachments } from './routes/attachments'
 import { handleIdentityReset } from './routes/identity-reset'
 import { handlePdf } from './routes/pdf'
 import { handleAdminOrg } from './routes/admin-org'
+import { handleAdminNotifications } from './routes/admin-notifications'
 
 export default {
   async fetch(request: Request, env: WorkerEnv): Promise<Response> {
@@ -79,6 +80,9 @@ export default {
 
       const adminOrg = await handleAdminOrg(request, env, path)
       if (adminOrg) return withCors(env, request, adminOrg)
+
+      const adminNotifications = await handleAdminNotifications(request, env, path)
+      if (adminNotifications) return withCors(env, request, adminNotifications)
 
       const adminRead = await handleAdminRead(request, env, path)
       if (adminRead) return withCors(env, request, adminRead)
