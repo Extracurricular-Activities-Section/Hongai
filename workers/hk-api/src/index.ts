@@ -28,6 +28,7 @@ import { handleStudentInbox } from './routes/student-inbox'
 import { handleAttachments } from './routes/attachments'
 import { handleIdentityReset } from './routes/identity-reset'
 import { handlePdf } from './routes/pdf'
+import { handleAdminOrg } from './routes/admin-org'
 
 export default {
   async fetch(request: Request, env: WorkerEnv): Promise<Response> {
@@ -75,6 +76,9 @@ export default {
 
       const pdf = await handlePdf(request, env, path)
       if (pdf) return withCors(env, request, pdf)
+
+      const adminOrg = await handleAdminOrg(request, env, path)
+      if (adminOrg) return withCors(env, request, adminOrg)
 
       const adminRead = await handleAdminRead(request, env, path)
       if (adminRead) return withCors(env, request, adminRead)

@@ -49,7 +49,7 @@ Browser → Cloudflare Worker /api/hk/* → PocketBase Data API (/api/collection
 | `hk_form_seed.js` | Form seed helpers | `none` | n/a | no | **No** |
 | `hk_form_builder.pb.js` | draft／schema／publish versions | `none` | no | no | **No** |
 | `hk_form_builder_lib.js` | Builder lib | `none` | n/a | no | **No** |
-| `hk_applications.pb.js` | submit、mine、admin list／action／assign／funding、staff／departments／assignments… | `none` | no | no | **No** |
+| `hk_applications.pb.js` | submit、mine、admin list／action／assign／funding、staff／departments／assignments… | `partial` — 申請／funding 等多已在 CF；staff／departments／assignments 寫入見 `routes/admin-org.ts` | partial | partial | **No** |
 | `hk_application_workflow.js` | 狀態機／workflow helpers | `none` | n/a | no | **No** |
 | `hk_application_guards.js` | 權限／IDOR guards | `none` | n/a | no | **No** |
 | `hk_funding_config.js` | Funding config helpers | `partial` — 僅有 **純計算** `rules/funding.ts` + annual-summary route；**無** create／preview／persist API | no | no | **No** |

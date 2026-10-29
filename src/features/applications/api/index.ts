@@ -233,6 +233,7 @@ export async function adminUpdateStaffUser(
     phone?: string
     job_title?: string
     notes?: string
+    department_ids?: string[]
   },
 ): Promise<StaffUser> {
   try {

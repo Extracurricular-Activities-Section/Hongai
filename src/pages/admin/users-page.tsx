@@ -106,6 +106,7 @@ export function AdminUsersPage() {
           is_admin: form.is_admin,
           active: form.active,
           password: form.password || undefined,
+          department_ids: form.department_ids,
         })
         setMessage('帳號已更新')
       } else {
