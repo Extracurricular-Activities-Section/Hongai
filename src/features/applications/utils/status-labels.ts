@@ -3,6 +3,7 @@ import type { ApplicationStatus, EligibilityStatus } from '../types'
 
 export const APPLICATION_STATUS_LABELS: Record<ApplicationStatus, string> = {
   submitted: '已送件',
+  teacher_signed: '老師已簽核',
   eligibility_review: '資格審核中',
   under_review: '內容審核中',
   supplement_required: '待補件',
@@ -22,6 +23,7 @@ export const ELIGIBILITY_STATUS_LABELS: Record<EligibilityStatus, string> = {
 }
 
 export const APPLICATION_ACTION_LABELS: Record<string, string> = {
+  mark_teacher_signed: '標記老師已簽核',
   start_eligibility_review: '開始資格審核',
   qualify_eligibility: '資格符合',
   disqualify_eligibility: '資格不符',

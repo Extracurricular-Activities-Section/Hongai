@@ -59,6 +59,21 @@ export function periodProfileToPlain(
     bank_account_registered: Boolean(stored.bank_account_registered),
     bank_account_note: stored.bank_account_note || null,
     qualification_note: stored.qualification_note || null,
+    special_approving_unit: stored.special_approving_unit || null,
+    special_proof: (() => {
+      const proof = stored.special_proof
+      if (!proof || typeof proof !== 'object' || Array.isArray(proof)) return null
+      const row = proof as Record<string, unknown>
+      if (!row.name) return null
+      return {
+        name: String(row.name),
+        mime: row.mime ? String(row.mime) : undefined,
+        size: typeof row.size === 'number' ? row.size : undefined,
+        uploaded_at: row.uploaded_at ? String(row.uploaded_at) : undefined,
+        // Never expose base64 to list/detail payloads by default
+        has_file: Boolean(row.data),
+      }
+    })(),
     confirmed_at: stored.confirmed_at || null,
     source_period: stored.source_period || null,
     copied_from_previous: Boolean(stored.copied_from_previous),

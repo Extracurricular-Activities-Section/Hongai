@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom'
 import { ProcessStepper, type ProcessStep } from '@/components/common/process-stepper'
 import { Button } from '@/components/ui/button'
 import { StudentSubmitPanel } from '@/features/applications/components/student-submit-panel'
+import { StudentSignaturePanel } from './student-signature-panel'
 
 export function StudentPaperPanel({
   submissionId,
@@ -54,6 +55,8 @@ export function StudentPaperPanel({
           ) : null}
         </div>
       </section>
+
+      <StudentSignaturePanel applicationId={submissionId} submitted={submitted} />
 
       <StudentSubmitPanel
         submissionId={submissionId}

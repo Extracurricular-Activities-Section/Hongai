@@ -9,6 +9,7 @@ import type {
   ListStudentNotificationsParams,
   MailProviderStatus,
   NotificationDashboardSummary,
+  NotificationAttachment,
   NotificationDelivery,
   NotificationPreferences,
   NotificationTemplate,
@@ -254,5 +255,32 @@ export async function adminSeedNotificationTemplates(): Promise<{
     })
   } catch (error) {
     throw mapError(error, '種子資料失敗')
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Attachment references (approval notices)
+// ---------------------------------------------------------------------------
+
+/** Download a referenced file with the signed-in user's own token (never a public URL). */
+export async function downloadNotificationAttachment(
+  attachment: NotificationAttachment,
+): Promise<void> {
+  try {
+    const token = studentPb.authStore.token || staffPb.authStore.token
+    const base = (studentPb.baseURL || staffPb.baseURL).replace(/\/+$/, '')
+    const response = await fetch(`${base}${attachment.download_path}`, {
+      headers: token ? { Authorization: token } : {},
+    })
+    if (!response.ok) throw new Error('下載失敗')
+    const blob = await response.blob()
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = attachment.name || 'download'
+    link.click()
+    URL.revokeObjectURL(url)
+  } catch (error) {
+    throw mapError(error, '下載附件失敗')
   }
 }

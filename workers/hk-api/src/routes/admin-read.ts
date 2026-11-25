@@ -3,6 +3,7 @@ import type PocketBase from 'pocketbase'
 import { applicationToPlain, maskIdentity } from '../lib/applications'
 import { requireStaff, type StaffAuthContext } from '../lib/auth-staff'
 import { categoryFromSetting, ensureCategorySeed } from '../lib/categories'
+import { categoryFundingStats } from '../lib/category-funding-stats'
 import { json, type WorkerEnv } from '../lib/http'
 import { templateFromSetting } from '../lib/notification-templates'
 import { createServicePb } from '../lib/pb'
@@ -47,7 +48,7 @@ function bySortOrder(a: Row, b: Row): number {
   return (Number(a.sort_order) || 0) - (Number(b.sort_order) || 0)
 }
 
-function applicationFilter(pb: PocketBase, url: URL): string {
+export function applicationFilter(pb: PocketBase, url: URL): string {
   const parts: string[] = ['status != "draft"']
   const q = url.searchParams.get('q')?.trim()
   if (q) {
@@ -71,6 +72,24 @@ function applicationFilter(pb: PocketBase, url: URL): string {
   return parts.join(' && ')
 }
 
+const APPLICATION_SORT_FIELDS = new Set([
+  'created',
+  'submitted_at',
+  'requested_amount',
+  'approved_amount',
+  'status',
+  'application_number',
+])
+
+/** Whitelisted sort ("field" or "-field"); anything else falls back to newest first. */
+function applicationSort(raw: string | null): string {
+  const value = raw?.trim() || ''
+  const field = value.replace(/^-/, '')
+  if (!APPLICATION_SORT_FIELDS.has(field)) return '-created'
+  // Keep paging stable when many rows share the same sort value.
+  return field === 'created' ? value : `${value},-created`
+}
+
 function notificationToPlain(record: Row): Row {
   const payload = obj(record.payload_json)
   const recipient = obj(record.recipient_json)
@@ -85,6 +104,7 @@ function notificationToPlain(record: Row): Row {
     follow_up_task: nullable(payload.follow_up_task),
     supplement_request: nullable(payload.supplement_request),
     action_url: nullable(payload.action_url),
+    attachments: arr(payload.attachments),
     read_at: nullable(payload.read_at),
     status: str(record.status) || 'unread',
     ui_category: nullable(payload.ui_category),
@@ -144,13 +164,24 @@ const routes: Array<{ pattern: RegExp; adminOnly?: boolean; handler: Handler }> 
     },
   },
   {
+    pattern: /^\/api\/hk\/admin\/stats\/category-funding$/,
+    handler: async ({ pb, staff, url }) => {
+      const scope = url.searchParams.get('scope') === 'submitted' ? 'submitted' : 'funded'
+      const stats = await categoryFundingStats(pb, staff, {
+        period: url.searchParams.get('period') || undefined,
+        scope,
+      })
+      return json(stats)
+    },
+  },
+  {
     pattern: /^\/api\/hk\/admin\/applications$/,
     handler: async ({ pb, url }) => {
       const page = Math.max(1, Number(url.searchParams.get('page')) || 1)
       const perPage = Math.min(100, Math.max(1, Number(url.searchParams.get('perPage')) || 20))
       const result = await pb.collection('hk_applications').getList(page, perPage, {
         filter: applicationFilter(pb, url),
-        sort: url.searchParams.get('sort') || '-created',
+        sort: applicationSort(url.searchParams.get('sort')),
         expand: 'student',
       })
       return json({

@@ -218,6 +218,8 @@ export function AdminFollowUpTemplatesPage() {
               <option value="file_and_text">檔案與文字</option>
               <option value="event_attendance">活動出席</option>
               <option value="confirmation">確認事項</option>
+              <option value="midterm_report">期中報告</option>
+              <option value="final_report">期末報告</option>
               <option value="other">其他</option>
             </select>
           </label>

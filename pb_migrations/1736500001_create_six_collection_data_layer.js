@@ -222,6 +222,7 @@ migrate(
             values: [
               'draft',
               'submitted',
+              'teacher_signed',
               'eligibility_review',
               'under_review',
               'supplement_required',

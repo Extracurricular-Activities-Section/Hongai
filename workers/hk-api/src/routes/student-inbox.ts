@@ -55,6 +55,7 @@ function notificationToPlain(record: Row, studentId: string): Row {
     follow_up_task: str(payload.follow_up_task) || null,
     supplement_request: str(payload.supplement_request) || null,
     action_url: str(payload.action_url) || null,
+    attachments: arr(payload.attachments),
     read_at: str(payload.read_at) || null,
     status: str(record.status) || 'unread',
     ui_category: str(payload.ui_category) || null,
@@ -224,7 +225,14 @@ async function submitTask({ pb, student, body }: Ctx, id: string) {
   if ((taskType === 'text' || taskType === 'file_and_text') && !text) {
     throw new HttpError(400, '請填寫繳交內容')
   }
-  if ((taskType === 'event_attendance' || taskType === 'other') && !text && !attachmentIds.length) {
+  if (
+    (taskType === 'event_attendance' ||
+      taskType === 'midterm_report' ||
+      taskType === 'final_report' ||
+      taskType === 'other') &&
+    !text &&
+    !attachmentIds.length
+  ) {
     throw new HttpError(400, '請填寫繳交內容或上傳附件')
   }
 

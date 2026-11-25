@@ -31,6 +31,7 @@ const DELIVERY_STATUS_OPTIONS = [
   { value: 'queued', label: '佇列中' },
   { value: 'sent', label: '已寄出' },
   { value: 'sent_simulated', label: '模擬寄出' },
+  { value: 'skipped', label: '已略過（郵件未設定）' },
   { value: 'failed', label: '失敗' },
 ]
 
@@ -123,9 +124,14 @@ export function AdminNotificationsPage() {
           <p className="mt-2 text-sm text-muted-foreground">檢視站內通知與 Email 寄送紀錄。</p>
         </div>
         {isAdmin ? (
-          <Button asChild size="sm" variant="outline">
-            <Link to="/admin/notifications/templates">通知範本</Link>
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button asChild size="sm" variant="outline">
+              <Link to="/admin/notifications/outreach">經濟不利生通知</Link>
+            </Button>
+            <Button asChild size="sm" variant="outline">
+              <Link to="/admin/notifications/templates">通知範本</Link>
+            </Button>
+          </div>
         ) : null}
       </div>
 

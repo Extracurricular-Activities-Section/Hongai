@@ -4,6 +4,8 @@ export type FollowUpTaskType =
   | 'file_and_text'
   | 'event_attendance'
   | 'confirmation'
+  | 'midterm_report'
+  | 'final_report'
   | 'other'
 
 export type FollowUpTaskStatus =

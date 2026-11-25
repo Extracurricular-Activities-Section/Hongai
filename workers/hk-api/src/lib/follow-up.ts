@@ -22,7 +22,16 @@ export const SETTING_TYPE = 'system'
 export const TEMPLATE_KEY_PREFIX = 'follow_up_template:'
 export const ASSIGNMENT_KEY_PREFIX = 'category_follow_up_template:'
 
-export const TASK_TYPES = ['file_upload', 'text', 'file_and_text', 'event_attendance', 'confirmation', 'other']
+export const TASK_TYPES = [
+  'file_upload',
+  'text',
+  'file_and_text',
+  'event_attendance',
+  'confirmation',
+  'midterm_report',
+  'final_report',
+  'other',
+]
 export const DEFAULT_TASK_EXTENSIONS = ['pdf', 'jpg', 'jpeg', 'png', 'docx']
 
 const STUDENT_SUBMITTABLE = new Set(['pending', 'supplement_required', 'overdue'])

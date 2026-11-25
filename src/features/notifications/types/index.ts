@@ -12,11 +12,20 @@ export type NotificationDeliveryStatus =
   | 'sending'
   | 'sent'
   | 'sent_simulated'
+  | 'skipped'
   | 'failed'
   | 'cancelled'
   | string
 
 export type NotificationChannel = 'email' | 'in_app' | 'both' | string
+
+/** Download reference carried by approval notices; resolved with the signed-in user's token. */
+export interface NotificationAttachment {
+  kind: 'generated_pdf' | 'signed_document' | string
+  id: string
+  name: string
+  download_path: string
+}
 
 export interface HadNotification {
   id: string
@@ -29,6 +38,7 @@ export interface HadNotification {
   follow_up_task: string | null
   supplement_request: string | null
   action_url: string | null
+  attachments?: NotificationAttachment[]
   read_at: string | null
   status: string
   ui_category: NotificationUiCategory | null

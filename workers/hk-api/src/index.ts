@@ -30,6 +30,9 @@ import { handleIdentityReset } from './routes/identity-reset'
 import { handlePdf } from './routes/pdf'
 import { handleAdminOrg } from './routes/admin-org'
 import { handleAdminNotifications } from './routes/admin-notifications'
+import { handleAdminOutreach } from './routes/admin-outreach'
+import { handleAdminApplicationsCsv } from './routes/admin-applications-csv'
+import { handleSignatures } from './routes/signatures'
 
 export default {
   async fetch(request: Request, env: WorkerEnv): Promise<Response> {
@@ -78,11 +81,20 @@ export default {
       const pdf = await handlePdf(request, env, path)
       if (pdf) return withCors(env, request, pdf)
 
+      const signatures = await handleSignatures(request, env, path)
+      if (signatures) return withCors(env, request, signatures)
+
       const adminOrg = await handleAdminOrg(request, env, path)
       if (adminOrg) return withCors(env, request, adminOrg)
 
       const adminNotifications = await handleAdminNotifications(request, env, path)
       if (adminNotifications) return withCors(env, request, adminNotifications)
+
+      const adminOutreach = await handleAdminOutreach(request, env, path)
+      if (adminOutreach) return withCors(env, request, adminOutreach)
+
+      const adminApplicationsCsv = await handleAdminApplicationsCsv(request, env, path)
+      if (adminApplicationsCsv) return withCors(env, request, adminApplicationsCsv)
 
       const adminRead = await handleAdminRead(request, env, path)
       if (adminRead) return withCors(env, request, adminRead)

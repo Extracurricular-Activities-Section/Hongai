@@ -10,7 +10,9 @@ import { EmptyState, ErrorState } from '@/components/common/states'
 import { Button } from '@/components/ui/button'
 import { SkeletonTable } from '@/components/ui/skeleton'
 import { adminListApplications } from '@/features/applications/api'
+import { ApplicationCsvTools } from '@/features/applications/components/application-csv-tools'
 import { StatusBadge } from '@/features/applications/components/status-badge'
+import { useBackofficeAuth } from '@/features/auth/backoffice/context'
 import type { Application } from '@/features/applications/types'
 import {
   APPLICATION_STATUS_LABELS,
@@ -22,7 +24,20 @@ import type { ApplicationCategory, ApplicationPeriod } from '@/types'
 
 const PER_PAGE = 20
 
+const SORT_OPTIONS = [
+  { value: '-submitted_at', label: '送件時間：新到舊' },
+  { value: 'submitted_at', label: '送件時間：舊到新' },
+  { value: '-requested_amount', label: '申請金額：高到低' },
+  { value: 'requested_amount', label: '申請金額：低到高' },
+  { value: '-approved_amount', label: '核定金額：高到低' },
+  { value: 'approved_amount', label: '核定金額：低到高' },
+  { value: 'status', label: '狀態：依代碼 A→Z' },
+  { value: '-status', label: '狀態：依代碼 Z→A' },
+]
+const SORT_VALUES = new Set(SORT_OPTIONS.map((option) => option.value))
+
 export function AdminApplicationsPage() {
+  const { isAdmin } = useBackofficeAuth()
   const [searchParams, setSearchParams] = useSearchParams()
   const [items, setItems] = useState<Application[] | null>(null)
   const [totalItems, setTotalItems] = useState(0)
@@ -36,13 +51,15 @@ export function AdminApplicationsPage() {
   const eligibility = searchParams.get('eligibility_status') || ''
   const period = searchParams.get('period') || ''
   const category = searchParams.get('category') || ''
+  const rawSort = searchParams.get('sort') || ''
+  const sort = SORT_VALUES.has(rawSort) ? rawSort : ''
   const page = Math.max(1, Number(searchParams.get('page') || 1))
 
   const activeFilterCount = [status, eligibility, period, category].filter(Boolean).length
 
   const queryKey = useMemo(
-    () => ({ q, status, eligibility, period, category, page }),
-    [q, status, eligibility, period, category, page],
+    () => ({ q, status, eligibility, period, category, sort, page }),
+    [q, status, eligibility, period, category, sort, page],
   )
 
   useEffect(() => {
@@ -65,6 +82,7 @@ export function AdminApplicationsPage() {
       eligibility_status: queryKey.eligibility || undefined,
       period: queryKey.period || undefined,
       category: queryKey.category || undefined,
+      sort: queryKey.sort || undefined,
       page: queryKey.page,
       perPage: PER_PAGE,
     })
@@ -87,6 +105,7 @@ export function AdminApplicationsPage() {
   function clearFilters() {
     const next = new URLSearchParams()
     if (q) next.set('q', q)
+    if (sort) next.set('sort', sort)
     setSearchParams(next)
   }
 
@@ -97,6 +116,18 @@ export function AdminApplicationsPage() {
       <PageHeader
         title="案件管理"
         description="承辦僅顯示授權範圍內的案件。可依關鍵字、狀態、資格、梯次與類別縮小範圍。"
+        actions={
+          <ApplicationCsvTools
+            canImport={isAdmin}
+            filters={{
+              q: q || undefined,
+              status: status || undefined,
+              eligibility_status: eligibility || undefined,
+              period: period || undefined,
+              category: category || undefined,
+            }}
+          />
+        }
       />
 
       <FilterBar>
@@ -139,6 +170,13 @@ export function AdminApplicationsPage() {
           value={category}
           options={categories.map((item) => ({ value: item.id, label: item.name }))}
           onChange={(value) => updateParam('category', value)}
+        />
+        <FilterSelect
+          label="排序方式"
+          allLabel="預設排序（最新建立）"
+          value={sort}
+          options={SORT_OPTIONS}
+          onChange={(value) => updateParam('sort', value)}
         />
         {activeFilterCount > 0 ? (
           <Button type="button" variant="ghost" size="sm" onClick={clearFilters}>

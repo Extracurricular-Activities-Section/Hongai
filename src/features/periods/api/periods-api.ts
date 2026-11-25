@@ -62,6 +62,13 @@ export interface ConfirmPeriodProfileInput {
   bank_account_registered: boolean
   bank_account_note?: string
   qualification_note?: string
+  special_approving_unit?: string
+  special_proof?: {
+    name: string
+    mime: string
+    data: string
+  } | null
+  keep_existing_special_proof?: boolean
   copy_from_previous?: boolean
 }
 

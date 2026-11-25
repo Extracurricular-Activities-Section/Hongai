@@ -117,10 +117,30 @@ export async function handleStudentAuth(
     }
 
     const studentNo = normalizeStudentNo(body.student_no)
-    const identityNumber = String(body.identity_number || '').trim().toUpperCase()
+    const identityNumber = String(body.identity_number || '')
+      .trim()
+      .toUpperCase()
+      .replace(/\s+/g, '')
     const identityLast4 = normalizeLast4(body.identity_last4 || identityNumber.slice(-4))
-    if (!studentNo || !identityNumber || !/^[0-9A-Z]{4}$/.test(identityLast4) || !body.name) {
-      return json({ error: 'bad_request', message: '註冊資料不完整或格式錯誤' }, { status: 400 })
+    const contactEmail = String(body.email || '')
+      .trim()
+      .toLowerCase()
+    if (
+      !studentNo ||
+      !/^[A-Z][0-9]{9}$/.test(identityNumber) ||
+      !/^[0-9A-Z]{4}$/.test(identityLast4) ||
+      !body.name
+    ) {
+      return json(
+        {
+          error: 'bad_request',
+          message: '註冊資料不完整或格式錯誤（身分證須為 1 碼英文＋9 碼數字）',
+        },
+        { status: 400 },
+      )
+    }
+    if (contactEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmail)) {
+      return json({ error: 'bad_request', message: '請輸入有效 Email' }, { status: 400 })
     }
 
     let pb
@@ -138,13 +158,15 @@ export async function handleStudentAuth(
 
     try {
       const identityHash = await sha256Hex(identityNumber)
-      await pb.collection('hk_students').create({
-        email: studentInternalEmail(studentNo),
-        emailVisibility: false,
+      const existing = await pb
+        .collection('hk_students')
+        .getFirstListItem(`student_no="${studentNo.replace(/"/g, '\\"')}"`)
+        .catch(() => null)
+
+      const profileFields = {
         password: identityLast4,
         passwordConfirm: identityLast4,
         verified: true,
-        student_no: studentNo,
         identity_last4: identityLast4,
         identity_hash: identityHash,
         name: body.name,
@@ -157,20 +179,45 @@ export async function handleStudentAuth(
         line_id: body.line_id || '',
         bank_account_registered: Boolean(body.bank_account_registered),
         bank_account_note: body.bank_account_note || '',
-        profile_json: {
-          contact_email: body.email || '',
-          original_registration_email: body.email || '',
-        },
-        notification_preferences_json: {
-          email_enabled: true,
-          in_app_enabled: true,
-          event_reminders: true,
-          follow_up_reminders: true,
-        },
         active: true,
         failed_login_count: 0,
-        registered_at: new Date().toISOString(),
-      })
+      }
+
+      if (existing) {
+        // 同學生重複註冊：覆蓋舊資料（保留既有 period_profiles／category_entries）
+        const prevProfile =
+          existing.profile_json && typeof existing.profile_json === 'object'
+            ? (existing.profile_json as Record<string, unknown>)
+            : {}
+        await pb.collection('hk_students').update(String(existing.id), {
+          ...profileFields,
+          profile_json: {
+            ...prevProfile,
+            contact_email: contactEmail,
+            original_registration_email:
+              prevProfile.original_registration_email || contactEmail,
+            registration_overwritten_at: new Date().toISOString(),
+          },
+        })
+      } else {
+        await pb.collection('hk_students').create({
+          email: studentInternalEmail(studentNo),
+          emailVisibility: false,
+          student_no: studentNo,
+          ...profileFields,
+          profile_json: {
+            contact_email: contactEmail,
+            original_registration_email: contactEmail,
+          },
+          notification_preferences_json: {
+            email_enabled: true,
+            in_app_enabled: true,
+            event_reminders: true,
+            follow_up_reminders: true,
+          },
+          registered_at: new Date().toISOString(),
+        })
+      }
     } catch (err) {
       return json(
         {

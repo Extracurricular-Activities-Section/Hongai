@@ -9,7 +9,10 @@ export const APPLICATION_IDENTITY_TYPES = [
   { code: 'family_emergency', label: '家庭突遭變故' },
   { code: 'pregnant', label: '懷孕學生' },
   { code: 'raising_child_under_three', label: '撫養未滿三歲子女' },
-  { code: 'other_special', label: '其他特殊情況' },
+  {
+    code: 'other_special',
+    label: '其他因特殊情況需協助（需經學校單位通過）',
+  },
 ] as const
 
 export type ApplicationIdentityTypeCode =
@@ -28,5 +31,10 @@ export function needsWeakAidLevel(codes: string[]): boolean {
 }
 
 export function needsQualificationNote(codes: string[]): boolean {
+  return codes.includes('other_special')
+}
+
+/** 其他特殊情況：需填通過單位＋上傳證明。 */
+export function needsSpecialApprovalProof(codes: string[]): boolean {
   return codes.includes('other_special')
 }

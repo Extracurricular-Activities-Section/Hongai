@@ -70,7 +70,6 @@ export function StudentLoginPage() {
           <Input
             id="student-id"
             autoComplete="username"
-            inputMode="numeric"
             placeholder="請輸入學號"
             disabled={submitting}
             aria-invalid={form.formState.errors.student_no ? true : undefined}

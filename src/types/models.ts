@@ -180,6 +180,14 @@ export interface PeriodStudentProfile extends BaseRecord {
   bank_account_registered: boolean
   bank_account_note?: string | null
   qualification_note?: string | null
+  special_approving_unit?: string | null
+  special_proof?: {
+    name: string
+    mime?: string
+    size?: number
+    uploaded_at?: string
+    has_file?: boolean
+  } | null
   confirmed_at?: string | null
   source_period?: string | null
   copied_from_previous: boolean

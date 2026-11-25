@@ -20,6 +20,7 @@ import { AdminFundingPage } from '@/pages/admin/funding-page'
 import { AdminIdentityResetPage } from '@/pages/admin/identity-reset-page'
 import { AdminNotificationTemplatesPage } from '@/pages/admin/notification-templates-page'
 import { AdminNotificationsPage } from '@/pages/admin/notifications-page'
+import { AdminOutreachPage } from '@/pages/admin/outreach-page'
 import { AdminPeriodsPage } from '@/pages/admin/periods-page'
 import { AdminStudentsPage } from '@/pages/admin/students-page'
 import { AdminTaskDetailPage } from '@/pages/admin/task-detail-page'
@@ -123,6 +124,7 @@ const adminRoutes: RouteObject = {
         { path: 'follow-up-templates', element: <AdminFollowUpTemplatesPage /> },
         { path: 'notifications', element: <AdminNotificationsPage /> },
         { path: 'notifications/templates', element: <AdminNotificationTemplatesPage /> },
+        { path: 'notifications/outreach', element: <AdminOutreachPage /> },
         { path: 'users', element: <AdminUsersPage /> },
         { path: 'departments', element: <AdminDepartmentsPage /> },
         { path: 'periods', element: <AdminPeriodsPage /> },

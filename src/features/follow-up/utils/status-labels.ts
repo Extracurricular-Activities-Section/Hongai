@@ -17,7 +17,25 @@ export const FOLLOW_UP_TYPE_LABELS: Record<string, string> = {
   file_and_text: '檔案與文字',
   event_attendance: '活動出席',
   confirmation: '確認事項',
+  midterm_report: '期中報告',
+  final_report: '期末報告',
   other: '其他',
+}
+
+/** Report-style tasks: shown with a fixed student-facing title and submission guidance. */
+export const FOLLOW_UP_REPORT_GUIDE: Record<string, { title: string; guide: string }> = {
+  midterm_report: {
+    title: '期中報告',
+    guide: '請於期限內繳交期中報告：可填寫執行進度說明，並上傳報告檔案（PDF、圖片或 Word）。繳交後由承辦審核。',
+  },
+  final_report: {
+    title: '期末報告',
+    guide: '請於期限內繳交期末報告：可填寫成果與心得說明，並上傳報告檔案（PDF、圖片或 Word）。繳交後由承辦審核。',
+  },
+}
+
+export function isReportTaskType(type: string): boolean {
+  return type in FOLLOW_UP_REPORT_GUIDE
 }
 
 export function followUpStatusLabel(status: FollowUpTaskStatus | string): string {

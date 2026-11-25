@@ -24,6 +24,7 @@ export const DELIVERY_STATUS_LABELS: Record<string, string> = {
   sending: '寄送中',
   sent: '已寄出',
   sent_simulated: '模擬寄出',
+  skipped: '已略過（郵件未設定）',
   failed: '失敗',
   cancelled: '已取消',
 }

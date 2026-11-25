@@ -18,6 +18,7 @@ PocketBase 只當資料庫與檔案儲存層；弘愛築夢 business API、權�
 | 檔案 | 說明 |
 | --- | --- |
 | `1736500001_create_six_collection_data_layer.js` | 建立六張 greenfield data-layer collections |
+| `1736500002_add_teacher_signed_status.js` | `hk_applications.status` 新增 `teacher_signed`（老師已簽核；冪等，需受控環境套用） |
 
 ## 六張 Collection 用途
 

@@ -13,6 +13,7 @@ import {
   APPLICATION_IDENTITY_TYPES,
   needsDisabilityLevel,
   needsQualificationNote,
+  needsSpecialApprovalProof,
   needsWeakAidLevel,
 } from '@/features/periods/constants/eligibility'
 import {
@@ -31,6 +32,8 @@ const schema = z
     bank_account_registered: z.boolean(),
     bank_account_note: z.string().optional(),
     qualification_note: z.string().optional(),
+    special_approving_unit: z.string().optional(),
+    special_proof_file: z.any().optional(),
   })
   .superRefine((value, ctx) => {
     if (!value.bank_account_registered && !value.bank_account_note?.trim()) {
@@ -47,6 +50,15 @@ const schema = z
         path: ['qualification_note'],
       })
     }
+    if (needsSpecialApprovalProof(value.application_identity_types)) {
+      if (!value.special_approving_unit?.trim()) {
+        ctx.addIssue({
+          code: 'custom',
+          message: '請填寫學校通過單位名稱',
+          path: ['special_approving_unit'],
+        })
+      }
+    }
   })
 
 type FormValues = z.infer<typeof schema>
@@ -57,6 +69,7 @@ export function StudentCurrentConfirmPage() {
   const [error, setError] = useState<string | null>(null)
   const [mode, setMode] = useState<'choose' | 'form'>('form')
   const [copiedFromPrevious, setCopiedFromPrevious] = useState(false)
+  const [existingProofName, setExistingProofName] = useState<string | null>(null)
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -68,6 +81,8 @@ export function StudentCurrentConfirmPage() {
       bank_account_registered: true,
       bank_account_note: '',
       qualification_note: '',
+      special_approving_unit: '',
+      special_proof_file: undefined,
     },
   })
 
@@ -99,7 +114,10 @@ export function StudentCurrentConfirmPage() {
           bank_account_note:
             data.existing_profile?.bank_account_note || data.defaults.bank_account_note || '',
           qualification_note: data.existing_profile?.qualification_note || '',
+          special_approving_unit: data.existing_profile?.special_approving_unit || '',
+          special_proof_file: undefined,
         })
+        setExistingProofName(data.existing_profile?.special_proof?.name || null)
       } catch (err) {
         if (!cancelled) setError(err instanceof Error ? err.message : '載入失敗')
       }
@@ -125,16 +143,54 @@ export function StudentCurrentConfirmPage() {
       bank_account_registered: prev.bank_account_registered,
       bank_account_note: prev.bank_account_note || '',
       qualification_note: prev.qualification_note || '',
+      special_approving_unit: prev.special_approving_unit || '',
+      special_proof_file: undefined,
     })
+    setExistingProofName(prev.special_proof?.name || null)
     setCopiedFromPrevious(true)
     setMode('form')
+  }
+
+  async function readProofFile(file: File): Promise<{ name: string; mime: string; data: string }> {
+    if (file.size > 1.5 * 1024 * 1024) {
+      throw new Error('證明檔案請小於 1.5MB')
+    }
+    const buffer = await file.arrayBuffer()
+    const bytes = new Uint8Array(buffer)
+    let binary = ''
+    for (let i = 0; i < bytes.length; i += 1) binary += String.fromCharCode(bytes[i]!)
+    return {
+      name: file.name,
+      mime: file.type || 'application/octet-stream',
+      data: btoa(binary),
+    }
   }
 
   async function onSubmit(values: FormValues) {
     setError(null)
     try {
+      const needsProof = needsSpecialApprovalProof(values.application_identity_types)
+      const file = values.special_proof_file instanceof FileList
+        ? values.special_proof_file[0]
+        : values.special_proof_file instanceof File
+          ? values.special_proof_file
+          : null
+      if (needsProof && !file && !existingProofName) {
+        setError('請上傳單位通過證明文件')
+        return
+      }
+      const special_proof = file ? await readProofFile(file) : null
       await confirmPeriodProfile({
-        ...values,
+        grade: values.grade,
+        application_identity_types: values.application_identity_types,
+        disability_level: values.disability_level,
+        weak_aid_level: values.weak_aid_level,
+        bank_account_registered: values.bank_account_registered,
+        bank_account_note: values.bank_account_note,
+        qualification_note: values.qualification_note,
+        special_approving_unit: needsProof ? values.special_approving_unit : '',
+        special_proof,
+        keep_existing_special_proof: needsProof && !special_proof && Boolean(existingProofName),
         copy_from_previous: copiedFromPrevious,
       })
       navigate('/student/current', { replace: true })
@@ -284,6 +340,41 @@ export function StudentCurrentConfirmPage() {
               </p>
             ) : null}
           </div>
+
+          {needsSpecialApprovalProof(types) ? (
+            <div className="space-y-4 rounded-xl border border-border bg-surface-muted/40 p-4">
+              <p className="text-sm text-muted-foreground">
+                選擇「其他因特殊情況需協助」時，須經學校單位通過，並上傳證明文件。
+              </p>
+              <div className="space-y-2">
+                <Label>通過單位名稱（必填）</Label>
+                <Input
+                  disabled={submitting}
+                  placeholder="例：學務處／輔導中心"
+                  {...form.register('special_approving_unit')}
+                />
+                {form.formState.errors.special_approving_unit ? (
+                  <p className="text-meta font-medium text-danger">
+                    {form.formState.errors.special_approving_unit.message}
+                  </p>
+                ) : null}
+              </div>
+              <div className="space-y-2">
+                <Label>單位通過證明（必填，PDF／圖片，限 1.5MB）</Label>
+                <Input
+                  type="file"
+                  accept=".pdf,image/*"
+                  disabled={submitting}
+                  {...form.register('special_proof_file')}
+                />
+                {existingProofName ? (
+                  <p className="text-meta text-muted-foreground">
+                    已上傳：{existingProofName}（未選新檔則沿用）
+                  </p>
+                ) : null}
+              </div>
+            </div>
+          ) : null}
 
           {error ? <p className="text-sm font-medium text-danger">{error}</p> : null}
 

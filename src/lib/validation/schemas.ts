@@ -12,20 +12,28 @@ export const phoneSchema = z
   .min(8, '請輸入有效電話')
   .max(20, '電話過長')
 
-export const emailSchema = z.string().trim().email('請輸入有效 Email')
+export const emailSchema = z
+  .string()
+  .trim()
+  .toLowerCase()
+  .email('請輸入有效 Email（例：name@example.edu.tw）')
+  .max(254, 'Email 過長')
 
 export const identityLast4Schema = z
   .string()
   .trim()
   .regex(/^[0-9A-Za-z]{4}$/, '請輸入 4 碼')
 
-/** Accept national ID / residence permit / other legal IDs — length only. */
+/** 身分證／居留證防呆：英文字母 1 碼 + 數字 9 碼（自動大寫）。 */
 export const identityNumberSchema = z
   .string()
   .trim()
-  .min(4, '身分證件號碼過短')
-  .max(32, '身分證件號碼過長')
-  .transform((value) => value.toUpperCase())
+  .transform((value) => value.toUpperCase().replace(/\s+/g, ''))
+  .pipe(
+    z
+      .string()
+      .regex(/^[A-Z][0-9]{9}$/, '身分證件號碼須為 1 碼英文字母 + 9 碼數字'),
+  )
 
 export const studentLoginSchema = z.object({
   student_no: studentNoSchema,

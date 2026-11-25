@@ -8,6 +8,7 @@ import { SecureFileUpload } from '@/features/attachments/components/secure-file-
 import { getMyFollowUpTask, submitFollowUpTask } from '@/features/follow-up/api'
 import type { FollowUpTaskDetail } from '@/features/follow-up/types'
 import {
+  FOLLOW_UP_REPORT_GUIDE,
   followUpStatusLabel,
   followUpTypeLabel,
   isStudentActionableStatus,
@@ -52,8 +53,12 @@ export function StudentTaskDetailPage() {
 
   const { task } = detail
   const canSubmit = isStudentActionableStatus(task.status, task.allow_resubmit)
+  const report = FOLLOW_UP_REPORT_GUIDE[task.task_type] ?? null
   const needsFile = task.task_type === 'file_upload' || task.task_type === 'file_and_text'
   const needsText = task.task_type === 'text' || task.task_type === 'file_and_text'
+  // Reports accept a written summary and/or a file; the server requires at least one.
+  const showText = needsText || Boolean(report)
+  const showFiles = needsFile || Boolean(report)
   const allowed = task.allowed_extensions?.length
     ? task.allowed_extensions
     : ['pdf', 'jpg', 'jpeg', 'png', 'docx']
@@ -67,7 +72,7 @@ export function StudentTaskDetailPage() {
     try {
       const result = await submitFollowUpTask(taskId, {
         text_content: textContent || undefined,
-        attachment_ids: needsFile ? attachmentIds : undefined,
+        attachment_ids: showFiles ? attachmentIds : undefined,
       })
       setMessage(result.message)
       await load()
@@ -86,7 +91,10 @@ export function StudentTaskDetailPage() {
             追蹤任務
           </Link>
         </p>
-        <h1 className="mt-1 text-page font-semibold text-foreground">{task.name}</h1>
+        <h1 className="mt-1 text-page font-semibold text-foreground">{report ? report.title : task.name}</h1>
+        {report && task.name && task.name !== report.title ? (
+          <p className="mt-1 text-sm text-subtle">{task.name}</p>
+        ) : null}
         <p className="mt-2 text-sm text-muted-foreground">
           {followUpStatusLabel(task.status)}
           {task.is_overdue ? ' · 逾期' : ''} · {followUpTypeLabel(task.task_type)}
@@ -101,12 +109,13 @@ export function StudentTaskDetailPage() {
           <CardTitle className="text-base">任務說明</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2 text-sm">
+          {report ? <p className="font-medium text-foreground">繳交說明：{report.guide}</p> : null}
           {task.description ? <p>{task.description}</p> : null}
           {task.student_instructions ? <p>{task.student_instructions}</p> : null}
           {task.due_at ? <p>截止：{formatTaipeiDateTime(task.due_at)}</p> : null}
           {task.event_location ? <p>地點：{task.event_location}</p> : null}
           {task.event_note ? <p>活動備註：{task.event_note}</p> : null}
-          {!task.description && !task.student_instructions ? (
+          {!report && !task.description && !task.student_instructions ? (
             <p className="text-muted-foreground">無額外說明。</p>
           ) : null}
         </CardContent>
@@ -134,9 +143,11 @@ export function StudentTaskDetailPage() {
           <CardTitle className="text-base">{canSubmit ? '繳交內容' : '已繳交內容'}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4 text-sm">
-          {needsText ? (
+          {showText ? (
             <label className="block space-y-1">
-              <span className="text-muted-foreground">文字內容{needsText && canSubmit ? ' *' : ''}</span>
+              <span className="text-muted-foreground">
+                {report ? '報告說明（選填，與檔案至少擇一）' : `文字內容${needsText && canSubmit ? ' *' : ''}`}
+              </span>
               <textarea
                 className="min-h-28 w-full rounded-md border border-input bg-surface text-foreground transition-colors placeholder:text-muted-foreground hover:border-border-strong focus-visible:border-accent-strong disabled:cursor-not-allowed disabled:bg-surface-muted disabled:opacity-70 px-3 py-2 text-sm"
                 value={textContent}
@@ -146,7 +157,7 @@ export function StudentTaskDetailPage() {
             </label>
           ) : null}
 
-          {needsFile || detail.attachments.length > 0 ? (
+          {showFiles || detail.attachments.length > 0 ? (
             <SecureFileUpload
               allowedExtensions={allowed}
               maxFiles={maxFiles}

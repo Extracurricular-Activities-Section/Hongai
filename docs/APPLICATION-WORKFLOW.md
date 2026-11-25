@@ -16,7 +16,8 @@ PDF 來自 submission snapshot；審核／核定狀態不塞回 submission。
 允許轉換（server `hk_application_workflow.js`）：
 
 ```text
-submitted → eligibility_review
+submitted → teacher_signed（mark_teacher_signed，老師已簽核）| eligibility_review（舊案相容）
+teacher_signed → eligibility_review | rejected
 eligibility_review → under_review | supplement_required | rejected
 under_review → approved | supplement_required | returned_for_edit | rejected
 supplement_required → under_review | returned_for_edit | rejected

@@ -156,6 +156,26 @@ export const TEMPLATE_SEED: TemplateDef[] = [
       '親愛的 {{student_name}} 同學，您好：\n\n提醒您：活動「{{event_name}}」即將開始。\n\n時間：{{event_start_at}}\n地點：{{event_location}}\n\n{{event_note}}\n\n請準時參加。\n\n此為系統自動通知，敬請知悉。',
   },
   {
+    code: 'application_approved_attachments',
+    name: '申請通過（含附件連結）',
+    channel: 'both',
+    category: 'application',
+    is_critical: false,
+    subject_template: '【弘愛築夢】申請通過通知（{{application_number}}）',
+    body_template:
+      '親愛的 {{student_name}} 同學，您好：\n\n您申請之「{{category_name}}」案件（編號：{{application_number}}）已審核通過。\n\n{{student_message}}\n\n相關文件：\n{{attachment_list}}\n\n附件可於系統下載（需登入）：{{download_url}}\n\n此為系統自動通知，敬請知悉。',
+  },
+  {
+    code: 'economically_disadvantaged_outreach',
+    name: '經濟不利生申請邀請',
+    channel: 'both',
+    category: 'system',
+    is_critical: false,
+    subject_template: '【弘愛築夢】您符合經濟不利資格，歡迎申請',
+    body_template:
+      '親愛的 {{student_name}} 同學，您好：\n\n您符合經濟不利資格，歡迎申請弘愛築夢。\n\n請登入系統查看開放中的申請項目：{{apply_url}}\n\n此為系統自動通知，敬請知悉。',
+  },
+  {
     code: 'identity_reset_processed',
     name: '身分重置申請處理結果',
     channel: 'both',

@@ -3,6 +3,7 @@ import type { BaseRecord, Gender } from './models'
 export type HkApplicationStatus =
   | 'draft'
   | 'submitted'
+  | 'teacher_signed'
   | 'eligibility_review'
   | 'under_review'
   | 'supplement_required'

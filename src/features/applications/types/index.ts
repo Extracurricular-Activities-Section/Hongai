@@ -11,6 +11,7 @@ import type {
 
 export type ApplicationStatus =
   | 'submitted'
+  | 'teacher_signed'
   | 'eligibility_review'
   | 'under_review'
   | 'supplement_required'
@@ -28,6 +29,7 @@ export type EligibilityStatus =
   | 'disqualified'
 
 export type ApplicationAction =
+  | 'mark_teacher_signed'
   | 'start_eligibility_review'
   | 'qualify_eligibility'
   | 'disqualify_eligibility'
@@ -165,6 +167,35 @@ export interface ApplicationListParams {
   page?: number
   perPage?: number
   sort?: string
+}
+
+export type CategoryFundingScope = 'funded' | 'submitted'
+
+export interface CategoryFundingStatsParams {
+  period?: string
+  scope?: CategoryFundingScope
+}
+
+export interface CategoryFundingStats {
+  period: string | null
+  scope: CategoryFundingScope
+  /** null = 管理員（全部項目）；陣列 = 承辦被授權的項目代碼。 */
+  restricted_to_categories: string[] | null
+  by_department: Array<{
+    department_name: string
+    approved_total: number
+    application_count: number
+    unique_students: number
+  }>
+  by_department_category: Array<{
+    department_name: string
+    category_code: string
+    category_name: string
+    person_times: number
+    unique_students: number
+    approved_total: number
+  }>
+  unique_students_across_categories: number
 }
 
 export interface ApplicationListResponse {

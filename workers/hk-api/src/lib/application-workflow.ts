@@ -32,14 +32,19 @@ export class WorkflowError extends Error {
 }
 
 export const ACTION_TRANSITIONS: Record<string, { from: string[]; to: string }> = {
-  start_eligibility_review: { from: ['submitted'], to: 'eligibility_review' },
+  // 老師已簽核：送件後可標記；舊案仍可直接從 submitted 開始資格審核。
+  mark_teacher_signed: { from: ['submitted'], to: 'teacher_signed' },
+  start_eligibility_review: { from: ['submitted', 'teacher_signed'], to: 'eligibility_review' },
   qualify_eligibility: { from: ['eligibility_review'], to: 'under_review' },
   disqualify_eligibility: { from: ['eligibility_review', 'under_review'], to: 'rejected' },
   request_supplement: { from: ['eligibility_review', 'under_review'], to: 'supplement_required' },
   accept_supplement: { from: ['supplement_required'], to: 'under_review' },
   return_for_edit: { from: ['under_review', 'supplement_required'], to: 'returned_for_edit' },
   approve: { from: ['under_review'], to: 'approved' },
-  reject: { from: ['eligibility_review', 'under_review', 'supplement_required'], to: 'rejected' },
+  reject: {
+    from: ['teacher_signed', 'eligibility_review', 'under_review', 'supplement_required'],
+    to: 'rejected',
+  },
   begin_funding: { from: ['approved'], to: 'funding_pending' },
   revise_funding: { from: ['funding_decided'], to: 'funding_pending' },
   close: { from: ['funding_decided'], to: 'closed' },
@@ -211,27 +216,71 @@ export async function annualFundingSummary(pb: PocketBase, studentId: string, ac
   const [rows, annualLimit] = await Promise.all([
     pb.collection('hk_applications').getFullList({
       filter: pb.filter('student = {:sid} && status != "draft"', { sid: studentId }),
-      fields: 'id,application_number,category_code,status,requested_amount,approved_amount,period_json,funding_json',
+      fields:
+        'id,application_number,category_code,category_name,status,requested_amount,approved_amount,submitted_at,period_json,funding_json',
+      sort: 'submitted_at,created',
     }) as Promise<Row[]>,
     annualLimitFor(pb, academicYear),
   ])
   let totalRequested = 0
   let totalApproved = 0
-  const applications: Row[] = []
+  const applications: Array<{
+    application_id: string
+    application_number: string
+    category: string
+    category_name: string
+    period_name: string
+    status: string
+    submitted_at: string | null
+    requested_amount: number
+    approved_amount: number
+    has_final_decision: boolean
+    items: Array<{ item_label: string; requested_amount: number; approved_amount: number }>
+  }> = []
+  const byCategory = new Map<
+    string,
+    { category: string; category_name: string; application_count: number; requested_amount: number; approved_amount: number }
+  >()
   for (const row of rows) {
-    if (num(obj(row.period_json).academic_year) !== academicYear) continue
+    const period = obj(row.period_json)
+    if (num(period.academic_year) !== academicYear) continue
     const final = latestFinalDecision(row)
     const approved = final ? num(final.approved_total) : num(row.approved_amount)
-    totalRequested += num(row.requested_amount)
+    const requested = num(row.requested_amount)
+    const category = str(row.category_code)
+    const categoryName = str(row.category_name) || category
+    totalRequested += requested
     totalApproved += approved
     applications.push({
       application_id: str(row.id),
       application_number: str(row.application_number),
-      category: str(row.category_code),
+      category,
+      category_name: categoryName,
+      period_name: str(period.name),
       status: str(row.status),
-      requested_amount: num(row.requested_amount),
+      submitted_at: row.submitted_at ? str(row.submitted_at) : null,
+      requested_amount: requested,
       approved_amount: approved,
+      has_final_decision: Boolean(final),
+      items: final
+        ? arr(final.items).map((item) => ({
+            item_label: str(item.item_label),
+            requested_amount: num(item.requested_amount),
+            approved_amount: num(item.approved_amount),
+          }))
+        : [],
     })
+    const bucket = byCategory.get(category) ?? {
+      category,
+      category_name: categoryName,
+      application_count: 0,
+      requested_amount: 0,
+      approved_amount: 0,
+    }
+    bucket.application_count += 1
+    bucket.requested_amount += requested
+    bucket.approved_amount += approved
+    byCategory.set(category, bucket)
   }
   return {
     academic_year: academicYear,
@@ -239,6 +288,7 @@ export async function annualFundingSummary(pb: PocketBase, studentId: string, ac
     total_requested: totalRequested,
     total_approved: totalApproved,
     applications,
+    by_category: [...byCategory.values()],
   }
 }
 
@@ -272,6 +322,8 @@ export async function notifyStudent(
     actionUrl: string
     supplementId?: string
     followUpTaskId?: string
+    /** Download references (generated PDF / signed document); resolved with the user's own token. */
+    attachments?: Row[]
   },
 ): Promise<void> {
   try {
@@ -290,6 +342,7 @@ export async function notifyStudent(
         supplement_request: input.supplementId ?? null,
         follow_up_task: input.followUpTaskId ?? null,
         action_url: input.actionUrl,
+        attachments: input.attachments ?? [],
         read_at: null,
       },
       status: 'unread',

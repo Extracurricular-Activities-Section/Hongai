@@ -12,6 +12,8 @@ import type {
   ApplicationListResponse,
   ApplicationSummaryCounts,
   CategoryDepartmentAssignment,
+  CategoryFundingStats,
+  CategoryFundingStatsParams,
   FundingCreatePayload,
   FundingPreviewResponse,
   StaffUserAdmin,
@@ -92,6 +94,19 @@ export async function adminApplicationsSummary(): Promise<ApplicationSummaryCoun
     return await staffPb.send('/api/hk/admin/applications/summary', { method: 'GET' })
   } catch (error) {
     throw mapError(error, '無法載入案件摘要')
+  }
+}
+
+export async function adminCategoryFundingStats(
+  params: CategoryFundingStatsParams = {},
+): Promise<CategoryFundingStats> {
+  try {
+    const query: Record<string, string> = {}
+    if (params.period) query.period = params.period
+    if (params.scope) query.scope = params.scope
+    return await staffPb.send('/api/hk/admin/stats/category-funding', { method: 'GET', query })
+  } catch (error) {
+    throw mapError(error, '無法載入補助統計')
   }
 }
 

@@ -56,7 +56,19 @@ export interface AnnualFundingSummary {
     application_id: string
     application_number: string
     category: string
+    category_name?: string
+    period_name?: string
     status: string
+    submitted_at?: string | null
+    requested_amount: number
+    approved_amount: number
+    has_final_decision?: boolean
+    items?: Array<{ item_label: string; requested_amount: number; approved_amount: number }>
+  }>
+  by_category?: Array<{
+    category: string
+    category_name: string
+    application_count: number
     requested_amount: number
     approved_amount: number
   }>

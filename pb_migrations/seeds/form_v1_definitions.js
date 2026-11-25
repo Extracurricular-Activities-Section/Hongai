@@ -84,7 +84,7 @@ function languageCertification() {
           }),
           f({
             code: 'requested_items',
-            label: '希望補助項目',
+            label: '申請補助項目',
             field_type: 'repeat_group',
             required: false,
             sort_order: 3,
@@ -143,7 +143,7 @@ function languageCertification() {
           }),
           f({
             code: 'requested_total',
-            label: '希望補助總金額',
+            label: '申請金額合計',
             field_type: 'computed',
             required: false,
             sort_order: 7,
@@ -253,7 +253,7 @@ function commonCompetency() {
           }),
           f({
             code: 'requested_total',
-            label: '希望補助總金額',
+            label: '申請金額合計',
             field_type: 'currency',
             required: false,
             sort_order: 2,
@@ -379,7 +379,7 @@ function otherForm() {
         fields: [
           f({
             code: 'requested_items',
-            label: '希望補助項目',
+            label: '申請補助項目',
             field_type: 'repeat_group',
             sort_order: 1,
             config: {
@@ -392,7 +392,7 @@ function otherForm() {
           }),
           f({
             code: 'requested_total',
-            label: '希望補助總金額',
+            label: '申請金額合計',
             field_type: 'computed',
             sort_order: 2,
             copy_previous: false,
@@ -640,7 +640,7 @@ function externalCompetition() {
           }),
           f({
             code: 'requested_total',
-            label: '希望補助總金額',
+            label: '申請金額合計',
             field_type: 'computed',
             sort_order: 7,
             copy_previous: false,
@@ -844,7 +844,7 @@ function overseasStudy() {
           }),
           f({
             code: 'requested_total',
-            label: '希望補助總金額',
+            label: '申請金額合計',
             field_type: 'computed',
             sort_order: 6,
             copy_previous: false,
@@ -982,7 +982,7 @@ function professionalCertification() {
         fields: [
           f({
             code: 'requested_total',
-            label: '希望補助助學金金額',
+            label: '申請助學金金額',
             field_type: 'currency',
             required: true,
             sort_order: 1,
@@ -1147,7 +1147,7 @@ function crossDomainLearning() {
           f({ code: 'living_expense', label: '生活補助費用', field_type: 'currency', sort_order: 1 }),
           f({
             code: 'requested_items',
-            label: '希望補助項目',
+            label: '申請補助項目',
             field_type: 'repeat_group',
             sort_order: 2,
             config: {
@@ -1160,7 +1160,7 @@ function crossDomainLearning() {
           }),
           f({
             code: 'requested_total',
-            label: '希望補助總金額',
+            label: '申請金額合計',
             field_type: 'computed',
             sort_order: 3,
             copy_previous: false,
@@ -1307,7 +1307,7 @@ function academicLearning() {
           }),
           f({
             code: 'requested_total',
-            label: '希望補助總金額',
+            label: '申請金額合計',
             field_type: 'currency',
             required: true,
             sort_order: 14,
@@ -1318,3 +1318,4 @@ function academicLearning() {
     rules: [],
   }
 }
+

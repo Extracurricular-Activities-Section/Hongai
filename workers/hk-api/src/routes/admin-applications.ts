@@ -21,7 +21,18 @@ import { requireStaff, type StaffAuthContext } from '../lib/auth-staff'
 import { ensureFollowUpTasks } from '../lib/follow-up'
 import { toSchema } from '../lib/forms'
 import { json, type WorkerEnv } from '../lib/http'
+import {
+  attachmentLabel,
+  attachmentRefsOf,
+  createEmailJob,
+  createNotificationEvent,
+  downloadPageUrl,
+  loadTemplate,
+} from '../lib/mail'
+import { renderTemplate } from '../lib/notification-templates'
 import { createServicePb } from '../lib/pb'
+import { pdfDocumentsOf } from '../lib/pdf'
+import { confirmTeacherSignature } from '../lib/signatures'
 import { periodProfileToPlain, readState } from '../lib/student-state'
 
 /**
@@ -30,7 +41,7 @@ import { periodProfileToPlain, readState } from '../lib/student-state'
  */
 
 type Row = Record<string, unknown>
-type Ctx = { pb: PocketBase; staff: StaffAuthContext; body: Row }
+type Ctx = { pb: PocketBase; env: WorkerEnv; staff: StaffAuthContext; body: Row }
 
 const str = (value: unknown): string => (value == null ? '' : String(value))
 const obj = (value: unknown): Row =>
@@ -44,7 +55,7 @@ const num = (value: unknown): number => {
 const actorType = (staff: StaffAuthContext) => (staff.is_admin ? 'admin' : 'staff')
 const money = (value: number) => value.toLocaleString('zh-TW')
 
-async function loadApplication(pb: PocketBase, id: string): Promise<Row> {
+export async function loadApplication(pb: PocketBase, id: string): Promise<Row> {
   try {
     return (await pb.collection('hk_applications').getOne(id, { expand: 'student' })) as Row
   } catch {
@@ -72,6 +83,24 @@ function snapshotAnswers(application: Row): Row {
 // ---------------------------------------------------------------------------
 // Detail
 // ---------------------------------------------------------------------------
+
+/** Latest valid generated PDF (what the admin "下載 PDF" button downloads). */
+function latestPdfSummary(application: Row): Row | null {
+  const doc = pdfDocumentsOf(application)
+    .filter((item) => str(item.status) === 'valid')
+    .sort((a, b) => num(b.document_version) - num(a.document_version))[0]
+  if (!doc) return null
+  return {
+    id: str(doc.id),
+    document_number: str(doc.document_number),
+    document_version: num(doc.document_version) || 1,
+    status: str(doc.status),
+    file_sha256: str(doc.file_sha256),
+    generated_at: doc.generated_at ? str(doc.generated_at) : null,
+    submission: str(doc.submission),
+    submission_version: str(doc.submission_version),
+  }
+}
 
 async function detail({ pb }: Ctx, id: string) {
   const application = await loadApplication(pb, id)
@@ -105,7 +134,7 @@ async function detail({ pb }: Ctx, id: string) {
     submission_snapshot: Object.keys(snapshot).length ? snapshot : null,
     form_schema: form ? toSchema(form) : null,
     answers: snapshotAnswers(application),
-    pdf: null,
+    pdf: latestPdfSummary(application),
     reviews: arr(workflow.reviews).slice().reverse(),
     funding_history: fundingDecisions(application).slice().reverse(),
     assignments: arr(workflow.assignments).slice().reverse(),
@@ -168,6 +197,10 @@ async function action({ pb, staff, body }: Ctx, id: string) {
     )
 
   switch (actionName) {
+    case 'mark_teacher_signed':
+      workflow.signatures = confirmTeacherSignature(workflow, staff.id)
+      review('eligibility', 'note_only', '標記老師已簽核')
+      break
     case 'start_eligibility_review':
       review('eligibility', 'note_only', '開始資格審核')
       break
@@ -290,6 +323,7 @@ async function action({ pb, staff, body }: Ctx, id: string) {
       }`,
       actionUrl: studentActionUrl(application),
       supplementId,
+      attachments: actionName === 'approve' ? attachmentRefsOf(application) : undefined,
     })
   }
 
@@ -360,7 +394,7 @@ async function assign({ pb, staff, body }: Ctx, id: string) {
 // Funding
 // ---------------------------------------------------------------------------
 
-async function extractedFor(pb: PocketBase, application: Row) {
+export async function extractedFor(pb: PocketBase, application: Row) {
   const form = await loadForm(pb, application)
   if (!form) throw new WorkflowError(400, '找不到申請表單版本')
   return extractRequestedFunding(form, snapshotAnswers(application), str(application.category_code))
@@ -389,7 +423,7 @@ async function fundingPreview({ pb }: Ctx, id: string) {
   return json({ extracted, annual_funding_summary: summary, annual_headroom: headroom, warnings })
 }
 
-async function createFunding({ pb, staff, body }: Ctx, id: string) {
+export async function createFunding({ pb, staff, body }: Pick<Ctx, 'pb' | 'staff' | 'body'>, id: string) {
   const application = await loadApplication(pb, id)
   const status = str(application.status)
   if (status !== 'funding_pending' && status !== 'funding_decided') {
@@ -514,6 +548,7 @@ async function createFunding({ pb, staff, body }: Ctx, id: string) {
         decision.student_message ? `。${decision.student_message}` : ''
       }`,
       actionUrl: studentActionUrl(application),
+      attachments: attachmentRefsOf(application),
     })
   }
 
@@ -528,6 +563,102 @@ async function createFunding({ pb, staff, body }: Ctx, id: string) {
     funding: decision,
     warnings: [],
     message: isRevise ? '核定已修正' : '核定完成',
+  })
+}
+
+// ---------------------------------------------------------------------------
+// Approval notice with attachment links (admin)
+// ---------------------------------------------------------------------------
+
+const APPROVAL_NOTICE_STATUSES = new Set(['approved', 'funding_pending', 'funding_decided', 'closed'])
+
+/**
+ * Mail has no attachment path (no mail sender in the Worker), so the notice carries
+ * authenticated download references plus a login-gated page link. Creates an in-app
+ * notification and an email_log job (status "skipped" while no mail provider exists).
+ */
+async function sendApprovalNotice({ pb, env, staff, body }: Ctx, id: string) {
+  if (!staff.is_admin) throw new WorkflowError(403, '需要管理員權限')
+  const application = await loadApplication(pb, id)
+  const status = str(application.status)
+  if (!APPROVAL_NOTICE_STATUSES.has(status)) {
+    throw new WorkflowError(400, '案件尚未審核通過，不可寄送通過通知')
+  }
+  const attachments = attachmentRefsOf(application)
+  if (!attachments.length) {
+    throw new WorkflowError(400, '此案件沒有可附加的申請書 PDF 或已簽文件')
+  }
+
+  const student = studentOf(application)
+  const studentId = str(application.student)
+  const email = str(obj(student.profile_json).contact_email) || str(student.email)
+  const downloadUrl = downloadPageUrl(env, application)
+  const studentMessage = str(body.student_message).trim()
+
+  const template = await loadTemplate(pb, 'application_approved_attachments')
+  const vars = {
+    student_name: str(student.name) || '同學',
+    application_number: str(application.application_number),
+    category_name: str(application.category_name),
+    student_message: studentMessage,
+    attachment_list: attachments.map((ref) => `・${attachmentLabel(ref)}`).join('\n'),
+    download_url: downloadUrl,
+  }
+  const subject = renderTemplate(template.subject_template, vars).text
+  const message = renderTemplate(template.body_template, vars).text
+
+  const notificationId = await createNotificationEvent(pb, {
+    studentId,
+    notificationType: 'APPLICATION_APPROVED_ATTACHMENTS',
+    uiCategory: 'application',
+    title: '申請通過通知（含附件）',
+    message,
+    actionUrl: studentActionUrl(application),
+    targetType: 'application',
+    targetId: id,
+    applicationId: id,
+    attachments,
+  })
+
+  let delivery: { id: string; status: string } | null = null
+  if (email) {
+    delivery = await createEmailJob(pb, env, {
+      studentId,
+      recipient: email,
+      subject,
+      body: message,
+      template: 'application_approved_attachments',
+      notificationId,
+      applicationId: id,
+      targetType: 'application',
+      targetId: id,
+      attachments,
+      downloadUrl,
+    })
+  }
+
+  await writeAudit(pb, {
+    actorStaff: staff.id,
+    action: 'APPROVAL_NOTICE_SENT',
+    targetId: id,
+    payload: {
+      notification: notificationId,
+      delivery: delivery?.id ?? null,
+      attachments: attachments.map((ref) => ref.id),
+    },
+  })
+
+  const emailNote = !email
+    ? '學生沒有 Email，僅建立站內通知。'
+    : delivery?.status === 'queued'
+      ? 'Email 已排入佇列。'
+      : '郵件提供者尚未設定，Email 未實際寄出（僅建立站內通知與寄送紀錄）。'
+  return json({
+    notification_id: notificationId,
+    delivery: delivery,
+    attachments,
+    download_url: downloadUrl,
+    message: `已建立通過通知（含 ${attachments.length} 個附件連結）。${emailNote}`,
   })
 }
 
@@ -564,6 +695,11 @@ const routes: Route[] = [
     method: 'POST',
     pattern: new RegExp(`^/api/hk/admin/applications/${ID}/funding$`),
     handler: (c, [id]) => createFunding(c, id),
+  },
+  {
+    method: 'POST',
+    pattern: new RegExp(`^/api/hk/admin/applications/${ID}/send-approval-notice$`),
+    handler: (c, [id]) => sendApprovalNotice(c, id),
   },
 ]
 
@@ -602,7 +738,7 @@ export async function handleAdminApplications(
     request.method === 'POST' ? (((await request.json().catch(() => ({}))) as Row) ?? {}) : {}
 
   try {
-    return await route.handler({ pb, staff, body }, params)
+    return await route.handler({ pb, env, staff, body }, params)
   } catch (err) {
     if (err instanceof WorkflowError) {
       return json({ error: 'request_failed', message: err.message }, { status: err.status })

@@ -17,6 +17,7 @@ import type { BadgeTone } from '@/components/ui/badge'
 
 const APPLICATION_TONE: Record<string, BadgeTone> = {
   submitted: 'progress',
+  teacher_signed: 'progress',
   eligibility_review: 'progress',
   under_review: 'progress',
   funding_pending: 'progress',

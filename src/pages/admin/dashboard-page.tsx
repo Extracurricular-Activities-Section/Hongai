@@ -8,6 +8,7 @@ import { ErrorState } from '@/components/common/states'
 import { Button } from '@/components/ui/button'
 import { Skeleton, SkeletonMetrics } from '@/components/ui/skeleton'
 import { adminApplicationsSummary } from '@/features/applications/api'
+import { CategoryFundingStatsSection } from '@/features/applications/components/category-funding-stats-section'
 import type { ApplicationStatus } from '@/features/applications/types'
 import { APPLICATION_STATUS_LABELS } from '@/features/applications/utils/status-labels'
 import { adminListFollowUpTasks } from '@/features/follow-up/api'
@@ -17,10 +18,16 @@ import { applicationStatusTone } from '@/lib/status/tone'
 import { cn } from '@/lib/utils'
 
 /** Statuses grouped by who is expected to act next. */
-const AWAITING_STAFF: ApplicationStatus[] = ['submitted', 'eligibility_review', 'under_review']
+const AWAITING_STAFF: ApplicationStatus[] = [
+  'submitted',
+  'teacher_signed',
+  'eligibility_review',
+  'under_review',
+]
 const AWAITING_STUDENT: ApplicationStatus[] = ['supplement_required', 'returned_for_edit']
 const BREAKDOWN_ORDER: ApplicationStatus[] = [
   'submitted',
+  'teacher_signed',
   'eligibility_review',
   'under_review',
   'supplement_required',
@@ -128,7 +135,7 @@ export function AdminDashboardPage() {
           emphasis
           label="等我處理"
           value={counts.awaitingStaff}
-          hint="已送件、資格審核中、內容審核中"
+          hint="已送件、老師已簽核、資格審核中、內容審核中"
           to="/admin/applications?status=submitted"
         />
         <Metric
@@ -283,6 +290,8 @@ export function AdminDashboardPage() {
           ) : null}
         </aside>
       </div>
+
+      <CategoryFundingStatsSection />
     </div>
   )
 }

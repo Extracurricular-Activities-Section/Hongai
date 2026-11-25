@@ -281,11 +281,27 @@ function allowlistAnswers(
 // Period profile
 // ---------------------------------------------------------------------------
 
+function parseSpecialProof(raw: unknown): Row | null {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null
+  const proof = raw as Row
+  const name = str(proof.name).trim()
+  const mime = str(proof.mime || proof.content_type).trim() || 'application/octet-stream'
+  const data = str(proof.data || proof.base64).replace(/^data:[^;]+;base64,/, '')
+  if (!name || !data) return null
+  // ~1.5MB decoded ceiling keeps JSON profile_json manageable
+  if (data.length > 2_100_000) {
+    throw new HttpError(400, '證明檔案過大（請小於約 1.5MB）')
+  }
+  return { name, mime, data, size: Math.floor((data.length * 3) / 4), uploaded_at: nowIso() }
+}
+
 function parseProfileBody(body: Row) {
   const types = Array.isArray(body.application_identity_types)
     ? body.application_identity_types.map(String)
     : []
-  const profile = {
+  const specialUnit = str(body.special_approving_unit).trim()
+  const specialProof = parseSpecialProof(body.special_proof)
+  const profile: Row = {
     grade: str(body.grade).trim(),
     application_identity_types: types,
     disability_level: str(body.disability_level).trim(),
@@ -293,13 +309,26 @@ function parseProfileBody(body: Row) {
     bank_account_registered: Boolean(body.bank_account_registered),
     bank_account_note: str(body.bank_account_note).trim(),
     qualification_note: str(body.qualification_note).trim(),
+    special_approving_unit: specialUnit,
   }
+  if (specialProof) profile.special_proof = specialProof
   if (!profile.grade) throw new HttpError(400, '請填寫年級')
   if (!profile.bank_account_registered && !profile.bank_account_note) {
     throw new HttpError(400, '請說明無法提供銀行帳號原因')
   }
-  if (types.includes('other_special') && !profile.qualification_note) {
-    throw new HttpError(400, '請填寫其他特殊情況說明')
+  if (types.includes('other_special')) {
+    if (!profile.qualification_note) {
+      throw new HttpError(400, '請填寫其他特殊情況說明')
+    }
+    if (!specialUnit) {
+      throw new HttpError(400, '請填寫學校通過單位名稱')
+    }
+    if (!specialProof && !body.keep_existing_special_proof) {
+      throw new HttpError(400, '請上傳單位通過證明文件')
+    }
+  } else {
+    profile.special_approving_unit = ''
+    profile.special_proof = null
   }
   return profile
 }
@@ -333,10 +362,20 @@ async function confirmProfile({ pb, student, body }: Ctx) {
     const existing = s.period_profiles[open.id]
     isNew = !existing
     const next: Row = { ...(existing || { created: now }), ...parsed }
+    if (
+      !parsed.special_proof &&
+      body.keep_existing_special_proof &&
+      existing?.special_proof
+    ) {
+      next.special_proof = existing.special_proof
+    }
     if (isNew && body.copy_from_previous && previous) {
       const prev = s.period_profiles[previous.id]
       if (prev) {
-        if (!parsed.application_identity_types.length && Array.isArray(prev.application_identity_types)) {
+        const parsedTypes = Array.isArray(parsed.application_identity_types)
+          ? parsed.application_identity_types
+          : []
+        if (!parsedTypes.length && Array.isArray(prev.application_identity_types)) {
           next.application_identity_types = prev.application_identity_types
         }
         next.source_period = previous.id
@@ -369,12 +408,21 @@ async function updateProfile({ pb, student, body }: Ctx) {
   }
   const parsed = parseProfileBody(body)
   const { state } = await mutateState(pb, student.id, (s) => {
-    s.period_profiles[open.id] = {
-      ...s.period_profiles[open.id],
+    const existing = s.period_profiles[open.id]
+    const next: Row = {
+      ...existing,
       ...parsed,
       has_applied_before: hasHistory(s, open.id),
       updated: nowIso(),
     }
+    if (
+      !parsed.special_proof &&
+      body.keep_existing_special_proof &&
+      existing?.special_proof
+    ) {
+      next.special_proof = existing.special_proof
+    }
+    s.period_profiles[open.id] = next
   })
   await writeAudit(pb, student.id, 'PERIOD_PROFILE_UPDATED', `${student.id}:${open.id}`)
   return json({ profile: periodProfileToPlain(student.id, open.id, state.period_profiles[open.id]) })

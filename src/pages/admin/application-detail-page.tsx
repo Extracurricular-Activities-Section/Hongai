@@ -23,6 +23,8 @@ import {
   adminListDepartmentsApi,
   adminListStaffUsers,
 } from '@/features/applications/api'
+import { TeacherSignaturePanel } from '@/features/application-print/components/teacher-signature-panel'
+import { adminSendApprovalNotice } from '@/features/applications/api/csv'
 import { ConfirmDialog } from '@/features/applications/components/confirm-dialog'
 import { StatusBadge } from '@/features/applications/components/status-badge'
 import type {
@@ -32,6 +34,7 @@ import type {
   StaffUserAdmin,
 } from '@/features/applications/types'
 import { APPLICATION_ACTION_LABELS } from '@/features/applications/utils/status-labels'
+import { AnnualFundingHistory } from '@/features/funding/components/annual-funding-history'
 import { SecureFileUpload } from '@/features/attachments/components/secure-file-upload'
 import { useBackofficeAuth } from '@/features/auth/backoffice/context'
 import {
@@ -53,6 +56,8 @@ import { followUpStatusTone } from '@/lib/status/tone'
 import { formatTaipeiDateTime } from '@/lib/utils'
 import type { Department } from '@/types'
 
+const APPROVAL_NOTICE_STATUSES = new Set(['approved', 'funding_pending', 'funding_decided', 'closed'])
+
 const ACTIONS_NEEDING_CONFIRM: ApplicationAction[] = [
   'reject',
   'disqualify_eligibility',
@@ -60,7 +65,8 @@ const ACTIONS_NEEDING_CONFIRM: ApplicationAction[] = [
 ]
 
 const ACTIONS_BY_STATUS: Partial<Record<string, ApplicationAction[]>> = {
-  submitted: ['start_eligibility_review'],
+  submitted: ['mark_teacher_signed', 'start_eligibility_review'],
+  teacher_signed: ['start_eligibility_review', 'reject'],
   eligibility_review: [
     'qualify_eligibility',
     'disqualify_eligibility',
@@ -270,6 +276,20 @@ export function AdminApplicationDetailPage() {
       setBusy(false)
       setConfirmOpen(false)
       setPendingAction(null)
+    }
+  }
+
+  async function sendApprovalNoticeNow() {
+    setBusy(true)
+    setError(null)
+    setMessage(null)
+    try {
+      const result = await adminSendApprovalNotice(applicationId, studentMessage.trim())
+      setMessage(result.message)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '寄送通過通知失敗')
+    } finally {
+      setBusy(false)
     }
   }
 
@@ -544,6 +564,24 @@ export function AdminApplicationDetailPage() {
                       value={detail.period_profile.weak_aid_level || '—'}
                     />
                     <ContextRow
+                      label="資格說明"
+                      value={detail.period_profile.qualification_note || '—'}
+                    />
+                    <ContextRow
+                      label="特殊情況通過單位"
+                      value={detail.period_profile.special_approving_unit || '—'}
+                    />
+                    <ContextRow
+                      label="特殊情況證明"
+                      value={
+                        detail.period_profile.special_proof?.name
+                          ? `${detail.period_profile.special_proof.name}${
+                              detail.period_profile.special_proof.has_file ? '（已存檔）' : ''
+                            }`
+                          : '—'
+                      }
+                    />
+                    <ContextRow
                       label="銀行帳戶"
                       value={
                         <Badge
@@ -590,6 +628,10 @@ export function AdminApplicationDetailPage() {
           </TabPanel>
 
           <TabPanel value="review" activeValue={section} className="space-y-4">
+            <AnnualFundingHistory
+              summary={detail.annual_funding_summary}
+              currentApplicationId={application.id}
+            />
             <section className="rounded-lg border border-border bg-card p-5">
               <h2 className="mb-4 text-card font-semibold text-foreground">審核操作</h2>
               {availableActions.length === 0 ? (
@@ -664,6 +706,24 @@ export function AdminApplicationDetailPage() {
                 </div>
               )}
             </section>
+
+            {isAdmin && APPROVAL_NOTICE_STATUSES.has(application.status) ? (
+              <section className="rounded-lg border border-border bg-card p-5">
+                <h2 className="mb-1 text-card font-semibold text-foreground">通過通知（含附件連結）</h2>
+                <p className="mb-4 text-sm text-subtle">
+                  對學生建立站內通知並附上申請書 PDF／已簽文件的下載連結，同時產生 Email 寄送紀錄。
+                  Email 不夾帶檔案，內文註明「附件可於系統下載」（需登入）；郵件提供者未設定時 Email 會標記為「已略過」。
+                </p>
+                <Button
+                  type="button"
+                  size="sm"
+                  disabled={busy}
+                  onClick={() => void sendApprovalNoticeNow()}
+                >
+                  寄送通過通知（含附件連結）
+                </Button>
+              </section>
+            ) : null}
 
             <section className="rounded-lg border border-border bg-card p-5">
               <h2 className="mb-4 text-card font-semibold text-foreground">指派承辦／單位</h2>
@@ -759,6 +819,10 @@ export function AdminApplicationDetailPage() {
           </TabPanel>
 
           <TabPanel value="funding" activeValue={section} className="space-y-4">
+            <AnnualFundingHistory
+              summary={detail.annual_funding_summary}
+              currentApplicationId={application.id}
+            />
             <section className="rounded-lg border border-border bg-card p-5">
               <h2 className="mb-4 text-card font-semibold text-foreground">補助核定</h2>
 
@@ -976,6 +1040,18 @@ export function AdminApplicationDetailPage() {
           </TabPanel>
 
           <TabPanel value="followup" activeValue={section} className="space-y-4">
+            <TeacherSignaturePanel
+              applicationId={applicationId}
+              status={application.status}
+              disabled={busy}
+              onMarkSigned={async () => {
+                await adminApplicationAction(applicationId, { action: 'mark_teacher_signed' })
+                setMessage('已標記老師簽核')
+                await load()
+              }}
+              onChanged={() => void load().catch(() => undefined)}
+            />
+
             <section className="rounded-lg border border-border bg-card p-5">
               <h2 className="mb-4 text-card font-semibold text-foreground">已簽文件</h2>
               {signedDocs.length === 0 ? (
@@ -1094,6 +1170,8 @@ export function AdminApplicationDetailPage() {
                       <option value="file_and_text">檔案與文字</option>
                       <option value="event_attendance">活動出席</option>
                       <option value="confirmation">確認事項</option>
+                      <option value="midterm_report">期中報告</option>
+                      <option value="final_report">期末報告</option>
                       <option value="other">其他</option>
                     </Select>
                   </Field>

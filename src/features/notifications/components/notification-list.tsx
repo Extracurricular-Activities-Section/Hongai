@@ -1,10 +1,12 @@
-import { BellOff, ExternalLink } from 'lucide-react'
+import { BellOff, Download, ExternalLink } from 'lucide-react'
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 
 import { EmptyState } from '@/components/common/states'
 import { Button } from '@/components/ui/button'
 import { cn, formatTaipeiDateTime } from '@/lib/utils'
-import type { HadNotification } from '../types'
+import { downloadNotificationAttachment } from '../api'
+import type { HadNotification, NotificationAttachment } from '../types'
 import { notificationCategoryLabel } from '../utils/labels'
 import { isNotificationUnread } from '../utils/preferences'
 
@@ -14,6 +16,50 @@ function resolveActionHref(actionUrl: string | null): string | null {
   if (!trimmed) return null
   if (/^https?:\/\//i.test(trimmed)) return trimmed
   return trimmed.startsWith('/') ? trimmed : `/${trimmed}`
+}
+
+function AttachmentLinks({ attachments }: { attachments: NotificationAttachment[] }) {
+  const [busyId, setBusyId] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
+
+  async function download(attachment: NotificationAttachment) {
+    setBusyId(attachment.id)
+    setError(null)
+    try {
+      await downloadNotificationAttachment(attachment)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '下載附件失敗')
+    } finally {
+      setBusyId(null)
+    }
+  }
+
+  return (
+    <div className="mt-2.5">
+      <p className="text-meta text-muted-foreground">附件（需登入下載）</p>
+      <ul className="mt-1 flex flex-wrap gap-2">
+        {attachments.map((attachment) => (
+          <li key={attachment.id}>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              disabled={busyId === attachment.id}
+              onClick={() => void download(attachment)}
+            >
+              <Download aria-hidden />
+              {busyId === attachment.id ? '下載中…' : attachment.name}
+            </Button>
+          </li>
+        ))}
+      </ul>
+      {error ? (
+        <p role="alert" className="mt-1 text-meta text-danger">
+          {error}
+        </p>
+      ) : null}
+    </div>
+  )
 }
 
 /**
@@ -77,6 +123,8 @@ export function NotificationList({
             <p className="mt-1.5 whitespace-pre-wrap text-sm leading-relaxed text-subtle">
               {item.message}
             </p>
+
+            {item.attachments?.length ? <AttachmentLinks attachments={item.attachments} /> : null}
 
             <div className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-2">
               <span className="text-meta text-muted-foreground">
