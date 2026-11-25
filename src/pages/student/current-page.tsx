@@ -1,4 +1,4 @@
-import { ArrowRight, CalendarClock, CopyPlus, Lock } from 'lucide-react'
+import { ArrowRight, CalendarClock, CopyPlus, Lock, RotateCcw } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 
@@ -14,7 +14,7 @@ import {
   applicationStatusLabel,
   formatAmount,
 } from '@/features/applications/utils/status-labels'
-import { copyPreviousFormSubmission } from '@/features/forms/api'
+import { copyPreviousFormSubmission, resetFormOverwrite } from '@/features/forms/api'
 import {
   copyPreviousCategory,
   fetchCurrentCategories,
@@ -167,6 +167,31 @@ export function StudentCurrentPage() {
     }
   }
 
+  async function handleResetOverwrite(item: CategoryItem) {
+    const ok = window.confirm(
+      '確定要清除此項目的舊填答，並改用最新表單重新填寫？此操作無法復原。',
+    )
+    if (!ok) return
+    setBusyCode(item.category.code)
+    setMessage(null)
+    setError(null)
+    try {
+      const result = await resetFormOverwrite(item.category.code)
+      setMessage(result.message || '已清除舊資料，請重新填寫。')
+      await load()
+      navigate(`/student/current/category/${item.category.code}`)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '重新填寫失敗')
+    } finally {
+      setBusyCode(null)
+    }
+  }
+
+  function canResetOverwrite(application: Application | null, entryStatus: string | null | undefined) {
+    const status = application?.status || entryStatus
+    return status === 'draft' || status === 'returned_for_edit' || status === 'submitted' || status === 'teacher_signed'
+  }
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -263,23 +288,37 @@ export function StudentCurrentPage() {
 
                 <div className="mt-auto flex flex-col gap-2 pt-5">
                   {entry ? (
-                    <Button
-                      type="button"
-                      variant={frozen ? 'outline' : 'default'}
-                      className="w-full"
-                      onClick={() => navigate(href)}
-                    >
-                      {frozen ? (
-                        <>
-                          <Lock />
-                          查看申請
-                        </>
-                      ) : application?.status === 'returned_for_edit' ? (
-                        '繼續修改'
-                      ) : (
-                        '繼續填寫'
-                      )}
-                    </Button>
+                    <>
+                      <Button
+                        type="button"
+                        variant={frozen ? 'outline' : 'default'}
+                        className="w-full"
+                        onClick={() => navigate(href)}
+                      >
+                        {frozen ? (
+                          <>
+                            <Lock />
+                            查看申請
+                          </>
+                        ) : application?.status === 'returned_for_edit' ? (
+                          '繼續修改'
+                        ) : (
+                          '繼續填寫'
+                        )}
+                      </Button>
+                      {canResetOverwrite(application, entry?.status) ? (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          className="w-full"
+                          disabled={Boolean(busyCode)}
+                          onClick={() => void handleResetOverwrite(item)}
+                        >
+                          <RotateCcw />
+                          {busy ? '處理中…' : '覆蓋舊資料並重填'}
+                        </Button>
+                      ) : null}
+                    </>
                   ) : (
                     <>
                       <Button

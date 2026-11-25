@@ -5,6 +5,7 @@ import { categoryFromSetting, categoryKey } from '../lib/categories'
 import { schemaJson, toSchema } from '../lib/forms'
 import { json, type WorkerEnv } from '../lib/http'
 import { createServicePb } from '../lib/pb'
+import { publicErrorMessage } from '../lib/public-error'
 
 /**
  * Form Builder APIs on hk_forms.
@@ -240,7 +241,7 @@ export async function handleAdminForms(
     return json(
       {
         error: 'service_account_required',
-        message: err instanceof Error ? err.message : 'Service account required',
+        message: publicErrorMessage('系統服務未設定，請聯絡承辦。', err),
       },
       { status: 503 },
     )
@@ -339,7 +340,7 @@ export async function handleAdminForms(
     return json(
       {
         error: status === 404 ? 'not_found' : 'pb_error',
-        message: status === 404 ? '找不到表單' : err instanceof Error ? err.message : '操作失敗',
+        message: status === 404 ? '找不到表單' : publicErrorMessage('操作失敗，請稍後再試', err),
       },
       { status },
     )

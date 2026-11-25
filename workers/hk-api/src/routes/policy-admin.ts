@@ -1,6 +1,7 @@
 import { requireStaff } from '../lib/auth-staff'
 import { json, type WorkerEnv } from '../lib/http'
 import { createServicePb } from '../lib/pb'
+import { publicErrorMessage } from '../lib/public-error'
 
 /**
  * Admin policy / finance read APIs backed by hk_settings and hk_applications.
@@ -30,7 +31,7 @@ export async function handlePolicyAdmin(
       {
         error: 'service_account_required',
         message:
-          err instanceof Error ? err.message : '需要 HK_PB_SERVICE_EMAIL / HK_PB_SERVICE_PASSWORD',
+          publicErrorMessage('系統服務未設定，請聯絡承辦。', err),
       },
       { status: 503 },
     )
@@ -88,7 +89,7 @@ export async function handlePolicyAdmin(
       return json({ items, totalItems: items.length })
     }
   } catch (err) {
-    const message = err instanceof Error ? err.message : '讀取政策資料失敗'
+    const message = publicErrorMessage('讀取政策資料失敗', err)
     return json({ error: 'pb_error', message }, { status: 502 })
   }
 

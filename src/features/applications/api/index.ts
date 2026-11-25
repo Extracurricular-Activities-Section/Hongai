@@ -118,7 +118,8 @@ export async function adminListApplications(
     if (params.q) query.q = params.q
     if (params.period) query.period = params.period
     if (params.category) query.category = params.category
-    if (params.status) query.status = params.status
+    if (params.queue) query.queue = params.queue
+    else if (params.status) query.status = params.status
     if (params.eligibility_status) query.eligibility_status = params.eligibility_status
     if (params.department) query.department = params.department
     if (params.page != null) query.page = String(params.page)

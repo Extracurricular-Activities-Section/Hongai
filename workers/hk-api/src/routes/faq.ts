@@ -1,6 +1,7 @@
 import { requireStaff } from '../lib/auth-staff'
 import { json, type WorkerEnv } from '../lib/http'
 import { createServicePb } from '../lib/pb'
+import { publicErrorMessage } from '../lib/public-error'
 
 type FaqArticle = {
   id?: string
@@ -77,7 +78,7 @@ export async function handleFaq(
         {
           items: [],
           source: 'error',
-          message: err instanceof Error ? err.message : 'FAQ 讀取失敗',
+          message: publicErrorMessage('FAQ 讀取失敗', err),
         },
         { status: 502 },
       )
@@ -95,7 +96,7 @@ export async function handleFaq(
       return json(
         {
           error: 'service_account_required',
-          message: err instanceof Error ? err.message : 'Service account required',
+          message: publicErrorMessage('系統服務未設定，請聯絡承辦。', err),
         },
         { status: 503 },
       )
@@ -114,7 +115,7 @@ export async function handleFaq(
         return json({ items })
       } catch (err) {
         return json(
-          { error: 'pb_error', message: err instanceof Error ? err.message : '讀取失敗' },
+          { error: 'pb_error', message: publicErrorMessage('讀取失敗，請稍後再試', err) },
           { status: 502 },
         )
       }
@@ -156,7 +157,7 @@ export async function handleFaq(
         return json({ item: articleFromSetting(item as Record<string, unknown>) || article })
       } catch (err) {
         return json(
-          { error: 'pb_error', message: err instanceof Error ? err.message : '儲存失敗' },
+          { error: 'pb_error', message: publicErrorMessage('儲存失敗，請稍後再試', err) },
           { status: 502 },
         )
       }

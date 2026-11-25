@@ -79,17 +79,21 @@ export function AdminNotificationsPage() {
   }, [loadMail])
 
   useEffect(() => {
+    if (!isAdmin && tab === 'deliveries') setTab('notifications')
+  }, [isAdmin, tab])
+
+  useEffect(() => {
     setError(null)
     if (tab === 'notifications') {
       void loadNotifications().catch((err) =>
         setError(err instanceof Error ? err.message : '載入失敗'),
       )
-    } else {
+    } else if (isAdmin) {
       void loadDeliveries().catch((err) =>
         setError(err instanceof Error ? err.message : '載入失敗'),
       )
     }
-  }, [tab, loadNotifications, loadDeliveries])
+  }, [tab, isAdmin, loadNotifications, loadDeliveries])
 
   async function confirmResend() {
     if (!resendId) return
@@ -126,7 +130,7 @@ export function AdminNotificationsPage() {
         {isAdmin ? (
           <div className="flex flex-wrap gap-2">
             <Button asChild size="sm" variant="outline">
-              <Link to="/admin/notifications/outreach">經濟不利生通知</Link>
+              <Link to="/admin/notifications/outreach">經濟與文化不利學生</Link>
             </Button>
             <Button asChild size="sm" variant="outline">
               <Link to="/admin/notifications/templates">通知範本</Link>
@@ -170,14 +174,16 @@ export function AdminNotificationsPage() {
         >
           站內通知
         </Button>
-        <Button
-          type="button"
-          size="sm"
-          variant={tab === 'deliveries' ? 'default' : 'outline'}
-          onClick={() => setTab('deliveries')}
-        >
-          寄送紀錄
-        </Button>
+        {isAdmin ? (
+          <Button
+            type="button"
+            size="sm"
+            variant={tab === 'deliveries' ? 'default' : 'outline'}
+            onClick={() => setTab('deliveries')}
+          >
+            寄送紀錄
+          </Button>
+        ) : null}
       </div>
 
       <div className="flex flex-wrap gap-2">

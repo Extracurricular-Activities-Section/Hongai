@@ -95,6 +95,27 @@
 
   .print-avoid-break {
     break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* Long answers must be allowed to split across pages (avoid-break would overflow). */
+  .print-allow-break {
+    break-inside: auto;
+    page-break-inside: auto;
+  }
+
+  .print-table td,
+  .print-table th {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  .print-table td.print-long,
+  .print-long-text {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    hyphens: auto;
   }
 
   .print-table td.print-nested {
@@ -119,9 +140,20 @@
     box-shadow: none;
   }
 
+  .print-section-title {
+    break-after: avoid;
+    page-break-after: avoid;
+  }
+
   .print-table th {
     print-color-adjust: exact;
     -webkit-print-color-adjust: exact;
+  }
+
+  .print-long-text,
+  .print-table td.print-long {
+    orphans: 2;
+    widows: 2;
   }
 }
 

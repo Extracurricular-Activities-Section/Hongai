@@ -171,7 +171,7 @@ export function AdminLayout() {
           },
           {
             to: '/admin/notifications/outreach',
-            label: '經濟不利生通知',
+            label: '經濟與文化不利學生',
             icon: Megaphone,
             end: true,
             show: isAdmin,

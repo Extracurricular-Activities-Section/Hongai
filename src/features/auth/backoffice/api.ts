@@ -55,7 +55,17 @@ export async function loginStaff(input: StaffLoginInput): Promise<StaffUser> {
 }
 
 export async function logoutStaff(): Promise<void> {
-  staffPb.authStore.clear()
+  try {
+    if (staffPb.authStore.isValid) {
+      await staffPb.send('/api/hk/auth/staff/logout', {
+        method: 'POST',
+      })
+    }
+  } catch {
+    // still clear local session
+  } finally {
+    staffPb.authStore.clear()
+  }
 }
 
 export async function refreshStaffSession(): Promise<boolean> {

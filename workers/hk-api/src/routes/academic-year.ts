@@ -22,7 +22,7 @@ export async function handleAcademicYear(
   try {
     body = (await request.json()) as typeof body
   } catch {
-    return json({ error: 'bad_request', message: 'Invalid JSON' }, { status: 400 })
+    return json({ error: 'bad_request', message: '請求格式錯誤。' }, { status: 400 })
   }
 
   const progress = computeAcademicYearProgress({

@@ -39,6 +39,8 @@ export interface StaffUser extends BaseRecord {
   permissions_json?: Record<string, unknown>
   can_manage_forms?: boolean
   can_publish_forms?: boolean
+  /** Optional; unset = staff may decide (CONFIRM-01 interim). */
+  can_decide_funding?: boolean | null
   active: boolean
   phone?: string
   job_title?: string
@@ -92,6 +94,8 @@ export interface StudentProfile extends BaseRecord {
   student: string
   name: string
   identity_number: string
+  /** Masked display only (e.g. ******1234); never full ID from API. */
+  identity_number_masked?: string
   gender?: Gender
   department_name: string
   program_type?: string
@@ -130,6 +134,8 @@ export interface IdentityResetRequest extends BaseRecord {
   email: string
   phone: string
   reason: string
+  identity_verified?: boolean
+  identity_check?: 'match' | 'mismatch' | 'unavailable' | string
   status: IdentityResetStatus
   resolved_by?: string
   resolved_at?: string

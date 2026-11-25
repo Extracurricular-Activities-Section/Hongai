@@ -5,9 +5,15 @@ import { requireStaff, type StaffAuthContext } from '../lib/auth-staff'
 import { categoryFromSetting, ensureCategorySeed } from '../lib/categories'
 import { categoryFundingStats } from '../lib/category-funding-stats'
 import { json, type WorkerEnv } from '../lib/http'
+import {
+  awaitingMeStatusesFor,
+  staffMayDecideFunding,
+  staffScopedApplicationFilter,
+} from '../lib/staff-application-access'
 import { templateFromSetting } from '../lib/notification-templates'
 import { createServicePb } from '../lib/pb'
 import { compareLatestFirst, periodFromSetting, studentPeriodProfiles } from '../lib/periods'
+import { publicErrorMessage } from '../lib/public-error'
 
 /**
  * Read-only admin APIs backed by the six hk_* collections.
@@ -48,7 +54,20 @@ function bySortOrder(a: Row, b: Row): number {
   return (Number(a.sort_order) || 0) - (Number(b.sort_order) || 0)
 }
 
-export function applicationFilter(pb: PocketBase, url: URL): string {
+/** Dashboard「等我處理」完整集合（含待核定）；實際 list 依 staff 核定權裁切。 */
+export const AWAITING_ME_STATUSES = [
+  'submitted',
+  'teacher_signed',
+  'eligibility_review',
+  'under_review',
+  'funding_pending',
+] as const
+
+export function applicationFilter(
+  pb: PocketBase,
+  url: URL,
+  staff?: StaffAuthContext,
+): string {
   const parts: string[] = ['status != "draft"']
   const q = url.searchParams.get('q')?.trim()
   if (q) {
@@ -59,10 +78,19 @@ export function applicationFilter(pb: PocketBase, url: URL): string {
       ),
     )
   }
+  const queue = url.searchParams.get('queue')
+  if (queue === 'awaiting_me') {
+    const statuses = staff ? awaitingMeStatusesFor(staff) : AWAITING_ME_STATUSES
+    parts.push(`(${statuses.map((status) => `status = "${status}"`).join(' || ')})`)
+  } else if (queue === 'awaiting_student') {
+    parts.push('(status = "supplement_required" || status = "returned_for_edit")')
+  } else {
+    const status = url.searchParams.get('status')
+    if (status) parts.push(pb.filter('status = {:v}', { v: status }))
+  }
   const eq: Array<[string, string]> = [
     ['period', 'period_key'],
     ['category', 'category_code'],
-    ['status', 'status'],
     ['eligibility_status', 'eligibility_status'],
   ]
   for (const [param, field] of eq) {
@@ -85,9 +113,10 @@ const APPLICATION_SORT_FIELDS = new Set([
 function applicationSort(raw: string | null): string {
   const value = raw?.trim() || ''
   const field = value.replace(/^-/, '')
-  if (!APPLICATION_SORT_FIELDS.has(field)) return '-created'
+  // Prefer -id over system `created`: some PB builds 400 when sorting hk_applications by created.
+  if (!APPLICATION_SORT_FIELDS.has(field) || field === 'created') return '-id'
   // Keep paging stable when many rows share the same sort value.
-  return field === 'created' ? value : `${value},-created`
+  return `${value},-id`
 }
 
 function notificationToPlain(record: Row): Row {
@@ -148,10 +177,13 @@ async function eventsByType(pb: PocketBase, type: string, extra = ''): Promise<R
 const routes: Array<{ pattern: RegExp; adminOnly?: boolean; handler: Handler }> = [
   {
     pattern: /^\/api\/hk\/admin\/applications\/summary$/,
-    handler: async ({ pb }) => {
-      const rows = (await pb
-        .collection('hk_applications')
-        .getFullList({ filter: 'status != "draft"', fields: 'status,eligibility_status' })) as Row[]
+    handler: async ({ pb, staff }) => {
+      const filter = await staffScopedApplicationFilter(pb, staff, 'status != "draft"')
+      const rows = filter
+        ? ((await pb
+            .collection('hk_applications')
+            .getFullList({ filter, fields: 'status,eligibility_status' })) as Row[])
+        : []
       const byStatus: Record<string, number> = {}
       const byEligibility: Record<string, number> = {}
       for (const row of rows) {
@@ -160,7 +192,18 @@ const routes: Array<{ pattern: RegExp; adminOnly?: boolean; handler: Handler }> 
         byStatus[status] = (byStatus[status] || 0) + 1
         byEligibility[eligibility] = (byEligibility[eligibility] || 0) + 1
       }
-      return json({ total: rows.length, by_status: byStatus, by_eligibility: byEligibility })
+      const canDecide = staffMayDecideFunding(staff)
+      const awaitingMeCount = awaitingMeStatusesFor(staff).reduce(
+        (total, status) => total + (byStatus[status] || 0),
+        0,
+      )
+      return json({
+        total: rows.length,
+        by_status: byStatus,
+        by_eligibility: byEligibility,
+        can_decide_funding: canDecide,
+        awaiting_me_count: awaitingMeCount,
+      })
     },
   },
   {
@@ -176,11 +219,21 @@ const routes: Array<{ pattern: RegExp; adminOnly?: boolean; handler: Handler }> 
   },
   {
     pattern: /^\/api\/hk\/admin\/applications$/,
-    handler: async ({ pb, url }) => {
+    handler: async ({ pb, staff, url }) => {
       const page = Math.max(1, Number(url.searchParams.get('page')) || 1)
       const perPage = Math.min(100, Math.max(1, Number(url.searchParams.get('perPage')) || 20))
+      const filter = await staffScopedApplicationFilter(pb, staff, applicationFilter(pb, url, staff))
+      if (!filter) {
+        return json({
+          page,
+          perPage,
+          totalItems: 0,
+          totalPages: 0,
+          items: [],
+        })
+      }
       const result = await pb.collection('hk_applications').getList(page, perPage, {
-        filter: applicationFilter(pb, url),
+        filter,
         sort: applicationSort(url.searchParams.get('sort')),
         expand: 'student',
       })
@@ -225,6 +278,7 @@ const routes: Array<{ pattern: RegExp; adminOnly?: boolean; handler: Handler }> 
   },
   {
     pattern: /^\/api\/hk\/admin\/notifications\/deliveries$/,
+    adminOnly: true,
     handler: async ({ pb, url }) => {
       const status = url.searchParams.get('status')
       const applicationId = url.searchParams.get('application_id')
@@ -456,7 +510,7 @@ export async function handleAdminRead(
     return json(
       {
         error: 'service_account_required',
-        message: err instanceof Error ? err.message : 'Service account required',
+        message: publicErrorMessage('系統服務未設定，請聯絡承辦。', err),
       },
       { status: 503 },
     )
@@ -468,7 +522,13 @@ export async function handleAdminRead(
   } catch (err) {
     const status = (err as { status?: number }).status === 404 ? 404 : 502
     return json(
-      { error: status === 404 ? 'not_found' : 'pb_error', message: err instanceof Error ? err.message : '讀取失敗' },
+      {
+        error: status === 404 ? 'not_found' : 'pb_error',
+        message:
+          status === 404
+            ? '找不到資料'
+            : publicErrorMessage('讀取失敗，請稍後再試', err),
+      },
       { status },
     )
   }

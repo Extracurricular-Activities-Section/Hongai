@@ -21,10 +21,11 @@ import {
 import { applicationToPlain } from '../lib/applications'
 import { contentDisposition } from '../lib/attachments'
 import { requireStaff, type StaffAuthContext } from '../lib/auth-staff'
-import { authorizedCategoryCodes } from '../lib/category-funding-stats'
+import { staffScopedApplicationFilter } from '../lib/staff-application-access'
 import { numericCell, parseCsvRecords, toCsv } from '../lib/csv'
 import { json, type WorkerEnv } from '../lib/http'
 import { createServicePb } from '../lib/pb'
+import { publicErrorMessage } from '../lib/public-error'
 import { applicationFilter } from './admin-read'
 import { createFunding, extractedFor } from './admin-applications'
 
@@ -84,16 +85,7 @@ function csvResponse(csv: string, filename: string): Response {
 }
 
 async function scopedFilter(pb: PocketBase, staff: StaffAuthContext, url: URL): Promise<string | null> {
-  const base = applicationFilter(pb, url)
-  const allowed = await authorizedCategoryCodes(pb, staff)
-  if (allowed === null) return base
-  if (allowed.size === 0) return null
-  const params: Record<string, string> = {}
-  const terms = [...allowed].map((code, index) => {
-    params[`c${index}`] = code
-    return `category_code = {:c${index}}`
-  })
-  return `${base} && (${pb.filter(terms.join(' || '), params)})`
+  return staffScopedApplicationFilter(pb, staff, applicationFilter(pb, url))
 }
 
 async function fetchApplications(pb: PocketBase, filter: string): Promise<Row[]> {
@@ -297,9 +289,7 @@ async function importApprovedAmounts(
           ? err.message
           : (err as { status?: number })?.status === 404
             ? '找不到案件'
-            : err instanceof Error
-              ? err.message
-              : '更新失敗'
+            : publicErrorMessage('更新失敗', err)
       errors.push({ application_number: number, message })
     }
   }
@@ -344,7 +334,7 @@ export async function handleAdminApplicationsCsv(
     return json(
       {
         error: 'service_account_required',
-        message: err instanceof Error ? err.message : 'Service account required',
+        message: publicErrorMessage('系統服務未設定，請聯絡承辦。', err),
       },
       { status: 503 },
     )
@@ -359,7 +349,7 @@ export async function handleAdminApplicationsCsv(
       return json({ error: 'request_failed', message: err.message }, { status: err.status })
     }
     return json(
-      { error: 'pb_error', message: err instanceof Error ? err.message : '操作失敗' },
+      { error: 'pb_error', message: publicErrorMessage('操作失敗，請稍後再試', err) },
       { status: 502 },
     )
   }

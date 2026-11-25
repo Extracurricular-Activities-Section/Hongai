@@ -69,18 +69,13 @@ export function StudentPdfPanel({
     }
   }
 
-  /** Paper-signature flow, spelled out so students know what is still ahead. */
+  /** PDF is optional backup; primary path is e-sign + online submit. */
   const steps: ProcessStep[] = [
     { id: 'complete', label: '完成填寫', state: completed ? 'complete' : 'current' },
     {
       id: 'generate',
-      label: '產生申請表',
+      label: '產生 PDF（選用）',
       state: latestValid ? 'complete' : completed ? 'current' : 'upcoming',
-    },
-    {
-      id: 'sign',
-      label: '列印並簽名',
-      state: latestValid ? 'current' : 'upcoming',
     },
     {
       id: 'submit',
@@ -95,7 +90,7 @@ export function StudentPdfPanel({
         <header className="border-b border-border px-5 py-4">
           <h2 className="text-card font-semibold text-foreground">正式申請文件</h2>
           <p className="mt-1 text-sm text-subtle">
-            申請表需列印簽名後送交承辦，系統會保留每一次產生的版本。
+            主路徑請於系統電子簽名後線上送交。PDF 列印僅供備援，系統會保留每一次產生的版本。
           </p>
         </header>
 
@@ -113,7 +108,7 @@ export function StudentPdfPanel({
               <FileText className="mx-auto size-6 text-muted-foreground" aria-hidden />
               <p className="mt-3 text-sm font-medium text-foreground">尚未產生申請表</p>
               <p className="mt-1 text-meta text-muted-foreground">
-                產生後即可下載列印，並完成紙本簽核。
+                產生後可下載列印作為備援（非必辦）。
               </p>
               <Button
                 type="button"
@@ -199,9 +194,9 @@ export function StudentPdfPanel({
 
           {completed && latestValid ? (
             <ol className="space-y-1.5 text-sm text-subtle">
-              <li>1. 下載並列印申請表</li>
-              <li>2. 完成紙本簽核</li>
-              <li>3. 依規定上傳已簽文件（如需）後送交承辦</li>
+              <li>1. 於系統完成電子簽名</li>
+              <li>2. 線上送交承辦</li>
+              <li>3. PDF 僅備援；如需再下載列印</li>
             </ol>
           ) : null}
 

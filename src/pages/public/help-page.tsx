@@ -22,6 +22,7 @@ export function HelpPage() {
     defaultValues: {
       name: '',
       student_no: '',
+      identity_number: '',
       email: '',
       phone: '',
       reason: '',
@@ -102,6 +103,18 @@ export function HelpPage() {
           </Field>
           <Field id="help-student-no" label="學號" error={form.formState.errors.student_no?.message}>
             <Input id="help-student-no" disabled={submitting} {...form.register('student_no')} />
+          </Field>
+          <Field
+            id="help-identity"
+            label="身分證件號碼"
+            error={form.formState.errors.identity_number?.message}
+          >
+            <Input
+              id="help-identity"
+              autoComplete="off"
+              disabled={submitting}
+              {...form.register('identity_number')}
+            />
           </Field>
           <Field id="help-email" label="Email" error={form.formState.errors.email?.message}>
             <Input id="help-email" type="email" disabled={submitting} {...form.register('email')} />

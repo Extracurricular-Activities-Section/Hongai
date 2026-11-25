@@ -26,6 +26,7 @@ import {
 } from '../lib/mail'
 import { renderTemplate } from '../lib/notification-templates'
 import { createServicePb } from '../lib/pb'
+import { publicErrorMessage } from '../lib/public-error'
 
 type Row = Record<string, unknown>
 type Ctx = { pb: PocketBase; env: WorkerEnv; staff: StaffAuthContext; body: Row; request: Request }
@@ -471,7 +472,7 @@ export async function handleAdminOutreach(
     return json(
       {
         error: 'service_account_required',
-        message: err instanceof Error ? err.message : 'Service account required',
+        message: publicErrorMessage('系統服務未設定，請聯絡承辦。', err),
       },
       { status: 503 },
     )
@@ -491,7 +492,7 @@ export async function handleAdminOutreach(
       return json({ error: 'request_failed', message: err.message }, { status: err.status })
     }
     return json(
-      { error: 'pb_error', message: err instanceof Error ? err.message : '操作失敗' },
+      { error: 'pb_error', message: publicErrorMessage('操作失敗，請稍後再試', err) },
       { status: 502 },
     )
   }

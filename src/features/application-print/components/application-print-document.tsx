@@ -13,6 +13,12 @@ import { formatTaipeiDateTime } from '@/lib/utils'
 
 const EMPTY = '—'
 const FULL_WIDTH_TYPES = new Set(['repeat_group', 'monthly_plan'])
+/** Field types whose values may span multiple print pages. */
+const LONG_TEXT_TYPES = new Set(['textarea', 'text', 'email', 'url'])
+
+function isLongPrintField(field: FormFieldSchema): boolean {
+  return LONG_TEXT_TYPES.has(field.field_type)
+}
 
 function text(value: unknown): string {
   if (value == null) return ''
@@ -131,7 +137,7 @@ function FieldValue({ field, value }: { field: FormFieldSchema; value: FormField
     case 'file':
       return Array.isArray(value) && value.length ? `已上傳附件 ${value.length} 個` : EMPTY
     default:
-      return <span className="whitespace-pre-wrap">{text(value) || EMPTY}</span>
+      return <span className="print-long-text">{text(value) || EMPTY}</span>
   }
 }
 
@@ -255,18 +261,21 @@ export function ApplicationPrintDocument({ workspace }: { workspace: FormWorkspa
             <tbody>
               {section.fields.map((field) =>
                 FULL_WIDTH_TYPES.has(field.field_type) ? (
-                  <tr key={field.id}>
-                    <td colSpan={2} className="print-nested">
+                  <tr key={field.id} className="print-allow-break">
+                    <td colSpan={2} className="print-nested print-long">
                       <p className="mb-1.5 font-semibold">{field.label}</p>
                       <FieldValue field={field} value={answers[field.code]} />
                     </td>
                   </tr>
                 ) : (
-                  <tr key={field.id} className="print-avoid-break">
+                  <tr
+                    key={field.id}
+                    className={isLongPrintField(field) ? 'print-allow-break' : 'print-avoid-break'}
+                  >
                     <th scope="row" className="w-36">
                       {field.label}
                     </th>
-                    <td>
+                    <td className={isLongPrintField(field) ? 'print-long' : undefined}>
                       <FieldValue field={field} value={answers[field.code]} />
                     </td>
                   </tr>
@@ -305,7 +314,7 @@ export function ApplicationPrintDocument({ workspace }: { workspace: FormWorkspa
       </section>
 
       <footer className="mt-4 border-t border-black pt-2 text-xs leading-relaxed">
-        <p>※ 本頁為正式申請表（列印或截圖皆可）。經系輔導老師確認簽名後，請送至課指組（毓麟館 H101）才算完成申請。</p>
+        <p>※ 本頁為正式申請表備援（列印或截圖皆可）。主路徑請於系統完成電子簽名並線上送交；不必再送課指組。</p>
       </footer>
     </article>
   )

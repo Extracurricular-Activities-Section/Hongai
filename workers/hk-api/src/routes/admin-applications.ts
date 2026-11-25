@@ -18,6 +18,11 @@ import {
 } from '../lib/application-workflow'
 import { applicationToPlain, maskIdentity } from '../lib/applications'
 import { requireStaff, type StaffAuthContext } from '../lib/auth-staff'
+import { publicErrorMessage } from '../lib/public-error'
+import {
+  assertStaffCanAccessApplication,
+  staffMayDecideFunding,
+} from '../lib/staff-application-access'
 import { ensureFollowUpTasks } from '../lib/follow-up'
 import { toSchema } from '../lib/forms'
 import { json, type WorkerEnv } from '../lib/http'
@@ -102,9 +107,10 @@ function latestPdfSummary(application: Row): Row | null {
   }
 }
 
-async function detail({ pb }: Ctx, id: string) {
+async function detail({ pb, staff }: Ctx, id: string) {
   const application = await loadApplication(pb, id)
   if (application.status === 'draft') throw new WorkflowError(404, '找不到案件')
+  await assertStaffCanAccessApplication(pb, staff, application, 'read')
   const student = studentOf(application)
   const workflow = workflowOf(application)
   const snapshot = obj(application.submission_snapshot_json)
@@ -158,6 +164,7 @@ const NOTIFY: Record<string, { type: string; ui: 'application' | 'supplement'; t
 
 async function action({ pb, staff, body }: Ctx, id: string) {
   const application = await loadApplication(pb, id)
+  await assertStaffCanAccessApplication(pb, staff, application, 'write')
   const actionName = str(body.action).trim()
   const reason = str(body.reason).trim()
   const studentMessage = str(body.student_message).trim()
@@ -336,6 +343,7 @@ async function action({ pb, staff, body }: Ctx, id: string) {
 
 async function assign({ pb, staff, body }: Ctx, id: string) {
   const application = await loadApplication(pb, id)
+  await assertStaffCanAccessApplication(pb, staff, application, 'write')
   const staffId = str(body.staff_id).trim()
   const departmentId = str(body.department_id).trim()
   const assignmentType = str(body.assignment_type).trim() || 'primary'
@@ -400,8 +408,9 @@ export async function extractedFor(pb: PocketBase, application: Row) {
   return extractRequestedFunding(form, snapshotAnswers(application), str(application.category_code))
 }
 
-async function fundingPreview({ pb }: Ctx, id: string) {
+async function fundingPreview({ pb, staff }: Ctx, id: string) {
   const application = await loadApplication(pb, id)
+  await assertStaffCanAccessApplication(pb, staff, application, 'read')
   const academicYear = num(obj(application.period_json).academic_year)
   const [extracted, summary] = await Promise.all([
     extractedFor(pb, application),
@@ -425,6 +434,10 @@ async function fundingPreview({ pb }: Ctx, id: string) {
 
 export async function createFunding({ pb, staff, body }: Pick<Ctx, 'pb' | 'staff' | 'body'>, id: string) {
   const application = await loadApplication(pb, id)
+  await assertStaffCanAccessApplication(pb, staff, application, 'write')
+  if (!staffMayDecideFunding(staff)) {
+    throw new WorkflowError(403, '此帳號沒有補助核定權限')
+  }
   const status = str(application.status)
   if (status !== 'funding_pending' && status !== 'funding_decided') {
     throw new WorkflowError(400, '目前狀態不可核定補助')
@@ -580,6 +593,7 @@ const APPROVAL_NOTICE_STATUSES = new Set(['approved', 'funding_pending', 'fundin
 async function sendApprovalNotice({ pb, env, staff, body }: Ctx, id: string) {
   if (!staff.is_admin) throw new WorkflowError(403, '需要管理員權限')
   const application = await loadApplication(pb, id)
+  await assertStaffCanAccessApplication(pb, staff, application, 'write')
   const status = str(application.status)
   if (!APPROVAL_NOTICE_STATUSES.has(status)) {
     throw new WorkflowError(400, '案件尚未審核通過，不可寄送通過通知')
@@ -728,7 +742,7 @@ export async function handleAdminApplications(
     return json(
       {
         error: 'service_account_required',
-        message: err instanceof Error ? err.message : 'Service account required',
+        message: publicErrorMessage('系統服務未設定，請聯絡承辦。', err),
       },
       { status: 503 },
     )
@@ -744,7 +758,7 @@ export async function handleAdminApplications(
       return json({ error: 'request_failed', message: err.message }, { status: err.status })
     }
     return json(
-      { error: 'pb_error', message: err instanceof Error ? err.message : '操作失敗' },
+      { error: 'pb_error', message: publicErrorMessage('操作失敗，請稍後再試', err) },
       { status: 502 },
     )
   }

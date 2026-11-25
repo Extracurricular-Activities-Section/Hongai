@@ -6,7 +6,7 @@ import { AmountDisplay } from '@/components/common/amount-display'
 import { DataTable, LinkRow, Pagination, Td, Th } from '@/components/common/data-table'
 import { FilterBar, FilterSelect, SearchInput } from '@/components/common/filter-bar'
 import { PageHeader } from '@/components/common/page-header'
-import { EmptyState, ErrorState } from '@/components/common/states'
+import { EmptyState, ErrorState, InlineNotice } from '@/components/common/states'
 import { Button } from '@/components/ui/button'
 import { SkeletonTable } from '@/components/ui/skeleton'
 import { adminListApplications } from '@/features/applications/api'
@@ -47,7 +47,10 @@ export function AdminApplicationsPage() {
   const [categories, setCategories] = useState<ApplicationCategory[]>([])
 
   const q = searchParams.get('q') || ''
-  const status = searchParams.get('status') || ''
+  const rawQueue = searchParams.get('queue') || ''
+  const queue =
+    rawQueue === 'awaiting_me' || rawQueue === 'awaiting_student' ? rawQueue : ''
+  const status = queue ? '' : searchParams.get('status') || ''
   const eligibility = searchParams.get('eligibility_status') || ''
   const period = searchParams.get('period') || ''
   const category = searchParams.get('category') || ''
@@ -55,11 +58,11 @@ export function AdminApplicationsPage() {
   const sort = SORT_VALUES.has(rawSort) ? rawSort : ''
   const page = Math.max(1, Number(searchParams.get('page') || 1))
 
-  const activeFilterCount = [status, eligibility, period, category].filter(Boolean).length
+  const activeFilterCount = [queue, status, eligibility, period, category].filter(Boolean).length
 
   const queryKey = useMemo(
-    () => ({ q, status, eligibility, period, category, sort, page }),
-    [q, status, eligibility, period, category, sort, page],
+    () => ({ q, queue, status, eligibility, period, category, sort, page }),
+    [q, queue, status, eligibility, period, category, sort, page],
   )
 
   useEffect(() => {
@@ -78,7 +81,11 @@ export function AdminApplicationsPage() {
     setError(null)
     void adminListApplications({
       q: queryKey.q || undefined,
-      status: queryKey.status || undefined,
+      queue:
+        queryKey.queue === 'awaiting_me' || queryKey.queue === 'awaiting_student'
+          ? queryKey.queue
+          : undefined,
+      status: queryKey.queue ? undefined : queryKey.status || undefined,
       eligibility_status: queryKey.eligibility || undefined,
       period: queryKey.period || undefined,
       category: queryKey.category || undefined,
@@ -98,6 +105,9 @@ export function AdminApplicationsPage() {
     const next = new URLSearchParams(searchParams)
     if (value) next.set(key, value)
     else next.delete(key)
+    // 單一狀態篩選與「等我處理」佇列互斥
+    if (key === 'status') next.delete('queue')
+    if (key === 'queue') next.delete('status')
     if (key !== 'page') next.delete('page')
     setSearchParams(next)
   }
@@ -129,6 +139,34 @@ export function AdminApplicationsPage() {
           />
         }
       />
+
+      {queue === 'awaiting_me' ? (
+        <InlineNotice
+          tone="attention"
+          title="等我處理"
+          action={
+            <Button type="button" size="sm" variant="ghost" onClick={() => updateParam('queue', '')}>
+              清除佇列篩選
+            </Button>
+          }
+        >
+          清單與儀表板「等我處理」件數同源：已送件、老師已簽核、資格／內容審核中、待核定補助。
+        </InlineNotice>
+      ) : null}
+
+      {queue === 'awaiting_student' ? (
+        <InlineNotice
+          tone="attention"
+          title="等待學生回應"
+          action={
+            <Button type="button" size="sm" variant="ghost" onClick={() => updateParam('queue', '')}>
+              清除佇列篩選
+            </Button>
+          }
+        >
+          清單與儀表板同源：待補件、退回修改。
+        </InlineNotice>
+      ) : null}
 
       <FilterBar>
         <SearchInput

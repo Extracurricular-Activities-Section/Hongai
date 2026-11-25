@@ -6,8 +6,12 @@
  * flow; PocketBase only stores/authenticates the backing auth record.
  */
 
+import { maskIdentity } from '../lib/applications'
+import { revokeCollectionSession } from '../lib/auth-revoke'
+import { encryptIdentityNumber, hashIdentityNumber } from '../lib/identity-hash'
 import { json, type WorkerEnv } from '../lib/http'
 import { createServicePb } from '../lib/pb'
+import { publicErrorMessage } from '../lib/public-error'
 
 type StudentLoginBody = {
   student_no?: string
@@ -41,19 +45,53 @@ function studentInternalEmail(studentNo: string): string {
   return `hk.${encodeURIComponent(studentNo.toLowerCase())}@students.hongai.internal`
 }
 
-async function sha256Hex(value: string): Promise<string> {
-  const bytes = new TextEncoder().encode(value)
-  const digest = await crypto.subtle.digest('SHA-256', bytes)
-  return Array.from(new Uint8Array(digest))
-    .map((byte) => byte.toString(16).padStart(2, '0'))
-    .join('')
-}
-
 function publicStudentRecord(record: Record<string, unknown>): Record<string, unknown> {
-  const { identity_encrypted, identity_hash, ...safe } = record
+  const {
+    identity_encrypted,
+    identity_hash,
+    identity_last4,
+    password,
+    tokenKey,
+    expand,
+    collectionId,
+    collectionName,
+    ...safe
+  } = record
   void identity_encrypted
   void identity_hash
+  void identity_last4
+  void password
+  void tokenKey
+  void expand
+  void collectionId
+  void collectionName
   return safe
+}
+
+/** FIX-05: progressive lockout — never permanent without admin unlock. */
+const LOCKOUT_FAIL_THRESHOLD = 5
+const LOCKOUT_MINUTES = [5, 15, 30, 60] as const
+
+function lockoutDurationMs(failCount: number): number {
+  const index = Math.min(
+    Math.max(failCount - LOCKOUT_FAIL_THRESHOLD, 0),
+    LOCKOUT_MINUTES.length - 1,
+  )
+  return LOCKOUT_MINUTES[index] * 60_000
+}
+
+async function findStudentByNo(
+  env: WorkerEnv,
+  studentNo: string,
+): Promise<Record<string, unknown> | null> {
+  try {
+    const pb = await createServicePb(env)
+    return (await pb.collection('hk_students').getFirstListItem(
+      pb.filter('student_no = {:no}', { no: studentNo }),
+    )) as Record<string, unknown>
+  } catch {
+    return null
+  }
 }
 
 async function studentAuthWithLast4(
@@ -63,7 +101,21 @@ async function studentAuthWithLast4(
 ): Promise<Response> {
   const base = env.HK_POCKETBASE_URL?.replace(/\/$/, '')
   if (!base) {
-    return json({ error: 'misconfigured', message: 'HK_POCKETBASE_URL missing' }, { status: 500 })
+    return json({ error: 'misconfigured', message: '系統服務未設定，請聯絡承辦。' }, { status: 500 })
+  }
+
+  const existing = await findStudentByNo(env, studentNo)
+  if (existing) {
+    const lockedUntil = existing.locked_until ? Date.parse(String(existing.locked_until)) : NaN
+    if (!Number.isNaN(lockedUntil) && lockedUntil > Date.now()) {
+      return json(
+        {
+          error: 'account_locked',
+          message: '登入嘗試過於頻繁，帳號已暫時鎖定。請稍後再試，或透過身分重設協助解除。',
+        },
+        { status: 423 },
+      )
+    }
   }
 
   const upstream = await fetch(`${base}/api/collections/hk_students/auth-with-password`, {
@@ -75,11 +127,46 @@ async function studentAuthWithLast4(
     }),
   })
 
-  const text = await upstream.text()
-  const headers = new Headers()
-  const ct = upstream.headers.get('content-type')
-  if (ct) headers.set('content-type', ct)
-  return new Response(text, { status: upstream.status, headers })
+  const data = (await upstream.json().catch(() => null)) as {
+    token?: string
+    record?: Record<string, unknown>
+  } | null
+
+  if (!upstream.ok || !data?.token || !data.record) {
+    if (existing?.id) {
+      try {
+        const pb = await createServicePb(env)
+        const fails = Number(existing.failed_login_count) || 0
+        const next = fails + 1
+        const patch: Record<string, unknown> = { failed_login_count: next }
+        if (next >= LOCKOUT_FAIL_THRESHOLD) {
+          patch.locked_until = new Date(Date.now() + lockoutDurationMs(next)).toISOString()
+        }
+        await pb.collection('hk_students').update(String(existing.id), patch)
+      } catch {
+        /* best-effort lockout bookkeeping */
+      }
+    }
+    return json(
+      { error: 'unauthorized', message: '學號或身分驗證資料錯誤。' },
+      { status: 401 },
+    )
+  }
+
+  try {
+    const pb = await createServicePb(env)
+    await pb.collection('hk_students').update(String(data.record.id), {
+      failed_login_count: 0,
+      locked_until: null,
+    })
+  } catch {
+    /* login succeeded; clearing counters is best-effort */
+  }
+
+  return json({
+    token: data.token,
+    record: publicStudentRecord(data.record),
+  })
 }
 
 export async function handleStudentAuth(
@@ -88,6 +175,9 @@ export async function handleStudentAuth(
   path: string,
 ): Promise<Response | null> {
   if (path === '/api/hk/auth/logout' && request.method === 'POST') {
+    // FIX-14: rotate tokenKey so the presented JWT cannot be reused.
+    const token = request.headers.get('authorization')
+    await revokeCollectionSession(env, 'hk_students', token)
     return json({ success: true })
   }
 
@@ -96,7 +186,7 @@ export async function handleStudentAuth(
     try {
       body = (await request.json()) as StudentLoginBody
     } catch {
-      return json({ error: 'bad_request', message: 'Invalid JSON' }, { status: 400 })
+      return json({ error: 'bad_request', message: '請求格式錯誤。' }, { status: 400 })
     }
 
     const studentNo = normalizeStudentNo(body.student_no)
@@ -113,7 +203,7 @@ export async function handleStudentAuth(
     try {
       body = (await request.json()) as StudentRegisterBody
     } catch {
-      return json({ error: 'bad_request', message: 'Invalid JSON' }, { status: 400 })
+      return json({ error: 'bad_request', message: '請求格式錯誤。' }, { status: 400 })
     }
 
     const studentNo = normalizeStudentNo(body.student_no)
@@ -150,25 +240,56 @@ export async function handleStudentAuth(
       return json(
         {
           error: 'service_account_required',
-          message: err instanceof Error ? err.message : 'Service account required',
+          message: publicErrorMessage('系統服務未設定，請聯絡承辦。', err),
+        },
+        { status: 503 },
+      )
+    }
+
+    let identityHash: string
+    let identityEncrypted: string
+    try {
+      identityHash = await hashIdentityNumber(identityNumber, env.HK_IDENTITY_PEPPER)
+      identityEncrypted = await encryptIdentityNumber(identityNumber, env.HK_IDENTITY_PEPPER)
+    } catch {
+      return json(
+        {
+          error: 'misconfigured',
+          message: '系統身分保護金鑰未設定，暫時無法註冊。請聯絡承辦。',
         },
         { status: 503 },
       )
     }
 
     try {
-      const identityHash = await sha256Hex(identityNumber)
       const existing = await pb
         .collection('hk_students')
         .getFirstListItem(`student_no="${studentNo.replace(/"/g, '\\"')}"`)
         .catch(() => null)
 
-      const profileFields = {
+      // FIX-01: never overwrite password / identity / contact on an existing account.
+      // Recovery must go through the independent identity-reset flow.
+      if (existing) {
+        return json(
+          {
+            error: 'already_registered',
+            message: '此學號已註冊。請直接登入；若無法登入，請使用身分重設協助，勿重複註冊。',
+          },
+          { status: 409 },
+        )
+      }
+
+      // Do not set `verified` here: PocketBase only allows superusers to force-verify,
+      // and the Worker must use the service account (not Superuser). Login authRule is active=true.
+      await pb.collection('hk_students').create({
+        email: studentInternalEmail(studentNo),
+        emailVisibility: false,
+        student_no: studentNo,
         password: identityLast4,
         passwordConfirm: identityLast4,
-        verified: true,
         identity_last4: identityLast4,
         identity_hash: identityHash,
+        identity_encrypted: identityEncrypted,
         name: body.name,
         gender: body.gender || '',
         division: body.division || '',
@@ -181,48 +302,23 @@ export async function handleStudentAuth(
         bank_account_note: body.bank_account_note || '',
         active: true,
         failed_login_count: 0,
-      }
-
-      if (existing) {
-        // 同學生重複註冊：覆蓋舊資料（保留既有 period_profiles／category_entries）
-        const prevProfile =
-          existing.profile_json && typeof existing.profile_json === 'object'
-            ? (existing.profile_json as Record<string, unknown>)
-            : {}
-        await pb.collection('hk_students').update(String(existing.id), {
-          ...profileFields,
-          profile_json: {
-            ...prevProfile,
-            contact_email: contactEmail,
-            original_registration_email:
-              prevProfile.original_registration_email || contactEmail,
-            registration_overwritten_at: new Date().toISOString(),
-          },
-        })
-      } else {
-        await pb.collection('hk_students').create({
-          email: studentInternalEmail(studentNo),
-          emailVisibility: false,
-          student_no: studentNo,
-          ...profileFields,
-          profile_json: {
-            contact_email: contactEmail,
-            original_registration_email: contactEmail,
-          },
-          notification_preferences_json: {
-            email_enabled: true,
-            in_app_enabled: true,
-            event_reminders: true,
-            follow_up_reminders: true,
-          },
-          registered_at: new Date().toISOString(),
-        })
-      }
+        profile_json: {
+          contact_email: contactEmail,
+          original_registration_email: contactEmail,
+        },
+        notification_preferences_json: {
+          email_enabled: true,
+          in_app_enabled: true,
+          event_reminders: true,
+          follow_up_reminders: true,
+        },
+        registered_at: new Date().toISOString(),
+      })
     } catch (err) {
       return json(
         {
           error: 'register_failed',
-          message: err instanceof Error ? err.message : '註冊失敗，請稍後再試或聯絡承辦。',
+          message: publicErrorMessage('註冊失敗，請稍後再試或聯絡承辦。', err),
         },
         { status: 400 },
       )
@@ -237,7 +333,7 @@ export async function handleStudentAuth(
 
     const base = env.HK_POCKETBASE_URL?.replace(/\/$/, '')
     if (!base) {
-      return json({ error: 'misconfigured', message: 'HK_POCKETBASE_URL missing' }, { status: 500 })
+      return json({ error: 'misconfigured', message: '系統服務未設定，請聯絡承辦。' }, { status: 500 })
     }
 
     const upstream = await fetch(`${base}/api/collections/hk_students/auth-refresh`, {
@@ -251,6 +347,7 @@ export async function handleStudentAuth(
       return json({ error: 'unauthorized', message: '請重新登入' }, { status: 401 })
     }
 
+    const maskedIdentity = maskIdentity(data.record.identity_last4)
     const record = publicStudentRecord(data.record)
     const contactEmail =
       typeof record.profile_json === 'object' &&
@@ -264,6 +361,8 @@ export async function handleStudentAuth(
         ...record,
         student: record.id,
         email: contactEmail,
+        identity_number: maskedIdentity,
+        identity_number_masked: maskedIdentity,
       },
     })
   }
@@ -274,7 +373,7 @@ export async function handleStudentAuth(
 
     const base = env.HK_POCKETBASE_URL?.replace(/\/$/, '')
     if (!base) {
-      return json({ error: 'misconfigured', message: 'HK_POCKETBASE_URL missing' }, { status: 500 })
+      return json({ error: 'misconfigured', message: '系統服務未設定，請聯絡承辦。' }, { status: 500 })
     }
 
     const refresh = await fetch(`${base}/api/collections/hk_students/auth-refresh`, {
@@ -289,7 +388,7 @@ export async function handleStudentAuth(
     }
 
     const body = (await request.json().catch(() => null)) as Record<string, unknown> | null
-    if (!body) return json({ error: 'bad_request', message: 'Invalid JSON' }, { status: 400 })
+    if (!body) return json({ error: 'bad_request', message: '請求格式錯誤。' }, { status: 400 })
 
     let pb
     try {
@@ -298,7 +397,7 @@ export async function handleStudentAuth(
       return json(
         {
           error: 'service_account_required',
-          message: err instanceof Error ? err.message : 'Service account required',
+          message: publicErrorMessage('系統服務未設定，請聯絡承辦。', err),
         },
         { status: 503 },
       )

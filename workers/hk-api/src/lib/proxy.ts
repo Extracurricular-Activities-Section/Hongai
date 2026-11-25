@@ -18,7 +18,7 @@ export async function proxyToPocketBase(
 ): Promise<Response> {
   const base = env.HK_POCKETBASE_URL?.replace(/\/$/, '')
   if (!base) {
-    return json({ error: 'misconfigured', message: 'HK_POCKETBASE_URL missing' }, { status: 500 })
+    return json({ error: 'misconfigured', message: '系統服務未設定，請聯絡承辦。' }, { status: 500 })
   }
 
   const incoming = new URL(request.url)
@@ -31,6 +31,23 @@ export async function proxyToPocketBase(
   // Block accidental Superuser collection access via proxy path guessing.
   if (/\/api\/collections\/_superusers\b/i.test(path)) {
     return json({ error: 'forbidden', message: 'Superuser API is not available' }, { status: 403 })
+  }
+
+  // FIX-14: block all hk_* collection access via transitional proxy (read + write).
+  // Business traffic must use /api/hk/*. Auth-with-password / auth-refresh remain
+  // allowed for staged clients; OPTIONS is left for CORS preflight.
+  const method = request.method.toUpperCase()
+  if (method !== 'OPTIONS' && /\/api\/collections\/hk_[a-z0-9_]+\b/i.test(path)) {
+    const isAuthEndpoint = /\/auth-(with-password|refresh)\/?$/i.test(path)
+    if (!isAuthEndpoint) {
+      return json(
+        {
+          error: 'forbidden',
+          message: '請改走 /api/hk 業務 API，不可經 proxy 存取 hk_* 集合',
+        },
+        { status: 403 },
+      )
+    }
   }
 
   const target = `${base}${path}${incoming.search}`

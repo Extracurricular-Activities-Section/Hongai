@@ -4,6 +4,7 @@ import { requireStaff, type StaffAuthContext } from '../lib/auth-staff'
 import { categoryFromSetting } from '../lib/categories'
 import { json, type WorkerEnv } from '../lib/http'
 import { createServicePb } from '../lib/pb'
+import { publicErrorMessage } from '../lib/public-error'
 import { periodFromSetting, type PeriodStatus } from '../lib/periods'
 
 type Body = Record<string, unknown>
@@ -111,7 +112,7 @@ export async function handleAdminPeriods(
     return json(
       {
         error: 'service_account_required',
-        message: err instanceof Error ? err.message : 'Service account required',
+        message: publicErrorMessage('系統服務未設定，請聯絡承辦。', err),
       },
       { status: 503 },
     )
@@ -169,7 +170,7 @@ export async function handleAdminPeriods(
     return json(
       {
         error: status === 404 ? 'not_found' : 'pb_error',
-        message: status === 404 ? '找不到資料' : err instanceof Error ? err.message : '儲存失敗',
+        message: status === 404 ? '找不到資料' : publicErrorMessage('儲存失敗，請稍後再試', err),
       },
       { status },
     )

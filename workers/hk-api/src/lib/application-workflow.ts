@@ -218,7 +218,9 @@ export async function annualFundingSummary(pb: PocketBase, studentId: string, ac
       filter: pb.filter('student = {:sid} && status != "draft"', { sid: studentId }),
       fields:
         'id,application_number,category_code,category_name,status,requested_amount,approved_amount,submitted_at,period_json,funding_json',
-      sort: 'submitted_at,created',
+      // Prefer submitted_at + id: sorting by system `created` can 400 on some PB builds
+      // when combined with filters (observed on isolated 0.40.6 localhost).
+      sort: 'submitted_at,id',
     }) as Promise<Row[]>,
     annualLimitFor(pb, academicYear),
   ])

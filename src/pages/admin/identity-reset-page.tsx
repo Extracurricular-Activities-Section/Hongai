@@ -132,6 +132,14 @@ export function AdminIdentityResetPage() {
                 <p>Email：{item.email}</p>
                 <p>電話：{item.phone}</p>
                 <p>原因：{item.reason}</p>
+                <p>
+                  身分證核對：
+                  {item.identity_check === 'match' || item.identity_verified
+                    ? '相符'
+                    : item.identity_check === 'mismatch'
+                      ? '不相符'
+                      : '無法核對／尚無雜湊'}
+                </p>
                 <div className="space-y-2">
                   <Label>處理備註</Label>
                   <Input

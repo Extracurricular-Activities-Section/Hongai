@@ -1,4 +1,4 @@
-import { ArrowLeft, ArrowRight, Check, CopyPlus, Save, X } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Check, CopyPlus, RotateCcw, Save, X } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useBlocker, useNavigate, useParams } from 'react-router-dom'
 
@@ -12,6 +12,7 @@ import {
   completeFormSubmission,
   copyPreviousFormSubmission,
   fetchFormWorkspace,
+  resetFormOverwrite,
   saveFormSubmission,
   type FormWorkspaceResponse,
 } from '@/features/forms/api'
@@ -35,13 +36,23 @@ const INDICATOR_STATE: Record<SaveState, IndicatorState> = {
   error: 'error',
 }
 
+function networkAwareMessage(err: unknown, fallback: string): string {
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+    return '目前似乎沒有網路連線。請連上網路後再試；草稿會留在本機尚未送出的內容，可重新整理後繼續。'
+  }
+  if (err instanceof TypeError) {
+    return '無法連線到伺服器。請檢查網路後再試，已填內容請先按「儲存」。'
+  }
+  if (err instanceof Error && err.message.trim()) return err.message
+  return fallback
+}
+
 function completionBanner(application: FormWorkspaceResponse['application']) {
-  const paperReminder = '若尚未送交紙本，請列印申請表交由系輔導老師簽名，送至課指組。'
   if (!application.application_number || application.status === 'draft') {
     return {
       positive: true,
       title: '申請內容已完成',
-      body: '下一步請送交承辦取得申請編號，再列印申請表交由系輔導老師簽名，送至課指組完成申請。',
+      body: '請完成電子簽名後送交承辦取得申請編號，即完成申請。列印僅供備援，不必送課指組。',
     }
   }
   switch (application.status) {
@@ -53,15 +64,15 @@ function completionBanner(application: FormWorkspaceResponse['application']) {
       return { positive: false, title: '申請未通過', body: '詳細說明請查看通知。' }
     case 'approved':
     case 'funding_pending':
-      return { positive: true, title: '申請審核通過', body: `補助金額核定中，結果會以通知告知。${paperReminder}` }
+      return { positive: true, title: '申請審核通過', body: '補助金額核定中，結果會以通知告知。' }
     case 'funding_decided':
     case 'closed':
-      return { positive: true, title: '補助已核定', body: `核定結果如下。${paperReminder}` }
+      return { positive: true, title: '補助已核定', body: '核定結果如下。' }
     default:
       return {
         positive: true,
         title: '申請已送交',
-        body: `承辦審核中，結果會以通知告知。${paperReminder}`,
+        body: '承辦審核中，結果會以通知告知。',
       }
   }
 }
@@ -77,6 +88,8 @@ export function StudentCategoryFormPage() {
   const [saveState, setSaveState] = useState<SaveState>('idle')
   const [completed, setCompleted] = useState(false)
   const [dirty, setDirty] = useState(false)
+  const [resetting, setResetting] = useState(false)
+  const [completing, setCompleting] = useState(false)
   const timerRef = useRef<number | null>(null)
   const valuesRef = useRef<FormValues>({})
   const revisionRef = useRef(0)
@@ -157,7 +170,7 @@ export function StudentCategoryFormPage() {
       )
     } catch (err) {
       setSaveState('error')
-      setError(err instanceof Error ? err.message : '儲存失敗')
+      setError(networkAwareMessage(err, '儲存失敗，請稍後再試'))
     }
   }
 
@@ -178,7 +191,7 @@ export function StudentCategoryFormPage() {
   }
 
   async function handleComplete() {
-    if (!workspace) return
+    if (!workspace || completing) return
     if (timerRef.current) {
       window.clearTimeout(timerRef.current)
       timerRef.current = null
@@ -192,6 +205,7 @@ export function StudentCategoryFormPage() {
       setError('尚有必填或缺漏項目，請返回修改')
       return
     }
+    setCompleting(true)
     try {
       await completeFormSubmission({
         submission_id: workspace.submission.id,
@@ -201,7 +215,9 @@ export function StudentCategoryFormPage() {
       setDirty(false)
       setError(null)
     } catch (err) {
-      setError(err instanceof Error ? err.message : '完成填寫失敗')
+      setError(networkAwareMessage(err, '完成填寫失敗，請稍後再試；內容仍可按「儲存」保留。'))
+    } finally {
+      setCompleting(false)
     }
   }
 
@@ -275,12 +291,42 @@ export function StudentCategoryFormPage() {
           }}
         />
 
-        <Button asChild variant="outline">
-          <Link to="/student/current">
-            <ArrowLeft />
-            返回申請項目
-          </Link>
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          {workspace.can_reset_overwrite ? (
+            <Button
+              type="button"
+              variant="outline"
+              disabled={resetting}
+              onClick={() => {
+                const ok = window.confirm(
+                  '確定要清除此項目的舊填答，並改用最新表單重新填寫？此操作無法復原。',
+                )
+                if (!ok) return
+                setResetting(true)
+                setError(null)
+                void resetFormOverwrite(categoryCode)
+                  .then(async (result) => {
+                    setCompleted(false)
+                    setStep(0)
+                    setIssues([])
+                    await load()
+                    window.alert(result.message || '已清除舊資料，請重新填寫。')
+                  })
+                  .catch((err) => setError(err instanceof Error ? err.message : '重新填寫失敗'))
+                  .finally(() => setResetting(false))
+              }}
+            >
+              <RotateCcw />
+              {resetting ? '處理中…' : '重新填寫（覆蓋舊資料）'}
+            </Button>
+          ) : null}
+          <Button asChild variant="outline">
+            <Link to="/student/current">
+              <ArrowLeft />
+              返回申請項目
+            </Link>
+          </Button>
+        </div>
       </div>
     )
   }
@@ -320,11 +366,7 @@ export function StudentCategoryFormPage() {
           </p>
         </div>
 
-        <Button
-          asChild
-          variant="ghost"
-          size="sm"
-        >
+        <Button asChild variant="ghost" size="sm">
           <Link
             to="/student/current"
             onClick={(event) => {
@@ -339,6 +381,44 @@ export function StudentCategoryFormPage() {
           </Link>
         </Button>
       </div>
+
+      {workspace.can_reset_overwrite ? (
+        <InlineNotice
+          tone="attention"
+          title="要清除舊草稿並重寫嗎？"
+          action={
+            <Button
+              type="button"
+              variant="brand"
+              size="sm"
+              disabled={resetting || saveState === 'pending'}
+              onClick={() => {
+                const ok = window.confirm(
+                  '確定要清除此項目的舊填答，並改用最新表單重新填寫？此操作無法復原。',
+                )
+                if (!ok) return
+                setResetting(true)
+                setError(null)
+                void resetFormOverwrite(categoryCode)
+                  .then(async (result) => {
+                    setCompleted(false)
+                    setStep(0)
+                    setIssues([])
+                    await load()
+                    window.alert(result.message || '已清除舊資料，請重新填寫。')
+                  })
+                  .catch((err) => setError(err instanceof Error ? err.message : '重新填寫失敗'))
+                  .finally(() => setResetting(false))
+              }}
+            >
+              <RotateCcw />
+              {resetting ? '處理中…' : '覆蓋舊資料並重填'}
+            </Button>
+          }
+        >
+          表單若已改版，或第一版填錯，可一鍵清空此草稿並改用最新表單。
+        </InlineNotice>
+      ) : null}
 
       <div className="grid gap-8 lg:grid-cols-[14rem_minmax(0,1fr)]">
         <div className="lg:sticky lg:top-24 lg:self-start">
@@ -415,7 +495,7 @@ export function StudentCategoryFormPage() {
                 </p>
                 <h2 className="mt-1 text-section font-semibold text-foreground">確認申請內容</h2>
                 <p className="mt-1.5 text-sm leading-relaxed text-subtle">
-                  請確認以下內容無誤。完成填寫後仍可返回修改，直到送出紙本前都會保留。
+                  請確認以下內容無誤。完成填寫後仍可返回修改，直到線上送交前都會保留。
                 </p>
               </div>
 
@@ -479,19 +559,29 @@ export function StudentCategoryFormPage() {
             }
             end={
               <>
-                <Button type="button" variant="outline" onClick={() => void persist(true)}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={saveState === 'pending' || completing}
+                  onClick={() => void persist(true)}
+                >
                   <Save />
-                  儲存
+                  {saveState === 'pending' ? '儲存中…' : '儲存'}
                 </Button>
                 {!isConfirmStep ? (
-                  <Button type="button" onClick={() => goToStep(step + 1)}>
+                  <Button type="button" disabled={completing} onClick={() => goToStep(step + 1)}>
                     下一步
                     <ArrowRight />
                   </Button>
                 ) : (
-                  <Button type="button" variant="brand" onClick={() => void handleComplete()}>
+                  <Button
+                    type="button"
+                    variant="brand"
+                    disabled={completing || saveState === 'pending'}
+                    onClick={() => void handleComplete()}
+                  >
                     <Check />
-                    完成填寫
+                    {completing ? '送出中…' : '完成填寫'}
                   </Button>
                 )}
               </>

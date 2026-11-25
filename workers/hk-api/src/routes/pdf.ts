@@ -9,9 +9,11 @@ import type PocketBase from 'pocketbase'
 import { contentDisposition, attachmentsOf } from '../lib/attachments'
 import { requireStudent, type StudentRecord } from '../lib/auth-student'
 import { requireStaff, type StaffAuthContext } from '../lib/auth-staff'
-import { nowIso, writeAudit } from '../lib/application-workflow'
+import { assertStaffCanAccessApplication } from '../lib/staff-application-access'
+import { nowIso, writeAudit, WorkflowError } from '../lib/application-workflow'
 import { json, type WorkerEnv } from '../lib/http'
 import { createServicePb } from '../lib/pb'
+import { publicErrorMessage } from '../lib/public-error'
 import {
   applicationIdOfPdf,
   assertSnapshotComplete,
@@ -50,7 +52,7 @@ async function servicePb(env: WorkerEnv): Promise<PocketBase> {
   } catch (err) {
     throw new HttpError(
       503,
-      err instanceof Error ? err.message : 'Service account required',
+      publicErrorMessage('系統服務未設定，請聯絡承辦。', err),
     )
   }
 }
@@ -145,7 +147,7 @@ async function generate(
       verificationUrl,
     })
   } catch (err) {
-    throw new HttpError(503, err instanceof Error ? err.message : 'PDF 產生失敗')
+    throw new HttpError(503, publicErrorMessage('PDF 產生失敗，請稍後再試', err))
   }
 
   const documentId = newPdfDocumentId(applicationId)
@@ -249,6 +251,9 @@ async function download(
   const application = await loadApplication(pb, applicationId)
   if (actor.kind === 'student' && str(application.student) !== str(actor.student.id)) {
     throw new HttpError(403, '無權限')
+  }
+  if (actor.kind === 'staff') {
+    await assertStaffCanAccessApplication(pb, actor.staff, application, 'read')
   }
 
   const doc = pdfDocumentsOf(application).find((item) => str(item.id) === documentId)
@@ -470,11 +475,11 @@ export async function handlePdf(
 
     return null
   } catch (err) {
-    if (err instanceof HttpError) {
+    if (err instanceof HttpError || err instanceof WorkflowError) {
       return json({ error: 'pdf_error', message: err.message }, { status: err.status })
     }
     return json(
-      { error: 'pdf_error', message: err instanceof Error ? err.message : 'PDF 操作失敗' },
+      { error: 'pdf_error', message: publicErrorMessage('PDF 操作失敗，請稍後再試', err) },
       { status: 502 },
     )
   }

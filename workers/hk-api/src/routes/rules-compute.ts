@@ -23,7 +23,7 @@ export async function handleRulesCompute(
     try {
       body = (await request.json()) as typeof body
     } catch {
-      return json({ error: 'bad_request', message: 'Invalid JSON' }, { status: 400 })
+      return json({ error: 'bad_request', message: '請求格式錯誤。' }, { status: 400 })
     }
     return json({ result: evaluateEligibility(body) })
   }
@@ -33,7 +33,7 @@ export async function handleRulesCompute(
     try {
       body = (await request.json()) as typeof body
     } catch {
-      return json({ error: 'bad_request', message: 'Invalid JSON' }, { status: 400 })
+      return json({ error: 'bad_request', message: '請求格式錯誤。' }, { status: 400 })
     }
     return json({
       result: lookupLivingAllowance(body.code || '', Array.isArray(body.rules) ? body.rules : []),
@@ -50,7 +50,7 @@ export async function handleRulesCompute(
     try {
       body = (await request.json()) as typeof body
     } catch {
-      return json({ error: 'bad_request', message: 'Invalid JSON' }, { status: 400 })
+      return json({ error: 'bad_request', message: '請求格式錯誤。' }, { status: 400 })
     }
     return json({
       result: evaluateDisbursementGate({
@@ -67,7 +67,7 @@ export async function handleRulesCompute(
     try {
       body = (await request.json()) as typeof body
     } catch {
-      return json({ error: 'bad_request', message: 'Invalid JSON' }, { status: 400 })
+      return json({ error: 'bad_request', message: '請求格式錯誤。' }, { status: 400 })
     }
     return json({
       result: validateRewardDraft(body),

@@ -9,8 +9,10 @@ import type PocketBase from 'pocketbase'
 
 import { nowIso } from '../lib/application-workflow'
 import { requireStaff, type StaffAuthContext } from '../lib/auth-staff'
+import { hashIdentityNumber } from '../lib/identity-hash'
 import { json, type WorkerEnv } from '../lib/http'
 import { createServicePb } from '../lib/pb'
+import { publicErrorMessage } from '../lib/public-error'
 
 type Row = Record<string, unknown>
 
@@ -25,6 +27,13 @@ const STATUS_LABEL: Record<string, string> = {
 const str = (value: unknown): string => (value == null ? '' : String(value)).trim()
 const obj = (value: unknown): Row =>
   value && typeof value === 'object' && !Array.isArray(value) ? (value as Row) : {}
+
+function timingSafeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false
+  let mismatch = 0
+  for (let i = 0; i < a.length; i += 1) mismatch |= a.charCodeAt(i) ^ b.charCodeAt(i)
+  return mismatch === 0
+}
 
 function clientMeta(request: Request) {
   return {
@@ -47,6 +56,8 @@ function toPlain(record: Row): Row {
     email: str(payload.email),
     phone: str(payload.phone),
     reason: str(payload.reason),
+    identity_verified: payload.identity_verified === true,
+    identity_check: str(payload.identity_check) || 'unavailable',
     status: str(record.status) || 'pending',
     resolution_note: payload.resolution_note ? str(payload.resolution_note) : null,
     resolved_at: payload.resolved_at ? str(payload.resolved_at) : null,
@@ -127,7 +138,7 @@ async function servicePb(env: WorkerEnv): Promise<PocketBase | Response> {
     return json(
       {
         error: 'service_account_required',
-        message: err instanceof Error ? err.message : 'Service account required',
+        message: publicErrorMessage('系統服務未設定，請聯絡承辦。', err),
       },
       { status: 503 },
     )
@@ -144,10 +155,11 @@ async function handlePublicCreate(request: Request, env: WorkerEnv): Promise<Res
 
   const name = str(body.name)
   const studentNo = str(body.student_no)
+  const identityNumber = str(body.identity_number).toUpperCase()
   const email = str(body.email)
   const phone = str(body.phone)
   const reason = str(body.reason)
-  if (!name || !studentNo || !email || !phone || !reason) {
+  if (!name || !studentNo || !identityNumber || !email || !phone || !reason) {
     return json({ message: UNIFORM }, { status: 400 })
   }
 
@@ -156,12 +168,22 @@ async function handlePublicCreate(request: Request, env: WorkerEnv): Promise<Res
 
   const meta = clientMeta(request)
   let createdStudentId = ''
+  let identityCheck: 'match' | 'mismatch' | 'unavailable' = 'unavailable'
   try {
     const student = (await pb.collection('hk_students').getFirstListItem(
       pb.filter('student_no = {:no}', { no: studentNo }),
-      { fields: 'id' },
+      { fields: 'id,identity_hash' },
     )) as Row
     createdStudentId = str(student.id)
+    const storedHash = str(student.identity_hash)
+    if (storedHash) {
+      try {
+        const hashed = await hashIdentityNumber(identityNumber, env.HK_IDENTITY_PEPPER)
+        identityCheck = timingSafeEqual(hashed, storedHash) ? 'match' : 'mismatch'
+      } catch {
+        identityCheck = 'unavailable'
+      }
+    }
   } catch {
     // do not reveal whether the student exists
   }
@@ -181,6 +203,9 @@ async function handlePublicCreate(request: Request, env: WorkerEnv): Promise<Res
         phone,
         reason: reason.slice(0, 2000),
         created_student: createdStudentId || null,
+        // Never store plaintext identity_number — only verification outcome.
+        identity_verified: identityCheck === 'match',
+        identity_check: identityCheck,
         resolution_note: null,
         resolved_by: null,
         resolved_at: null,
@@ -196,7 +221,7 @@ async function handlePublicCreate(request: Request, env: WorkerEnv): Promise<Res
       targetId: str(record.id),
       ip: meta.ip,
       userAgent: meta.user_agent,
-      payload: { linked: Boolean(createdStudentId) },
+      payload: { linked: Boolean(createdStudentId), identity_check: identityCheck },
     })
   } catch {
     return json({ error: 'create_failed', message: '送出失敗，請稍後再試。' }, { status: 502 })
@@ -228,7 +253,7 @@ async function handleAdminList(
     return json({ items: (page.items as Row[]).map(toPlain) })
   } catch (err) {
     return json(
-      { error: 'pb_error', message: err instanceof Error ? err.message : '讀取失敗' },
+      { error: 'pb_error', message: publicErrorMessage('讀取失敗，請稍後再試', err) },
       { status: 502 },
     )
   }
@@ -244,7 +269,7 @@ async function handleAdminStatus(
   try {
     body = (await request.json()) as Row
   } catch {
-    return json({ error: 'bad_request', message: 'Invalid JSON' }, { status: 400 })
+    return json({ error: 'bad_request', message: '請求格式錯誤。' }, { status: 400 })
   }
 
   const status = str(body.status)
@@ -292,7 +317,7 @@ async function handleAdminStatus(
     await notifyProcessed(pb, saved, status, resolutionNote)
   } catch (err) {
     return json(
-      { error: 'update_failed', message: err instanceof Error ? err.message : '更新失敗' },
+      { error: 'update_failed', message: publicErrorMessage('更新失敗，請稍後再試', err) },
       { status: 502 },
     )
   }

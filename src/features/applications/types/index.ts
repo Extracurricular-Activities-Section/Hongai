@@ -155,6 +155,9 @@ export interface ApplicationSummaryCounts {
   total: number
   by_status: Partial<Record<ApplicationStatus, number>>
   by_eligibility: Partial<Record<EligibilityStatus, number>>
+  /** Server-computed「等我處理」件數（已依核定權裁切 funding_pending） */
+  awaiting_me_count?: number
+  can_decide_funding?: boolean
 }
 
 export interface ApplicationListParams {
@@ -162,6 +165,8 @@ export interface ApplicationListParams {
   period?: string
   category?: string
   status?: string
+  /** Dashboard「等我處理」佇列（與儀表板件數同源） */
+  queue?: 'awaiting_me' | 'awaiting_student'
   eligibility_status?: string
   department?: string
   page?: number

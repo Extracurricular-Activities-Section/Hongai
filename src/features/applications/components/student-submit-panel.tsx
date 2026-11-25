@@ -1,5 +1,5 @@
 ﻿import { useCallback, useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -33,6 +33,7 @@ export function StudentSubmitPanel({
   categoryCode?: string
   onSubmitted?: () => void
 }) {
+  const navigate = useNavigate()
   const [application, setApplication] = useState<Application | null | undefined>(undefined)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -135,8 +136,21 @@ export function StudentSubmitPanel({
       const result = await submitApplication(submissionId)
       setApplication(result.application)
       setMessage(result.message)
-      await load()
+      // Fire-and-forget list refresh — failure must not block print of this application.
       onSubmitted?.()
+      const applicationId = result.application.id
+      const printCategory =
+        categoryCode ||
+        result.application.category_code ||
+        (typeof result.application.category === 'string' ? result.application.category : '')
+      if (applicationId) {
+        const path = printCategory
+          ? `/student/current/category/${encodeURIComponent(printCategory)}/print?application=${encodeURIComponent(applicationId)}`
+          : `/student/current/category/_/print?application=${encodeURIComponent(applicationId)}`
+        navigate(path, { replace: false })
+        return
+      }
+      await load()
     } catch (err) {
       setError(err instanceof Error ? err.message : '送件失敗')
     } finally {

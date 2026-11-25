@@ -11,6 +11,7 @@ import type PocketBase from 'pocketbase'
 import { nowIso, workflowOf } from './application-workflow'
 import { newAttachmentId, storedFilename } from './attachments'
 import { toSchema } from './forms'
+import { isWeakSecret } from './weak-secrets'
 
 type Row = Record<string, unknown>
 
@@ -144,6 +145,9 @@ export async function callPdfRender(
   }
   if (!secret) {
     throw new Error('PDF 服務密鑰未設定（HK_PDF_SERVICE_SECRET）')
+  }
+  if (isWeakSecret(secret)) {
+    throw new Error('PDF 服務密鑰為弱預設值，請改用 wrangler secret 設定正式密鑰')
   }
 
   const response = await fetch(`${base}/render`, {

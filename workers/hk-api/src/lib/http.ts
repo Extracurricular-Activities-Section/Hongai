@@ -22,6 +22,8 @@ export type WorkerEnv = {
   HK_PB_SERVICE_EMAIL?: string
   HK_PB_SERVICE_PASSWORD?: string
   HK_SCHEDULER_SECRET?: string
+  /** HMAC pepper for student identity_hash (wrangler secret / .dev.vars only). */
+  HK_IDENTITY_PEPPER?: string
   /** PDF render Worker / Container base URL (e.g. https://hk-pdf….workers.dev). */
   HK_PDF_SERVICE_URL?: string
   /** Shared secret for X-HK-PDF-SECRET when calling /render. */

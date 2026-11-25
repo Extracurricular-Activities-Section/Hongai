@@ -1,6 +1,7 @@
 import { requireStudent } from '../lib/auth-student'
 import { json, type WorkerEnv } from '../lib/http'
 import { createServicePb } from '../lib/pb'
+import { publicErrorMessage } from '../lib/public-error'
 import {
   isPeriodEditableNow,
   listVisiblePeriods,
@@ -25,7 +26,7 @@ export async function handleStudentPeriods(
     return json(
       {
         error: 'service_account_required',
-        message: err instanceof Error ? err.message : 'Service account required',
+        message: publicErrorMessage('系統服務未設定，請聯絡承辦。', err),
       },
       { status: 503 },
     )
@@ -59,7 +60,7 @@ export async function handleStudentPeriods(
     })
   } catch (err) {
     return json(
-      { error: 'pb_error', message: err instanceof Error ? err.message : '無法載入申請梯次資訊' },
+      { error: 'pb_error', message: publicErrorMessage('無法載入申請梯次資訊', err) },
       { status: 502 },
     )
   }

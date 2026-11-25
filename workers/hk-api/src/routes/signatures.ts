@@ -12,6 +12,8 @@ import { requireStaff, type StaffAuthContext } from '../lib/auth-staff'
 import { requireStudent, type StudentRecord } from '../lib/auth-student'
 import { json, type WorkerEnv } from '../lib/http'
 import { createServicePb } from '../lib/pb'
+import { publicErrorMessage } from '../lib/public-error'
+import { assertStaffCanAccessApplication } from '../lib/staff-application-access'
 import {
   assertSignable,
   findTeacherEmail,
@@ -102,6 +104,7 @@ async function saveTeacherSignature(
 ) {
   const application = await loadApplication(pb, id)
   if (str(application.status) === 'draft') throw new WorkflowError(404, '找不到案件')
+  await assertStaffCanAccessApplication(pb, staff, application, 'write')
   assertSignable(application)
   const entry = parseTeacherSignature(body, request, staff.id)
 
@@ -147,6 +150,9 @@ async function notifyTeacher(
 ) {
   const application =
     actor.type === 'student' ? await loadOwn(pb, actor.student, id) : await loadApplication(pb, id)
+  if (actor.type === 'staff') {
+    await assertStaffCanAccessApplication(pb, actor.staff, application, 'write')
+  }
   if (str(application.status) === 'draft') throw new WorkflowError(400, '請先送交承辦後再通知導師')
   assertSignable(application)
 
@@ -173,9 +179,9 @@ async function notifyTeacher(
     `老師您好：`,
     ``,
     `學生 ${studentName} 已送出「${category}」申請（申請編號 ${number}），`,
-    `請協助於申請表簽名確認，並交回課指組（H101）。`,
+    `請協助於系統完成簽核確認（電子簽即可；紙本僅備援）。`,
     ``,
-    `如已完成簽名，請忽略此信。謝謝您的協助。`,
+    `如已完成簽核，請忽略此信。謝謝您的協助。`,
     `弘愛築夢申請系統`,
   ].join('\n')
 
@@ -271,7 +277,7 @@ function failure(err: unknown): Response {
     return json({ error: 'request_failed', message: err.message }, { status: err.status })
   }
   return json(
-    { error: 'pb_error', message: err instanceof Error ? err.message : '操作失敗' },
+    { error: 'pb_error', message: publicErrorMessage('操作失敗，請稍後再試', err) },
     { status: 502 },
   )
 }
@@ -315,7 +321,7 @@ export async function handleSignatures(
     return json(
       {
         error: 'service_account_required',
-        message: err instanceof Error ? err.message : 'Service account required',
+        message: publicErrorMessage('系統服務未設定，請聯絡承辦。', err),
       },
       { status: 503 },
     )
@@ -325,7 +331,10 @@ export async function handleSignatures(
     if (adminSign && staff) {
       const application = await loadApplication(pb, adminSign[1])
       if (str(application.status) === 'draft') throw new WorkflowError(404, '找不到案件')
-      return json({ signatures: signaturesView(application, true) })
+      await assertStaffCanAccessApplication(pb, staff, application, 'read')
+      // FIX-07: default metadata only; ?include_image=1 for full PNG when needed.
+      const includeImage = new URL(request.url).searchParams.get('include_image') === '1'
+      return json({ signatures: signaturesView(application, includeImage) })
     }
 
     if (sign) {

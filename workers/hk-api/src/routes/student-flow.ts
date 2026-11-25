@@ -9,6 +9,7 @@ import { copyAnswers, validateValues, calculateComputed, type FormValues } from 
 import { findPublishedForm, flattenFields, toSchema } from '../lib/forms'
 import { json, type WorkerEnv } from '../lib/http'
 import { createServicePb } from '../lib/pb'
+import { publicErrorMessage } from '../lib/public-error'
 import {
   compareLatestFirst,
   isPeriodEditableNow,
@@ -31,7 +32,7 @@ import {
  * A form submission is an hk_applications row: created as status "draft" when the student
  * opens a category form (pinned to the published hk_forms version), answers in answers_json,
  * submission meta in workflow_json.submission, and it becomes "submitted" on submit.
- * Paper signatures are collected offline, so submit does not require a server PDF.
+ * Primary path is e-sign + online submit; paper/PDF is optional backup (submit does not require a server PDF).
  */
 
 type Row = Record<string, unknown>
@@ -50,9 +51,17 @@ class HttpError extends Error {
 const str = (value: unknown): string => (value == null ? '' : String(value))
 const obj = (value: unknown): Row =>
   value && typeof value === 'object' && !Array.isArray(value) ? (value as Row) : {}
+const arr = (value: unknown): Row[] => (Array.isArray(value) ? (value as Row[]) : [])
 const nowIso = () => new Date().toISOString()
 
 const EDITABLE_STATUSES = new Set(['draft', 'returned_for_edit'])
+/** 學生可自行「重新填寫覆蓋」的狀態（審核深入前）。 */
+const RESETABLE_STATUSES = new Set([
+  'draft',
+  'returned_for_edit',
+  'submitted',
+  'teacher_signed',
+])
 
 // ---------------------------------------------------------------------------
 // Shared lookups
@@ -201,13 +210,14 @@ async function ensureWorkspace(pb: PocketBase, student: StudentRecord, categoryC
   const category = await getCategory(pb, categoryCode)
   if (!category.active) throw new HttpError(403, '此申請項目未開放')
 
+  const published = await findPublishedForm(pb, categoryCode)
+  if (!published) throw new HttpError(400, '此申請項目的表單尚未發布')
+
   let application = await findApplication(pb, student.id, open.id, categoryCode)
   if (!application) {
-    const form = await findPublishedForm(pb, categoryCode)
-    if (!form) throw new HttpError(400, '此申請項目的表單尚未發布')
     application = (await pb.collection('hk_applications').create({
       student: student.id,
-      form: form.id,
+      form: published.id,
       application_number: `DRAFT-${crypto.randomUUID()}`,
       period_key: open.id,
       period_json: open,
@@ -228,6 +238,30 @@ async function ensureWorkspace(pb: PocketBase, student: StudentRecord, categoryC
     await writeAudit(pb, student.id, 'FORM_SUBMISSION_CREATED', str(application.id), {
       category_code: categoryCode,
       period_id: open.id,
+    })
+  } else if (
+    EDITABLE_STATUSES.has(str(application.status)) &&
+    str(application.form) !== str(published.id)
+  ) {
+    // 草稿／退回修改且表單已改版：改綁最新版並清空舊填答（覆蓋重寫）
+    const now = nowIso()
+    application = (await pb.collection('hk_applications').update(str(application.id), {
+      form: published.id,
+      answers_json: {},
+      submission_snapshot_json: {},
+      workflow_json: {
+        ...obj(application.workflow_json),
+        submission: {
+          status: 'draft',
+          current_version_number: 1,
+          last_saved_at: now,
+          completed_at: null,
+        },
+      },
+    })) as Row
+    await writeAudit(pb, student.id, 'FORM_REBOUND_OVERWRITE', str(application.id), {
+      category_code: categoryCode,
+      form_id: str(published.id),
     })
   }
 
@@ -528,9 +562,141 @@ async function workspace({ pb, student }: Ctx, code: string) {
     },
     schema: toSchema(form),
     answers,
+    can_reset_overwrite: RESETABLE_STATUSES.has(str(application.status)),
     applicant: applicantView(student),
     period_profile:
       periodProfileToPlain(student.id, open.id, readState(student).period_profiles[open.id]) || {},
+  })
+}
+
+/**
+ * FIX-04: Load workspace for a specific owned application id.
+ * Never substitutes another period's case with the same category.
+ */
+async function workspaceByApplication({ pb, student }: Ctx, applicationId: string) {
+  const application = await getOwnApplication(pb, student.id, applicationId)
+  const form = await loadFormVersion(pb, str(application.form))
+  const answers = calculateComputed(flattenFields(form), obj(application.answers_json))
+  const period = obj(application.period_json)
+  const periodId = str(application.period_key) || str(period.id)
+  const categoryCode = str(application.category_code)
+  let categoryId = categoryCode
+  try {
+    const cat = await getCategory(pb, categoryCode)
+    categoryId = cat.id
+  } catch {
+    /* print still works with code/name from the application row */
+  }
+  return json({
+    period: {
+      id: periodId,
+      name: str(period.name) || periodId,
+      academic_year: period.academic_year ?? null,
+      start_at: period.start_at ?? null,
+      end_at: period.end_at ?? null,
+      status: period.status ?? null,
+    },
+    category: {
+      id: categoryId,
+      code: categoryCode,
+      name: str(application.category_name) || categoryCode,
+    },
+    submission: submissionToPlain(application),
+    application: {
+      id: str(application.id),
+      application_number: str(application.application_number).startsWith('DRAFT-')
+        ? null
+        : str(application.application_number),
+      status: str(application.status),
+      submitted_at: application.submitted_at || null,
+    },
+    schema: toSchema(form),
+    answers,
+    can_reset_overwrite: RESETABLE_STATUSES.has(str(application.status)),
+    applicant: applicantView(student),
+    period_profile:
+      periodProfileToPlain(student.id, periodId, readState(student).period_profiles[periodId]) || {},
+  })
+}
+
+/**
+ * 覆蓋重填：改綁最新已發布表單、清空填答，狀態回到 draft。
+ * 用於「第一版填錯／表單已改版」時讓學生重寫，不另開新案。
+ */
+async function resetOverwrite({ pb, student }: Ctx, code: string) {
+  const { open, category, application } = await ensureWorkspace(pb, student, code)
+  const status = str(application.status)
+  if (!RESETABLE_STATUSES.has(status)) {
+    throw new HttpError(403, '目前狀態不可重新填寫覆蓋，請洽承辦退回修改')
+  }
+  const published = await findPublishedForm(pb, code)
+  if (!published) throw new HttpError(400, '此申請項目的表單尚未發布')
+
+  const now = nowIso()
+  const patch: Row = {
+    form: published.id,
+    status: 'draft',
+    answers_json: {},
+    submission_snapshot_json: {},
+    application_number: `DRAFT-${crypto.randomUUID()}`,
+    eligibility_status: 'pending',
+    workflow_json: {
+      ...obj(application.workflow_json),
+      submission: {
+        status: 'draft',
+        current_version_number: 1,
+        last_saved_at: now,
+        completed_at: null,
+      },
+      signatures: {},
+      status_history: [
+        ...arr(obj(application.workflow_json).status_history),
+        historyEntry({
+          from_status: status,
+          to_status: 'draft',
+          changed_by_type: 'student',
+          changed_by_student: student.id,
+          reason: '學生重新填寫覆蓋舊資料',
+          metadata: { form_id: str(published.id), overwrite: true },
+        }),
+      ],
+    },
+  }
+  // Clear review / submit leftovers (admin return path uses the same pattern).
+  patch.submitted_at = null
+  patch.requested_amount = null
+  patch.approved_amount = null
+  patch.supplement_message = ''
+  patch.return_reason = ''
+  patch.reject_reason = ''
+  patch.supplement_due_at = null
+  patch.latest_reviewed_at = null
+  const updated = (await pb.collection('hk_applications').update(str(application.id), patch)) as Row
+
+  await mutateState(pb, student.id, (state) => {
+    const entries = { ...(state.category_entries[open.id] || {}) }
+    const current = entries[code]
+    entries[code] = current
+      ? { ...current, status: 'draft', last_opened_at: now, updated: now }
+      : { id: crypto.randomUUID(), status: 'draft', last_opened_at: now, created: now, updated: now }
+    state.category_entries[open.id] = entries
+  })
+
+  await writeAudit(pb, student.id, 'FORM_OVERWRITE_RESET', str(updated.id), {
+    category_code: code,
+    from_status: status,
+    form_id: str(published.id),
+  })
+
+  return json({
+    ok: true,
+    message: '已清除舊填答並改用最新表單，請重新填寫。',
+    category: { id: category.id, code: category.code, name: category.name },
+    application: {
+      id: str(updated.id),
+      status: 'draft',
+      application_number: null,
+    },
   })
 }
 
@@ -948,6 +1114,16 @@ const routes: Route[] = [
     handler: (ctx, [code]) => workspace(ctx, code),
   },
   {
+    method: 'GET',
+    pattern: /^\/api\/hk\/forms\/by-application\/([^/]+)\/workspace$/,
+    handler: (ctx, [id]) => workspaceByApplication(ctx, id),
+  },
+  {
+    method: 'POST',
+    pattern: /^\/api\/hk\/forms\/by-category\/([^/]+)\/reset-overwrite$/,
+    handler: (ctx, [code]) => resetOverwrite(ctx, code),
+  },
+  {
     method: 'POST',
     pattern: /^\/api\/hk\/forms\/submission\/save$/,
     handler: (ctx) => saveSubmission(ctx, 'draft'),
@@ -1008,7 +1184,7 @@ export async function handleStudentFlow(
     return json(
       {
         error: 'service_account_required',
-        message: err instanceof Error ? err.message : 'Service account required',
+        message: publicErrorMessage('系統服務未設定，請聯絡承辦。', err),
       },
       { status: 503 },
     )
@@ -1024,7 +1200,7 @@ export async function handleStudentFlow(
       return json({ error: 'request_failed', message: err.message, ...err.extra }, { status: err.status })
     }
     return json(
-      { error: 'pb_error', message: err instanceof Error ? err.message : '操作失敗' },
+      { error: 'pb_error', message: '操作失敗，請稍後再試' },
       { status: 502 },
     )
   }

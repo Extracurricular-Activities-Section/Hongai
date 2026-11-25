@@ -14,6 +14,7 @@ import { requireStaff, type StaffAuthContext } from '../lib/auth-staff'
 import { categoryFromSetting, ensureCategorySeed } from '../lib/categories'
 import { json, type WorkerEnv } from '../lib/http'
 import { createServicePb } from '../lib/pb'
+import { publicErrorMessage } from '../lib/public-error'
 
 type Row = Record<string, unknown>
 type Ctx = { pb: PocketBase; staff: StaffAuthContext; body: Row; url: URL }
@@ -197,7 +198,7 @@ async function createStaff({ pb, staff, body }: Ctx): Promise<Response> {
       can_publish_forms: isAdmin,
     })) as Row
   } catch (err) {
-    throw new HttpError(400, err instanceof Error ? err.message : '建立帳號失敗')
+    throw new HttpError(400, publicErrorMessage('建立帳號失敗', err))
   }
 
   await writeAudit(pb, {
@@ -257,7 +258,7 @@ async function updateStaff({ pb, staff, body }: Ctx, id: string): Promise<Respon
   try {
     record = (await pb.collection('hk_staff_users').update(id, patch)) as Row
   } catch (err) {
-    throw new HttpError(400, err instanceof Error ? err.message : '更新帳號失敗')
+    throw new HttpError(400, publicErrorMessage('更新帳號失敗', err))
   }
 
   await writeAudit(pb, {
@@ -515,7 +516,7 @@ export async function handleAdminOrg(
     return json(
       {
         error: 'service_account_required',
-        message: err instanceof Error ? err.message : 'Service account required',
+        message: publicErrorMessage('系統服務未設定，請聯絡承辦。', err),
       },
       { status: 503 },
     )
@@ -529,7 +530,7 @@ export async function handleAdminOrg(
       return json({ error: 'request_failed', message: err.message }, { status: err.status })
     }
     return json(
-      { error: 'pb_error', message: err instanceof Error ? err.message : '操作失敗' },
+      { error: 'pb_error', message: publicErrorMessage('操作失敗，請稍後再試', err) },
       { status: 502 },
     )
   }

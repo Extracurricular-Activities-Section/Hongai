@@ -23,10 +23,12 @@ import { canStudentSubmit, findTask, taskAttachments } from '../lib/follow-up'
 import { requireStudent, type StudentRecord } from '../lib/auth-student'
 import { json, type WorkerEnv } from '../lib/http'
 import { createServicePb } from '../lib/pb'
+import { publicErrorMessage } from '../lib/public-error'
+import { assertStaffCanAccessApplication } from '../lib/staff-application-access'
 
 /**
  * Attachment upload / download / delete and signed-document registration.
- * Students reach only their own applications; any active staff may read case files.
+ * Students reach only their own applications; staff are limited to authorized categories.
  */
 
 type Row = Record<string, unknown>
@@ -53,10 +55,17 @@ async function loadApplication(pb: PocketBase, id: string): Promise<Row> {
   }
 }
 
-function assertCanRead(actor: Actor, application: Row) {
-  if (actor.kind === 'student' && str(application.student) !== actor.student.id) {
-    throw new WorkflowError(403, '無權限')
+async function assertCanAccess(
+  pb: PocketBase,
+  actor: Actor,
+  application: Row,
+  mode: 'read' | 'write',
+) {
+  if (actor.kind === 'student') {
+    if (str(application.student) !== actor.student.id) throw new WorkflowError(403, '無權限')
+    return
   }
+  await assertStaffCanAccessApplication(pb, actor.staff, application, mode)
 }
 
 function findEntry(application: Row, attachmentId: string): Row {
@@ -95,7 +104,7 @@ async function upload({ pb, actor, request }: Ctx) {
   if (!(file instanceof File)) throw new WorkflowError(400, '請上傳檔案（欄位名稱：file）')
 
   const application = await loadApplication(pb, applicationId)
-  assertCanRead(actor, application)
+  await assertCanAccess(pb, actor, application, 'write')
   const status = str(application.status)
   const workflow = workflowOf(application)
   let supplementRequest: string | null = null
@@ -206,13 +215,13 @@ async function upload({ pb, actor, request }: Ctx) {
 
 async function metadata({ pb, actor }: Ctx, applicationId: string, attachmentId: string) {
   const application = await loadApplication(pb, applicationId)
-  assertCanRead(actor, application)
+  await assertCanAccess(pb, actor, application, 'read')
   return json({ attachment: attachmentToPlain(application, findEntry(application, attachmentId)) })
 }
 
 async function download({ pb, env, actor, request }: Ctx, applicationId: string, attachmentId: string) {
   const application = await loadApplication(pb, applicationId)
-  assertCanRead(actor, application)
+  await assertCanAccess(pb, actor, application, 'read')
   const entry = findEntry(application, attachmentId)
 
   const base = env.HK_POCKETBASE_URL.replace(/\/$/, '')
@@ -269,7 +278,7 @@ function isLocked(application: Row, entry: Row): boolean {
 
 async function remove({ pb, actor }: Ctx, applicationId: string, attachmentId: string) {
   const application = await loadApplication(pb, applicationId)
-  assertCanRead(actor, application)
+  await assertCanAccess(pb, actor, application, 'write')
   const entry = findEntry(application, attachmentId)
   if (actor.kind === 'staff' && entry.uploaded_by_staff !== actor.staff.id) {
     throw new WorkflowError(403, '僅可刪除自己上傳的附件')
@@ -307,7 +316,7 @@ async function registerSigned({ pb, actor, request }: Ctx) {
   const applicationId = str(body.application_id).trim()
   const attachmentId = str(body.attachment_id).trim()
   const application = await loadApplication(pb, applicationId)
-  assertCanRead(actor, application)
+  await assertCanAccess(pb, actor, application, 'write')
   if (!SIGNED_EDITABLE.has(str(application.status))) throw new WorkflowError(400, '目前狀態不可登錄已簽文件')
   if (!ownActiveAttachmentIds(application, [attachmentId], 'signed_document').length) {
     throw new WorkflowError(400, '附件不存在或類型不符')
@@ -351,7 +360,7 @@ async function registerSigned({ pb, actor, request }: Ctx) {
 
 async function listSigned({ pb, actor }: Ctx, applicationId: string) {
   const application = await loadApplication(pb, applicationId)
-  assertCanRead(actor, application)
+  await assertCanAccess(pb, actor, application, 'read')
   return json({ items: signedDocuments(application).slice().reverse() })
 }
 
@@ -422,7 +431,7 @@ export async function handleAttachments(
     return json(
       {
         error: 'service_account_required',
-        message: err instanceof Error ? err.message : 'Service account required',
+        message: publicErrorMessage('系統服務未設定，請聯絡承辦。', err),
       },
       { status: 503 },
     )
@@ -435,7 +444,7 @@ export async function handleAttachments(
       return json({ error: 'request_failed', message: err.message }, { status: err.status })
     }
     return json(
-      { error: 'pb_error', message: err instanceof Error ? err.message : '操作失敗' },
+      { error: 'pb_error', message: '操作失敗，請稍後再試' },
       { status: 502 },
     )
   }

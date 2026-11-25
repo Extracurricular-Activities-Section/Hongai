@@ -98,6 +98,7 @@ export const staffLoginSchema = z.object({
 export const identityResetSchema = z.object({
   name: z.string().trim().min(1, '請輸入姓名'),
   student_no: studentNoSchema,
+  identity_number: identityNumberSchema,
   email: emailSchema,
   phone: phoneSchema,
   reason: z.string().trim().min(1, '請輸入原因'),

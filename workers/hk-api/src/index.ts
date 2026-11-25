@@ -157,8 +157,12 @@ export default {
         json({ error: 'not_found', message: 'Unknown route', path }, { status: 404 }),
       )
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Internal error'
-      return withCors(env, request, json({ error: 'internal', message }, { status: 500 }))
+      void err
+      return withCors(
+        env,
+        request,
+        json({ error: 'internal', message: '系統暫時無法完成操作，請稍後再試' }, { status: 500 }),
+      )
     }
   },
 

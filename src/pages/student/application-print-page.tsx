@@ -1,21 +1,38 @@
 import { ArrowLeft, Printer } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useParams, useSearchParams } from 'react-router-dom'
 
 import { ErrorState } from '@/components/common/states'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ApplicationPrintDocument } from '@/features/application-print/components/application-print-document'
-import { fetchFormWorkspace, type FormWorkspaceResponse } from '@/features/forms/api'
+import {
+  fetchFormWorkspace,
+  fetchFormWorkspaceByApplication,
+  type FormWorkspaceResponse,
+} from '@/features/forms/api'
 
 export function StudentApplicationPrintPage() {
   const { categoryCode = '' } = useParams()
+  const [searchParams] = useSearchParams()
+  const applicationId = (searchParams.get('application') || '').trim()
   const [workspace, setWorkspace] = useState<FormWorkspaceResponse | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     let cancelled = false
-    fetchFormWorkspace(categoryCode)
+    setWorkspace(null)
+    setError(null)
+
+    // FIX-04: when an application id is present, load that case only — never fall back
+    // to "current open period + category" (would open the wrong case across periods).
+    const load = applicationId
+      ? fetchFormWorkspaceByApplication(applicationId)
+      : categoryCode && categoryCode !== '_'
+        ? fetchFormWorkspace(categoryCode)
+        : Promise.reject(new Error('缺少申請案件識別'))
+
+    load
       .then((data) => {
         if (!cancelled) setWorkspace(data)
       })
@@ -25,9 +42,10 @@ export function StudentApplicationPrintPage() {
     return () => {
       cancelled = true
     }
-  }, [categoryCode])
+  }, [applicationId, categoryCode])
 
-  const backTo = `/student/current/category/${categoryCode}`
+  const backCategory = workspace?.category.code || (categoryCode !== '_' ? categoryCode : '')
+  const backTo = backCategory ? `/student/current/category/${backCategory}` : '/student/current'
   const notCompleted = workspace ? workspace.submission.status !== 'completed' : false
 
   return (

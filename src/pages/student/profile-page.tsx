@@ -47,7 +47,9 @@ export function StudentProfilePage() {
       try {
         const me = await fetchStudentMe()
         if (cancelled) return
-        setIdentityNumber(me.profile.identity_number)
+        setIdentityNumber(
+          me.profile.identity_number_masked || me.profile.identity_number || '',
+        )
         form.reset({
           name: me.profile.name,
           gender: me.profile.gender ?? 'male',
@@ -102,8 +104,8 @@ export function StudentProfilePage() {
             <Input value={studentNo ?? ''} readOnly disabled />
           </div>
           <div className="space-y-2">
-            <Label>完整身分證件號碼（唯讀）</Label>
-            <Input value={identityNumber} readOnly disabled />
+            <Label>身分證件號碼（遮罩、唯讀）</Label>
+            <Input value={identityNumber || '—'} readOnly disabled />
           </div>
 
           <div className="space-y-2">

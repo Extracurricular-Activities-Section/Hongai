@@ -19,7 +19,7 @@ export async function requireStudent(
 
   const base = env.HK_POCKETBASE_URL?.replace(/\/$/, '')
   if (!base) {
-    return json({ error: 'misconfigured', message: 'HK_POCKETBASE_URL missing' }, { status: 500 })
+    return json({ error: 'misconfigured', message: '系統服務未設定，請聯絡承辦。' }, { status: 500 })
   }
 
   const upstream = await fetch(`${base}/api/collections/hk_students/auth-refresh`, {

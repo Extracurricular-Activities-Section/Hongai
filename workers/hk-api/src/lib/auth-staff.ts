@@ -1,5 +1,6 @@
 import PocketBase from 'pocketbase'
 
+import { staffTokenIsRevoked, tokenFingerprint } from './auth-revoke'
 import { assertHkCollection, json, type WorkerEnv } from './http'
 
 export type StaffAuthContext = {
@@ -9,6 +10,9 @@ export type StaffAuthContext = {
   is_staff: boolean
   can_manage_forms?: boolean
   can_publish_forms?: boolean
+  /** Optional; unset = interim default (staff may decide). See staffMayDecideFunding. */
+  can_decide_funding?: boolean | null
+  permissions_json?: Record<string, unknown> | null
   token: string
 }
 
@@ -32,7 +36,7 @@ export async function requireStaff(
 
   const url = env.HK_POCKETBASE_URL
   if (!url) {
-    return json({ error: 'misconfigured', message: 'HK_POCKETBASE_URL missing' }, { status: 500 })
+    return json({ error: 'misconfigured', message: '系統服務未設定，請聯絡承辦。' }, { status: 500 })
   }
 
   const pb = new PocketBase(url)
@@ -49,6 +53,8 @@ export async function requireStaff(
       role?: string
       can_manage_forms?: boolean
       can_publish_forms?: boolean
+      can_decide_funding?: boolean | null
+      permissions_json?: Record<string, unknown> | null
     }>()
     const record = result.record
     const isAdmin =
@@ -62,6 +68,12 @@ export async function requireStaff(
       return json({ error: 'forbidden', message: '需要管理員權限' }, { status: 403 })
     }
 
+    // FIX-14: reject JWTs revoked by /api/hk/auth/staff/logout.
+    const fingerprint = await tokenFingerprint(token)
+    if (staffTokenIsRevoked(record as Record<string, unknown>, fingerprint)) {
+      return json({ error: 'unauthorized', message: '職員登入已失效' }, { status: 401 })
+    }
+
     return {
       id: record.id,
       email: record.email,
@@ -69,6 +81,9 @@ export async function requireStaff(
       is_staff: isStaff,
       can_manage_forms: record.can_manage_forms,
       can_publish_forms: record.can_publish_forms,
+      can_decide_funding:
+        typeof record.can_decide_funding === 'boolean' ? record.can_decide_funding : null,
+      permissions_json: record.permissions_json ?? null,
       token: result.token || token,
     }
   } catch {

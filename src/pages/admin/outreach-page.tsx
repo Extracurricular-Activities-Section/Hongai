@@ -212,7 +212,7 @@ export function AdminOutreachPage() {
       <PageHeader
         backTo="/admin/notifications"
         backLabel="通知中心"
-        title="經濟不利生通知"
+        title="經濟與文化不利學生"
         description="上傳經濟不利名冊（CSV），分批建立站內通知與 Email 寄送紀錄，邀請符合資格的同學申請弘愛築夢。僅管理員可使用。"
       />
 

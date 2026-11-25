@@ -23,6 +23,11 @@ import {
 } from '../lib/follow-up'
 import { json, type WorkerEnv } from '../lib/http'
 import { createServicePb } from '../lib/pb'
+import { publicErrorMessage } from '../lib/public-error'
+import {
+  assertStaffCanAccessApplication,
+  staffScopedApplicationFilter,
+} from '../lib/staff-application-access'
 
 /**
  * Staff follow-up task review plus template / category-assignment management (writes admin-only).
@@ -104,22 +109,33 @@ function taskTypeOf(value: unknown, fallback: string): string {
 // Tasks
 // ---------------------------------------------------------------------------
 
-async function listTasks({ pb, url }: Ctx) {
+async function listTasks({ pb, staff, url }: Ctx) {
   const applicationId = url.searchParams.get('application_id')
   const status = url.searchParams.get('status')
-  const filter = applicationId
+  const base = applicationId
     ? pb.filter('id = {:id}', { id: applicationId })
     : pb.filter('tasks_json ~ {:marker}', { marker: '"id"' })
-  const applications = (await pb.collection('hk_applications').getFullList({ filter, fields: LIST_FIELDS })) as Row[]
+  const filter = await staffScopedApplicationFilter(pb, staff, base)
+  if (filter === null) return json({ items: [] })
+  const applications = (await pb.collection('hk_applications').getFullList({
+    filter,
+    fields: LIST_FIELDS,
+  })) as Row[]
+  if (applicationId && applications[0]) {
+    await assertStaffCanAccessApplication(pb, staff, applications[0], 'read')
+  }
   const items = applications
-    .flatMap((application) => arr(application.tasks_json).map((task) => taskToPlain(task, application, { internal: true })))
+    .flatMap((application) =>
+      arr(application.tasks_json).map((task) => taskToPlain(task, application, { internal: true })),
+    )
     .filter((task) => !status || (status === 'overdue' ? task.is_overdue === true : task.status === status))
     .sort((a, b) => str(b.created).localeCompare(str(a.created)))
   return json({ items })
 }
 
-async function taskDetail({ pb }: Ctx, id: string) {
+async function taskDetail({ pb, staff }: Ctx, id: string) {
   const { application, task } = await loadTaskContext(pb, id)
+  await assertStaffCanAccessApplication(pb, staff, application, 'read')
   return json({
     task: taskToPlain(task, application, { internal: true }),
     submissions: arr(task.submissions),
@@ -131,6 +147,7 @@ async function taskDetail({ pb }: Ctx, id: string) {
 async function createTask({ pb, staff, body }: Ctx) {
   const applicationId = str(body.application_id).trim()
   const application = await loadApplication(pb, applicationId)
+  await assertStaffCanAccessApplication(pb, staff, application, 'write')
   if (!TASK_OPEN_STATUSES.has(str(application.status))) {
     throw new WorkflowError(400, '案件核准後才可建立追蹤任務')
   }
@@ -190,6 +207,7 @@ const REVIEW_NOTICE: Record<string, { type: string; title: string; message: stri
 
 async function reviewTask({ pb, staff, body }: Ctx, id: string) {
   const { application, tasks, index, task } = await loadTaskContext(pb, id)
+  await assertStaffCanAccessApplication(pb, staff, application, 'write')
   const decision = str(body.decision)
   if (!DECISIONS.has(decision)) throw new WorkflowError(400, '審核決定無效')
   if (!REVIEWABLE.has(str(task.status))) throw new WorkflowError(400, '此任務目前不在待審狀態')
@@ -241,6 +259,7 @@ async function reviewTask({ pb, staff, body }: Ctx, id: string) {
 
 async function waiveTask({ pb, staff, body }: Ctx, id: string) {
   const { application, tasks, index, task } = await loadTaskContext(pb, id)
+  await assertStaffCanAccessApplication(pb, staff, application, 'write')
   const reason = optionalText(body.waive_reason, 500)
   if (!reason) throw new WorkflowError(400, '請填寫豁免原因')
   if (['approved', 'waived'].includes(str(task.status))) throw new WorkflowError(400, '此任務已完成，無需豁免')
@@ -255,6 +274,7 @@ async function waiveTask({ pb, staff, body }: Ctx, id: string) {
 
 async function updateDueAt({ pb, staff, body }: Ctx, id: string) {
   const { application, tasks, index, task } = await loadTaskContext(pb, id)
+  await assertStaffCanAccessApplication(pb, staff, application, 'write')
   if (['approved', 'waived'].includes(str(task.status))) throw new WorkflowError(400, '此任務已完成，不可調整截止日')
   const dueAt = optionalIso(body.due_at, '截止日期')
   const next: Row = { ...task, due_at: dueAt, updated: nowIso() }
@@ -265,6 +285,7 @@ async function updateDueAt({ pb, staff, body }: Ctx, id: string) {
 
 async function ensureTasks({ pb, staff }: Ctx, applicationId: string) {
   const application = await loadApplication(pb, applicationId)
+  await assertStaffCanAccessApplication(pb, staff, application, 'write')
   if (!TASK_OPEN_STATUSES.has(str(application.status))) {
     throw new WorkflowError(400, '案件核准後才可建立追蹤任務')
   }
@@ -504,7 +525,7 @@ export async function handleAdminFollowUp(
     return json(
       {
         error: 'service_account_required',
-        message: err instanceof Error ? err.message : 'Service account required',
+        message: publicErrorMessage('系統服務未設定，請聯絡承辦。', err),
       },
       { status: 503 },
     )
@@ -520,7 +541,7 @@ export async function handleAdminFollowUp(
       return json({ error: 'request_failed', message: err.message }, { status: err.status })
     }
     return json(
-      { error: 'pb_error', message: err instanceof Error ? err.message : '操作失敗' },
+      { error: 'pb_error', message: publicErrorMessage('操作失敗，請稍後再試', err) },
       { status: 502 },
     )
   }

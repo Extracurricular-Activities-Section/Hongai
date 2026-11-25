@@ -238,17 +238,17 @@ export function StudentHomePage() {
           to="/student/current"
         />
         <Metric
+          label="目前核定總額"
+          value={approvedGrantTotal > 0 ? `NT$ ${approvedGrantTotal.toLocaleString('zh-TW')}` : '—'}
+          hint="助學金（不含獎勵金）"
+          to="/student/current"
+        />
+        <Metric
           label="待處理任務"
           value={pendingTasks}
           tone={pendingTasks > 0 ? 'attention' : 'default'}
           hint={pendingTasks > 0 ? '需要你繳交或補件' : '目前沒有待辦'}
           to="/student/tasks"
-        />
-        <Metric
-          label="目前核定總額"
-          value={approvedGrantTotal > 0 ? `NT$ ${approvedGrantTotal.toLocaleString('zh-TW')}` : '—'}
-          hint="助學金（不含獎勵金）"
-          to="/student/current"
         />
         <Metric label="歷史紀錄" value={periodState.has_history ? '可查看' : '尚無'} to="/student/history" />
       </MetricRow>

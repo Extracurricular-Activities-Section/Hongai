@@ -17,12 +17,13 @@ import type { NotificationDashboardSummary } from '@/features/notifications/type
 import { applicationStatusTone } from '@/lib/status/tone'
 import { cn } from '@/lib/utils'
 
-/** Statuses grouped by who is expected to act next. */
+/** Statuses grouped by who is expected to act next（與 API `queue=awaiting_me` 同源含待核定）. */
 const AWAITING_STAFF: ApplicationStatus[] = [
   'submitted',
   'teacher_signed',
   'eligibility_review',
   'under_review',
+  'funding_pending',
 ]
 const AWAITING_STUDENT: ApplicationStatus[] = ['supplement_required', 'returned_for_edit']
 const BREAKDOWN_ORDER: ApplicationStatus[] = [
@@ -87,10 +88,16 @@ export function AdminDashboardPage() {
     const byStatus = summary?.by_status ?? {}
     const sum = (list: ApplicationStatus[]) =>
       list.reduce((total, status) => total + (byStatus[status] || 0), 0)
+    // Prefer server awaiting_me_count (FIX-03：無核定權者不計 funding_pending)
+    const awaitingStaff =
+      typeof summary?.awaiting_me_count === 'number'
+        ? summary.awaiting_me_count
+        : sum(AWAITING_STAFF)
     return {
-      awaitingStaff: sum(AWAITING_STAFF),
+      awaitingStaff,
       awaitingStudent: sum(AWAITING_STUDENT),
-      fundingPending: byStatus.funding_pending || 0,
+      // 「待核發」= 已核定、進入分階段核發（勿與 funding_pending 待核定混淆）
+      fundingDecided: byStatus.funding_decided || 0,
     }
   }, [summary])
 
@@ -130,26 +137,24 @@ export function AdminDashboardPage() {
 
       {error ? <ErrorState message={error} /> : null}
 
-      <MetricRow>
+      <MetricRow className="lg:grid-cols-3">
         <Metric
           emphasis
           label="等我處理"
           value={counts.awaitingStaff}
-          hint="已送件、老師已簽核、資格審核中、內容審核中"
-          to="/admin/applications?status=submitted"
+          hint={
+            summary.can_decide_funding === false
+              ? '已送件、老師已簽核、資格／內容審核中'
+              : '已送件、老師已簽核、資格／內容審核中、待核定補助'
+          }
+          to="/admin/applications?queue=awaiting_me"
         />
         <Metric
           label="等待學生回應"
           value={counts.awaitingStudent}
           tone={counts.awaitingStudent > 0 ? 'attention' : 'default'}
           hint="待補件與退回修改"
-          to="/admin/applications?status=supplement_required"
-        />
-        <Metric
-          label="待核定補助"
-          value={counts.fundingPending}
-          hint="已通過審核，尚未核定金額"
-          to="/admin/applications?status=funding_pending"
+          to="/admin/applications?queue=awaiting_student"
         />
         <Metric
           label="追蹤任務待審"
@@ -169,8 +174,8 @@ export function AdminDashboardPage() {
         />
         <Metric
           label="待核發（流程）"
-          value={counts.fundingPending}
-          hint="核定後進入分階段核發；實際匯款另由財務狀態更新"
+          value={counts.fundingDecided}
+          hint="已核定、進入分階段核發；實際匯款另由財務狀態更新"
           to="/admin/applications?status=funding_decided"
         />
         <Metric

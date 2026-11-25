@@ -36,6 +36,8 @@ export interface FormWorkspaceResponse {
   }
   schema: FormSchema
   answers: FormValues
+  /** 可否一鍵清除舊填答並改用最新已發布表單重寫 */
+  can_reset_overwrite?: boolean
   applicant: Record<string, unknown>
   period_profile: PeriodStudentProfile | Record<string, unknown>
 }
@@ -47,6 +49,33 @@ export async function fetchFormWorkspace(categoryCode: string): Promise<FormWork
     })
   } catch (error) {
     throw mapError(error, '無法載入表單')
+  }
+}
+
+/** FIX-04: workspace for a specific owned application id (no category/period substitution). */
+export async function fetchFormWorkspaceByApplication(
+  applicationId: string,
+): Promise<FormWorkspaceResponse> {
+  try {
+    return await studentPb.send(`/api/hk/forms/by-application/${applicationId}/workspace`, {
+      method: 'GET',
+    })
+  } catch (error) {
+    throw mapError(error, '無法載入申請預覽')
+  }
+}
+
+export async function resetFormOverwrite(categoryCode: string): Promise<{
+  ok: boolean
+  message: string
+}> {
+  try {
+    return await studentPb.send(`/api/hk/forms/by-category/${categoryCode}/reset-overwrite`, {
+      method: 'POST',
+      body: {},
+    })
+  } catch (error) {
+    throw mapError(error, '無法重新填寫覆蓋')
   }
 }
 

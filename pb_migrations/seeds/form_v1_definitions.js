@@ -476,9 +476,26 @@ function externalCompetition() {
     description: '校外競賽專屬申請內容',
     sections: [
       {
+        code: 'instructions',
+        title: '申請說明',
+        sort_order: 1,
+        fields: [
+          f({
+            code: 'application_instructions',
+            label: '申請說明',
+            field_type: 'display',
+            required: false,
+            sort_order: 1,
+            copy_previous: false,
+            help_text:
+              '學生可依興趣與職涯發展需求，自主規劃參加校外競賽之學習計畫，以提升就業競爭力。申請本計畫需至少申請兩項以上，始符合申請資格。承辦單位：學務處生輔組（分機 1427，B107）。',
+          }),
+        ],
+      },
+      {
         code: 'competition',
         title: '競賽規劃',
-        sort_order: 1,
+        sort_order: 2,
         fields: [
           f({ code: 'goal', label: '目標', field_type: 'textarea', required: true, sort_order: 1 }),
           f({
@@ -560,7 +577,7 @@ function externalCompetition() {
       {
         code: 'advisor',
         title: '指導老師',
-        sort_order: 2,
+        sort_order: 3,
         fields: [
           f({
             code: 'has_advisor',
@@ -588,7 +605,7 @@ function externalCompetition() {
       {
         code: 'funding',
         title: '經費',
-        sort_order: 3,
+        sort_order: 4,
         fields: [
           f({
             code: 'applied_other_funding',
