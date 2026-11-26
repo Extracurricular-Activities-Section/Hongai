@@ -270,6 +270,40 @@ async function updateStaff({ pb, staff, body }: Ctx, id: string): Promise<Respon
   return json({ staff_user: staffToPlain(record) })
 }
 
+/**
+ * Hard-delete only after soft-deactivate (active=false).
+ * Blocks self-delete and role=service accounts.
+ */
+async function deleteStaff({ pb, staff }: Ctx, id: string): Promise<Response> {
+  requireAdmin(staff)
+  if (id === staff.id) throw new HttpError(400, '不可刪除目前登入的帳號')
+
+  let record: Row
+  try {
+    record = (await pb.collection('hk_staff_users').getOne(id)) as Row
+  } catch {
+    throw new HttpError(404, '找不到帳號')
+  }
+  if (str(record.role) === 'service') throw new HttpError(403, '不可刪除服務帳號')
+  if (Boolean(record.active)) {
+    throw new HttpError(400, '請先停用帳號後再刪除')
+  }
+
+  try {
+    await pb.collection('hk_staff_users').delete(id)
+  } catch (err) {
+    throw new HttpError(400, publicErrorMessage('刪除帳號失敗', err))
+  }
+
+  await writeAudit(pb, {
+    actorStaff: staff.id,
+    action: 'STAFF_USER_DELETED',
+    targetId: id,
+    payload: { email: str(record.email), name: str(record.name) },
+  })
+  return json({ message: '帳號已刪除', id })
+}
+
 async function saveDepartment({ pb, staff, body }: Ctx): Promise<Response> {
   requireAdmin(staff)
   const existingId = str(body.id)
@@ -471,13 +505,18 @@ async function saveAssignment({ pb, staff, body }: Ctx): Promise<Response> {
 }
 
 type Route = {
-  method: 'POST'
+  method: 'POST' | 'DELETE'
   pattern: RegExp
   handler: (ctx: Ctx, params: string[]) => Promise<Response>
 }
 
 const routes: Route[] = [
   { method: 'POST', pattern: /^\/api\/hk\/admin\/staff-users$/, handler: (c) => createStaff(c) },
+  {
+    method: 'DELETE',
+    pattern: /^\/api\/hk\/admin\/staff-users\/([^/]+)$/,
+    handler: (c, [id]) => deleteStaff(c, decodeURIComponent(id)),
+  },
   {
     method: 'POST',
     pattern: /^\/api\/hk\/admin\/staff-users\/([^/]+)$/,
@@ -496,9 +535,10 @@ export async function handleAdminOrg(
   env: WorkerEnv,
   path: string,
 ): Promise<Response | null> {
-  if (request.method !== 'POST') return null
+  if (request.method !== 'POST' && request.method !== 'DELETE') return null
   let params: string[] = []
   const route = routes.find((candidate) => {
+    if (candidate.method !== request.method) return false
     const match = path.match(candidate.pattern)
     if (!match) return false
     params = match.slice(1)

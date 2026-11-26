@@ -5,24 +5,27 @@ import { PageSkeleton } from '@/components/common/states'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
-import { useBackofficeAuth } from '@/features/auth/backoffice/context'
 import {
   adminCreateStaffUser,
+  adminDeleteStaffUser,
   adminListDepartmentsApi,
   adminListStaffUsers,
   adminUpdateStaffUser,
 } from '@/features/applications/api'
+import { ConfirmDialog } from '@/features/applications/components/confirm-dialog'
 import type { StaffUserAdmin } from '@/features/applications/types'
+import { useBackofficeAuth } from '@/features/auth/backoffice/context'
 import type { Department } from '@/types'
 
 export function AdminUsersPage() {
-  const { isAdmin } = useBackofficeAuth()
+  const { isAdmin, staffId } = useBackofficeAuth()
   const [items, setItems] = useState<StaffUserAdmin[] | null>(null)
   const [departments, setDepartments] = useState<Department[]>([])
   const [error, setError] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<StaffUserAdmin | null>(null)
 
   const [form, setForm] = useState({
     email: '',
@@ -108,8 +111,12 @@ export function AdminUsersPage() {
           password: form.password || undefined,
           department_ids: form.department_ids,
         })
-        setMessage('帳號已更新')
+        setMessage(form.password ? '帳號與密碼已更新' : '帳號已更新')
       } else {
+        if (form.password.length < 8) {
+          setError('密碼至少 8 碼')
+          return
+        }
         await adminCreateStaffUser({
           email: form.email,
           password: form.password,
@@ -133,11 +140,53 @@ export function AdminUsersPage() {
     }
   }
 
+  async function setActive(user: StaffUserAdmin, active: boolean) {
+    if (user.id === staffId && !active) {
+      setError('不可停用目前登入的帳號')
+      return
+    }
+    setBusy(true)
+    setError(null)
+    setMessage(null)
+    try {
+      await adminUpdateStaffUser(user.id, { active })
+      setMessage(active ? '帳號已啟用' : '帳號已停用；停用後可選擇永久刪除')
+      if (editingId === user.id) {
+        setForm((f) => ({ ...f, active }))
+      }
+      await load()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '更新失敗')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function confirmDelete() {
+    if (!deleteTarget) return
+    setBusy(true)
+    setError(null)
+    setMessage(null)
+    try {
+      await adminDeleteStaffUser(deleteTarget.id)
+      setMessage(`已刪除帳號：${deleteTarget.name}`)
+      if (editingId === deleteTarget.id) resetForm()
+      setDeleteTarget(null)
+      await load()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '刪除失敗')
+    } finally {
+      setBusy(false)
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-page font-semibold text-foreground">帳號管理</h1>
-        <p className="mt-2 text-sm text-muted-foreground">管理承辦／管理員帳號（僅 Admin）。</p>
+        <p className="mt-2 text-sm text-muted-foreground">
+          管理承辦／管理員帳號（僅 Admin）。可新增、修改帳密；請先停用，再選擇是否永久刪除。
+        </p>
       </div>
 
       {message ? <p className="text-sm font-medium text-success">{message}</p> : null}
@@ -148,28 +197,72 @@ export function AdminUsersPage() {
           {items.length === 0 ? (
             <p className="text-sm text-muted-foreground">尚無帳號。</p>
           ) : (
-            items.map((user) => (
-              <Card key={user.id}>
-                <CardContent className="flex items-start justify-between gap-3 py-4 text-sm">
-                  <div>
-                    <p className="font-medium">
-                      {user.name}
-                      {!user.active ? '（停用）' : ''}
-                    </p>
-                    <p className="text-muted-foreground">{user.email}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {user.is_admin ? 'Admin' : ''}
-                      {user.is_admin && user.is_staff ? ' · ' : ''}
-                      {user.is_staff ? 'Staff' : ''}
-                      {user.job_title ? ` · ${user.job_title}` : ''}
-                    </p>
-                  </div>
-                  <Button type="button" size="sm" variant="outline" onClick={() => startEdit(user)}>
-                    編輯
-                  </Button>
-                </CardContent>
-              </Card>
-            ))
+            items.map((user) => {
+              const isSelf = user.id === staffId
+              return (
+                <Card key={user.id}>
+                  <CardContent className="flex flex-wrap items-start justify-between gap-3 py-4 text-sm">
+                    <div className="min-w-0">
+                      <p className="font-medium">
+                        {user.name}
+                        {!user.active ? '（已停用）' : ''}
+                        {isSelf ? '（目前登入）' : ''}
+                      </p>
+                      <p className="text-muted-foreground">{user.email}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {user.is_admin ? 'Admin' : ''}
+                        {user.is_admin && user.is_staff ? ' · ' : ''}
+                        {user.is_staff ? 'Staff' : ''}
+                        {user.job_title ? ` · ${user.job_title}` : ''}
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        disabled={busy}
+                        onClick={() => startEdit(user)}
+                      >
+                        編輯／改密
+                      </Button>
+                      {user.active ? (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          disabled={busy || isSelf}
+                          onClick={() => void setActive(user, false)}
+                        >
+                          停用
+                        </Button>
+                      ) : (
+                        <>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            disabled={busy}
+                            onClick={() => void setActive(user, true)}
+                          >
+                            啟用
+                          </Button>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="danger"
+                            disabled={busy || isSelf}
+                            onClick={() => setDeleteTarget(user)}
+                          >
+                            刪除
+                          </Button>
+                        </>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              )
+            })
           )}
         </div>
 
@@ -193,6 +286,7 @@ export function AdminUsersPage() {
               placeholder={editingId ? '新密碼（空白則不變更）' : '密碼（至少 8 碼）'}
               value={form.password}
               onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
+              autoComplete="new-password"
             />
             <Input
               placeholder="職稱"
@@ -235,7 +329,7 @@ export function AdminUsersPage() {
                 啟用
               </label>
             </div>
-            {!editingId && departments.length > 0 ? (
+            {departments.length > 0 ? (
               <div className="space-y-2">
                 <p className="text-muted-foreground">所屬單位</p>
                 {departments.map((d) => (
@@ -270,6 +364,23 @@ export function AdminUsersPage() {
           </CardContent>
         </Card>
       </div>
+
+      <ConfirmDialog
+        open={Boolean(deleteTarget)}
+        title="永久刪除帳號？"
+        description={
+          deleteTarget
+            ? `將永久刪除「${deleteTarget.name}」（${deleteTarget.email}）。此動作無法復原。`
+            : undefined
+        }
+        confirmLabel="永久刪除"
+        confirmVariant="destructive"
+        busy={busy}
+        onCancel={() => {
+          if (!busy) setDeleteTarget(null)
+        }}
+        onConfirm={() => void confirmDelete()}
+      />
     </div>
   )
 }

@@ -263,6 +263,15 @@ export async function adminUpdateStaffUser(
   }
 }
 
+/** Hard-delete; server requires the account to be deactivated first. */
+export async function adminDeleteStaffUser(id: string): Promise<void> {
+  try {
+    await staffPb.send(`/api/hk/admin/staff-users/${id}`, { method: 'DELETE' })
+  } catch (error) {
+    throw mapError(error, '刪除帳號失敗')
+  }
+}
+
 export async function adminListDepartmentsApi(): Promise<Department[]> {
   try {
     const data = await staffPb.send<{ items: Department[] }>('/api/hk/admin/departments', {
